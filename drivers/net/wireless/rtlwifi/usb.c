@@ -996,6 +996,14 @@ int __devinit rtl_usb_probe(struct usb_interface *intf,
 	}
 	rtlpriv->cfg->ops->init_sw_leds(hw);
 
+	set_bit(RTL_STATUS_INTERFACE_START, &rtlpriv->status);
+
+	err = sysfs_create_group(&intf->dev.kobj, &rtl_attribute_group);
+	if (err) {
+		RT_TRACE(rtlpriv, COMP_ERR, DBG_EMERG,
+			 ("failed to create sysfs device attributes\n"));
+		goto error_out;
+	}
 	return 0;
 error_out:
 	rtl_deinit_core(hw);
@@ -1028,6 +1036,7 @@ void rtl_usb_disconnect(struct usb_interface *intf)
 	}
 	/*deinit rfkill */
 	/* rtl_deinit_rfkill(hw); */
+	sysfs_remove_group(&intf->dev.kobj, &rtl_attribute_group);
 	rtl_usb_deinit(hw);
 	rtl_deinit_core(hw);
 	kfree(rtlpriv->usb_data);
