@@ -234,11 +234,12 @@ static void rmmod_host_driver(struct usb_msg_center_info *center_info)
 
 static void insmod_device_driver(struct usb_msg_center_info *center_info)
 {
+#ifdef CONFIG_USB_SW_SUN4I_UDC0
 	DMSG_INFO("\n\ninsmod_device_driver\n\n");
 
 	set_usb_role(center_info, USB_ROLE_DEVICE);
 	sw_usb_device_enable();
-
+#endif
 	return;
 }
 
@@ -262,11 +263,12 @@ static void insmod_device_driver(struct usb_msg_center_info *center_info)
 */
 static void rmmod_device_driver(struct usb_msg_center_info *center_info)
 {
+#ifdef CONFIG_USB_SW_SUN4I_UDC0
 	DMSG_INFO("\n\nrmmod_device_driver\n\n");
 
 	set_usb_role(center_info, USB_ROLE_NULL);
 	sw_usb_device_disable();
-
+#endif
 	return;
 }
 
