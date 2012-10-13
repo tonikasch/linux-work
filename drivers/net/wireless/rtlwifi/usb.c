@@ -1001,7 +1001,7 @@ int __devinit rtl_usb_probe(struct usb_interface *intf,
 	err = sysfs_create_group(&intf->dev.kobj, &rtl_attribute_group);
 	if (err) {
 		RT_TRACE(rtlpriv, COMP_ERR, DBG_EMERG,
-			 ("failed to create sysfs device attributes\n"));
+			 "failed to create sysfs device attributes\n");
 		goto error_out;
 	}
 	return 0;
