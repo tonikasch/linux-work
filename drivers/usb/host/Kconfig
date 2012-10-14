@@ -676,7 +676,7 @@ config USB_SW_SUN3I_HCD2
 #-----------------------------------------------------
 config USB_SW_SUN4I_HCD
     tristate "SoftWinner SUN4I USB Host Controller support"
-	depends on USB && USB_SW_SUN4I_USB_MANAGER
+	depends on USB
 	help
 	    SoftWinner SUN4I USB2.0 Host Controller support.
 
