@@ -38,7 +38,7 @@
 	(DMSG_PRINT("WRN:L%d(%s):", __LINE__, __FILE__), \
 	DMSG_PRINT(__VA_ARGS__))
 
-#if 0
+#if 1
 #define DMSG_DEBUG	DMSG_PRINT
 #else
 #define DMSG_DEBUG(...)
