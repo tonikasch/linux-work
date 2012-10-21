@@ -1,5 +1,5 @@
 /*
- * drivers/usb/host/sw_hci_sun4i.c
+ * drivers/usb/host/sw_hci_sunxi.c
  *
  * (C) Copyright 2007-2012
  * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
@@ -28,7 +28,7 @@
 *				        (c) Copyright 2006-2010, All winners Co,Ld.
 *							       All Rights Reserved
 *
-* File Name 	: sw_hci_sun4i.c
+* File Name 	: sw_hci_sunxi.c
 *
 * Author 		: javen
 *
@@ -85,9 +85,6 @@ static char* usbc_phy_reset_name[3] = {"usb_phy0", "usb_phy1", "usb_phy2"};
 static u32 usbc_base[3] 			= {SW_VA_USB0_IO_BASE, SW_VA_USB1_IO_BASE, SW_VA_USB2_IO_BASE};
 static u32 ehci_irq_no[3] 			= {0, SW_INT_SRC_EHCI0, SW_INT_SRC_EHCI1};
 static u32 ohci_irq_no[3] 			= {0, SW_INT_SRC_OHCI0, SW_INT_SRC_OHCI1};
-
-u32 usb1_drv_vbus_Handle = 0;
-u32 usb2_drv_vbus_Handle = 0;
 
 static u32 usb1_set_vbus_cnt = 0;
 static u32 usb2_set_vbus_cnt = 0;
@@ -852,8 +849,8 @@ static void sw_set_vbus(struct sw_hci_hcd *sw_hci, int is_on)
 #define  SW_EHCI_NAME		"sw-ehci"
 static const char ehci_name[] = SW_EHCI_NAME;
 
-static struct sw_hci_hcd sw_ehci0;
 static struct sw_hci_hcd sw_ehci1;
+static struct sw_hci_hcd sw_ehci2;
 
 static u64 sw_ehci_dmamask = DMA_BIT_MASK(32);
 
@@ -864,7 +861,7 @@ static struct platform_device sw_usb_ehci_device[] = {
 		.dev 		= {
 			.dma_mask			= &sw_ehci_dmamask,
 			.coherent_dma_mask	= DMA_BIT_MASK(32),
-			.platform_data		= &sw_ehci0,
+			.platform_data		= &sw_ehci1,
 		},
 	},
 
@@ -874,7 +871,7 @@ static struct platform_device sw_usb_ehci_device[] = {
 		.dev 		= {
 			.dma_mask			= &sw_ehci_dmamask,
 			.coherent_dma_mask	= DMA_BIT_MASK(32),
-			.platform_data		= &sw_ehci1,
+			.platform_data		= &sw_ehci2,
 		},
 	},
 };
@@ -885,8 +882,8 @@ static struct platform_device sw_usb_ehci_device[] = {
 #define  SW_OHCI_NAME		"sw-ohci"
 static const char ohci_name[] = SW_OHCI_NAME;
 
-static struct sw_hci_hcd sw_ohci0;
 static struct sw_hci_hcd sw_ohci1;
+static struct sw_hci_hcd sw_ohci2;
 
 static u64 sw_ohci_dmamask = DMA_BIT_MASK(32);
 
@@ -897,7 +894,7 @@ static struct platform_device sw_usb_ohci_device[] = {
 		.dev 		= {
 			.dma_mask			= &sw_ohci_dmamask,
 			.coherent_dma_mask	= DMA_BIT_MASK(32),
-			.platform_data		= &sw_ohci0,
+			.platform_data		= &sw_ohci1,
 		},
 	},
 
@@ -907,7 +904,7 @@ static struct platform_device sw_usb_ohci_device[] = {
 		.dev 		= {
 			.dma_mask			= &sw_ohci_dmamask,
 			.coherent_dma_mask	= DMA_BIT_MASK(32),
-			.platform_data		= &sw_ohci1,
+			.platform_data		= &sw_ohci2,
 		},
 	},
 };
@@ -1047,7 +1044,7 @@ static int exit_sw_hci(struct sw_hci_hcd *sw_hci, u32 ohci)
 
 /*
 *******************************************************************************
-*                     sw_hci_sun4i_init
+*                     sw_hci_sunxi_init
 *
 * Description:
 *    void
@@ -1063,65 +1060,59 @@ static int exit_sw_hci(struct sw_hci_hcd *sw_hci, u32 ohci)
 *
 *******************************************************************************
 */
-static int __init sw_hci_sun4i_init(void)
+static int __init sw_hci_sunxi_init(void)
 {
+/* XXX Should be rewtitten with checks if CONFIG_USB_EHCI_HCD or CONFIG_USB_OHCI_HCD
+       are actually defined. Original code assumes that EHCI is always on.
+*/
+    u32 usb1_drv_vbus_Handle = 0;
+    u32 usb2_drv_vbus_Handle = 0;
     /* USB1 */
-    init_sw_hci(&sw_ehci0, 1, 0, ehci_name);
-    init_sw_hci(&sw_ohci0, 1, 1, ohci_name);
+    init_sw_hci(&sw_ehci1, 1, 0, ehci_name);
+    init_sw_hci(&sw_ohci1, 1, 1, ohci_name);
 
-    usb1_drv_vbus_Handle = alloc_pin(&sw_ehci0.drv_vbus_gpio_set);
+    usb1_drv_vbus_Handle = alloc_pin(&sw_ehci1.drv_vbus_gpio_set);
     if(usb1_drv_vbus_Handle == 0){
         DMSG_PANIC("ERR: usb1 alloc_pin failed\n");
         goto failed0;
     }
 
-    sw_ehci0.drv_vbus_Handle = usb1_drv_vbus_Handle;
-    sw_ohci0.drv_vbus_Handle = usb1_drv_vbus_Handle;
+    sw_ehci1.drv_vbus_Handle = usb1_drv_vbus_Handle;
+    sw_ohci1.drv_vbus_Handle = usb1_drv_vbus_Handle;
 
+#ifdef CONFIG_ARCH_SUN4I
+/* A13 has only one *HCI USB controller */
+/* XXX Should be done in runtime, so it will be generic driver for SUN4I and SUN5I architectures */
     /* USB2 */
-    init_sw_hci(&sw_ehci1, 2, 0, ehci_name);
-    init_sw_hci(&sw_ohci1, 2, 1, ohci_name);
+    init_sw_hci(&sw_ehci2, 2, 0, ehci_name);
+    init_sw_hci(&sw_ohci2, 2, 1, ohci_name);
 
-    usb2_drv_vbus_Handle = alloc_pin(&sw_ehci1.drv_vbus_gpio_set);
+    usb2_drv_vbus_Handle = alloc_pin(&sw_ehci2.drv_vbus_gpio_set);
     if(usb2_drv_vbus_Handle == 0){
         DMSG_PANIC("ERR: usb2 alloc_pin failed\n");
         goto failed0;
     }
 
-    sw_ehci1.drv_vbus_Handle = usb2_drv_vbus_Handle;
-    sw_ohci1.drv_vbus_Handle = usb2_drv_vbus_Handle;
-
-#ifdef  CONFIG_USB_SW_SUN4I_EHCI0
-    if(sw_ehci0.used){
-    	platform_device_register(&sw_usb_ehci_device[0]);
-    }else{
-		DMSG_PANIC("ERR: usb%d %s is disable\n", sw_ehci0.usbc_no, sw_ehci0.hci_name);
-    }
+    sw_ehci2.drv_vbus_Handle = usb2_drv_vbus_Handle;
+    sw_ohci2.drv_vbus_Handle = usb2_drv_vbus_Handle;
+#else
+    sw_ehci2.used = 0;
 #endif
 
-#ifdef  CONFIG_USB_SW_SUN4I_OHCI0
-    if(sw_ohci0.used){
-  	    platform_device_register(&sw_usb_ohci_device[0]);
-    }else{
-		DMSG_PANIC("ERR: usb%d %s is disable\n", sw_ohci0.usbc_no, sw_ohci0.hci_name);
-    }
-#endif
-
-#ifdef  CONFIG_USB_SW_SUN4I_EHCI1
+/* XXX '.used' flag is for USB port, not for EHCI or OHCI. So it can be checked this way */
     if(sw_ehci1.used){
-     	platform_device_register(&sw_usb_ehci_device[1]);
+	platform_device_register(&sw_usb_ehci_device[0]);
+	platform_device_register(&sw_usb_ohci_device[0]);
     }else{
-		DMSG_PANIC("ERR: usb%d %s is disable\n", sw_ehci1.usbc_no, sw_ehci1.hci_name);
+//	DMSG_PANIC("ERR: usb%d %s is disabled in script.bin\n", sw_ehci1.usbc_no, sw_ehci1.hci_name);
     }
-#endif
 
-#ifdef  CONFIG_USB_SW_SUN4I_OHCI1
-    if(sw_ohci1.used){
-     	platform_device_register(&sw_usb_ohci_device[1]);
+    if(sw_ehci2.used){
+	platform_device_register(&sw_usb_ehci_device[1]);
+	platform_device_register(&sw_usb_ohci_device[1]);
     }else{
-		DMSG_PANIC("ERR: usb%d %s is disable\n", sw_ohci1.usbc_no, sw_ohci1.hci_name);
+//	DMSG_PANIC("ERR: usb%d %s is disabled in script.bin\n", sw_ehci2.usbc_no, sw_ehci2.hci_name);
     }
-#endif
 
     return 0;
 
@@ -1131,7 +1122,7 @@ failed0:
 
 /*
 *******************************************************************************
-*                     sw_hci_sun4i_exit
+*                     sw_hci_sunxi_exit
 *
 * Description:
 *    void
@@ -1147,57 +1138,32 @@ failed0:
 *
 *******************************************************************************
 */
-static void __exit sw_hci_sun4i_exit(void)
+static void __exit sw_hci_sunxi_exit(void)
 {
-#ifdef  CONFIG_USB_SW_SUN4I_EHCI0
-    if(sw_ehci0.used){
-    	platform_device_unregister(&sw_usb_ehci_device[0]);
-    }else{
-		DMSG_PANIC("ERR: usb%d %s is disable\n", sw_ehci0.usbc_no, sw_ehci0.hci_name);
-    }
-#endif
-
-#ifdef  CONFIG_USB_SW_SUN4I_OHCI0
-    if(sw_ohci0.used){
-  	    platform_device_unregister(&sw_usb_ohci_device[0]);
-    }else{
-		DMSG_PANIC("ERR: usb%d %s is disable\n", sw_ohci0.usbc_no, sw_ohci0.hci_name);
-    }
-#endif
-
-#ifdef  CONFIG_USB_SW_SUN4I_EHCI1
+/* XXX '.used' flag is for USB port, not for EHCI or OHCI. So it can be checked this way */
     if(sw_ehci1.used){
-     	platform_device_unregister(&sw_usb_ehci_device[1]);
-    }else{
-		DMSG_PANIC("ERR: usb%d %s is disable\n", sw_ehci1.usbc_no, sw_ehci1.hci_name);
+	platform_device_unregister(&sw_usb_ehci_device[0]);
+	platform_device_unregister(&sw_usb_ohci_device[0]);
+
+	exit_sw_hci(&sw_ehci1, 0);
+	exit_sw_hci(&sw_ohci1, 1);
+
+	free_pin(sw_ehci1.drv_vbus_Handle);
     }
-#endif
 
-#ifdef  CONFIG_USB_SW_SUN4I_OHCI1
-    if(sw_ohci1.used){
-     	platform_device_unregister(&sw_usb_ohci_device[1]);
-    }else{
-		DMSG_PANIC("ERR: usb%d %s is disable\n", sw_ohci1.usbc_no, sw_ohci1.hci_name);
+    if(sw_ehci2.used){
+	platform_device_unregister(&sw_usb_ehci_device[1]);
+	platform_device_unregister(&sw_usb_ohci_device[1]);
+
+	exit_sw_hci(&sw_ehci2, 0);
+	exit_sw_hci(&sw_ohci2, 1);
+
+	free_pin(sw_ehci2.drv_vbus_Handle);
     }
-#endif
 
-    /* USB1 */
-    exit_sw_hci(&sw_ehci0, 0);
-    exit_sw_hci(&sw_ohci0, 1);
-
-    free_pin(usb1_drv_vbus_Handle);
-    usb1_drv_vbus_Handle = 0;
-
-    /* USB2 */
-    exit_sw_hci(&sw_ehci1, 0);
-    exit_sw_hci(&sw_ohci1, 1);
-
-    free_pin(usb2_drv_vbus_Handle);
-    usb2_drv_vbus_Handle = 0;
-
-    return ;
+    return;
 }
 
-module_init(sw_hci_sun4i_init);
-module_exit(sw_hci_sun4i_exit);
+module_init(sw_hci_sunxi_init);
+module_exit(sw_hci_sunxi_exit);
 
