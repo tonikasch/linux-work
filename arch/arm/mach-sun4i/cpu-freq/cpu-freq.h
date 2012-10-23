@@ -76,10 +76,10 @@ struct cpufreq_div_order {
 };
 
 /* Table fetchers */
-struct cpufreq_frequency_table * sunxi_cpufreq_table(void);
-struct cpufreq_div_order * sunxi_div_order_table(int *length);
+struct cpufreq_frequency_table *sunxi_cpufreq_table(void);
+struct cpufreq_div_order *sunxi_div_order_table(int *length);
 #ifdef CONFIG_CPU_FREQ_DVFS
-struct cpufreq_dvfs * sunxi_dvfs_table(void);
+struct cpufreq_dvfs *sunxi_dvfs_table(void);
 #endif
 
 #endif  /* #ifndef __SUN4I_CPU_FREQ_H__ */
