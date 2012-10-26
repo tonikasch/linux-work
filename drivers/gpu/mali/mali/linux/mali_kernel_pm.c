@@ -15,7 +15,6 @@
 
 #include <linux/module.h>
 
-#if USING_MALI_PMM
 #include <linux/sched.h>
 #include <linux/platform_device.h>
 #include <linux/version.h>
