@@ -1,7 +1,6 @@
 /*
- * (C) Copyright 2007-2012
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * Danling <danliang@allwinnertech.com>
+ * copyright (c) 2007-2012 Allwinner Technology Co., Ltd.
+ * copyright (c) 2007-2012 Danling <danliang@allwinnertech.com>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -19,7 +18,6 @@
  * MA 02111-1307 USA
  */
 
-#include "disp_vga.h"
 #include "disp_de.h"
 #include "disp_display.h"
 #include "disp_event.h"

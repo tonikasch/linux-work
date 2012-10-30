@@ -1,6 +1,5 @@
 /*
- * (C) Copyright 2007-2012
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
+ * copyright (c) 2007-2012 Allwinner Technology Co., Ltd.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -18,10 +17,18 @@
  * MA 02111-1307 USA
  */
 
-#ifndef __DRV_DISPLAY_H__
-#define __DRV_DISPLAY_H__
+#ifndef __SUNXI_DISP_IOCTL_H__
+#define __SUNXI_DISP_IOCTL_H__
 
 #define __bool signed char
+
+/* for tracking the ioctls API/ABI */
+#define SUNXI_DISP_VERSION_MAJOR 1
+#define SUNXI_DISP_VERSION_MINOR 0
+
+#define SUNXI_DISP_VERSION ((SUNXI_DISP_VERSION_MAJOR << 16) | SUNXI_DISP_VERSION_MINOR)
+#define SUNXI_DISP_VERSION_MAJOR_GET(x) (((x) >> 16) & 0x7FFF)
+#define SUNXI_DISP_VERSION_MINOR_GET(x) ((x) & 0xFFFF)
 
 typedef struct {
 	__u8 alpha;
@@ -623,7 +630,7 @@ typedef struct {
 
 typedef enum tag_DISP_CMD {
 	/* ----disp global---- */
-	DISP_CMD_RESERVE0 = 0x00,
+	DISP_CMD_VERSION = 0x00,
 	DISP_CMD_RESERVE1 = 0x01,
 	/* fail when the value is 0x02 in linux,why??? */
 	DISP_CMD_SET_BKCOLOR = 0x3f,
@@ -852,4 +859,4 @@ typedef enum tag_DISP_CMD {
 #define FBIO_DISPLAY_TWO_SAME_SCREEN_TB 0x4722
 #define FBIO_DISPLAY_TWO_DIFF_SCREEN_SAME_CONTENTS 0x4723
 
-#endif
+#endif /* __SUNXI_DISP_IOCTL_H__ */

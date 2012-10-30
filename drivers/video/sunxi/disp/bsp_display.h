@@ -1,7 +1,6 @@
 /*
- * (C) Copyright 2007-2012
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * Danling <danliang@allwinnertech.com>
+ * copyright (c) 2007-2012 Allwinner Technology Co., Ltd.
+ * copyright (c) 2007-2012 Danling <danliang@allwinnertech.com>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -55,7 +54,7 @@
 
 typedef unsigned int __hdle;
 
-#include "../drv_display.h"
+#include <video/sunxi_disp_ioctl.h>
 
 #define __inf(msg, ...) pr_debug("[DISP] " msg, ##__VA_ARGS__)
 #define __wrn(msg, ...) pr_warn("[DISP] " msg, ##__VA_ARGS__)

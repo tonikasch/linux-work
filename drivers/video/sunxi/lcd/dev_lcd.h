@@ -1,7 +1,6 @@
 /*
- * (C) Copyright 2007-2012
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * Danling <danliang@allwinnertech.com>
+ * copyright (c) 2007-2012 Allwinner Technology Co., Ltd.
+ * copyright (c) 2007-2012 Danling <danliang@allwinnertech.com>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -50,7 +49,7 @@
 #include <mach/platform.h>
 #include <plat/sys_config.h>
 
-#include "../drv_display.h"
+#include <video/sunxi_disp_ioctl.h>
 
 extern void LCD_get_panel_funs_0(__lcd_panel_fun_t *fun);
 extern void LCD_get_panel_funs_1(__lcd_panel_fun_t *fun);

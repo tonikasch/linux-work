@@ -1,7 +1,6 @@
 /*
- * (C) Copyright 2007-2012
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * Danling <danliang@allwinnertech.com>
+ * copyright (c) 2007-2012 Allwinner Technology Co., Ltd.
+ * copyright (c) 2007-2012 Danling <danliang@allwinnertech.com>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -47,7 +46,7 @@
 #include <linux/cdev.h>
 #include <linux/types.h>
 
-#include "../drv_display.h"
+#include <video/sunxi_disp_ioctl.h>
 #include <linux/drv_hdmi.h>
 
 #define __inf(msg, ...) pr_debug("[DISP] " msg, ##__VA_ARGS__)
@@ -63,9 +62,6 @@ __s32 Hdmi_mode_support(__disp_tv_mode_t mode);
 __s32 Hdmi_get_HPD_status(void);
 __s32 Hdmi_Audio_Enable(__u8 mode, __u8 channel);
 __s32 Hdmi_Set_Audio_Para(hdmi_audio_t *audio_para);
-
-extern __s32 hdmi_i2c_add_driver(void);
-extern __s32 hdmi_i2c_del_driver(void);
 
 #define sys_get_wvalue(n)   (*((volatile __u32 *)(n)))	/* word input */
 #define sys_put_wvalue(n,c) (*((volatile __u32 *)(n))  = (c))	/* word output */

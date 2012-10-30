@@ -1,7 +1,6 @@
 /*
- * (C) Copyright 2007-2012
- * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
- * Danling <danliang@allwinnertech.com>
+ * copyright (c) 2007-2012 Allwinner Technology Co., Ltd.
+ * copyright (c) 2007-2012 Danling <danliang@allwinnertech.com>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -20,7 +19,6 @@
  */
 
 #include "disp_display.h"
-#include "disp_combined.h"
 #include "disp_event.h"
 
 __s32 BSP_disp_set_bk_color(__u32 sel, __disp_color_t *color)
