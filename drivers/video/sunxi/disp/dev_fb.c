@@ -32,9 +32,6 @@
 
 fb_info_t g_fbi;
 
-#define FBHANDTOID(handle)  ((handle) - 100)
-#define FBIDTOHAND(ID)  ((ID) + 100)
-
 /*
  *          0:ARGB  1:BRGA  2:ABGR  3:RGBA
  *     seq:  ARGB    BRGA    ARGB    BRGA
@@ -1344,37 +1341,32 @@ __s32 Display_Fb_Request(__u32 fb_id, __disp_fb_create_para_t * fb_para)
 
 __s32 Display_Fb_Release(__u32 fb_id)
 {
+	struct fb_info *info = g_fbi.fbinfo[fb_id];
+	__u32 sel = 0;
+
 	__inf("Display_Fb_Release, fb_id:%d\n", fb_id);
 
-	if ((fb_id >= 0) && g_fbi.fb_enable[fb_id]) {
-		__u32 sel = 0;
-		struct fb_info *info = g_fbi.fbinfo[fb_id];
-
-		for (sel = 0; sel < 2; sel++) {
-			if (((sel == 0) &&
-			     (g_fbi.fb_mode[fb_id] != FB_MODE_SCREEN1)) ||
-			    ((sel == 1) &&
-			     (g_fbi.fb_mode[fb_id] != FB_MODE_SCREEN0))) {
-				__s32 layer_hdl = g_fbi.layer_hdl[fb_id][sel];
-
-				BSP_disp_layer_release(sel, layer_hdl);
-			}
-		}
-		g_fbi.layer_hdl[fb_id][0] = 0;
-		g_fbi.layer_hdl[fb_id][1] = 0;
-		g_fbi.fb_mode[fb_id] = FB_MODE_SCREEN0;
-		memset(&g_fbi.fb_para[fb_id], 0,
-		       sizeof(__disp_fb_create_para_t));
-		g_fbi.fb_enable[fb_id] = 0;
-
-		fb_dealloc_cmap(&info->cmap);
-		Fb_unmap_video_memory(info);
-
+	if (!g_fbi.fb_enable[fb_id])
 		return DIS_SUCCESS;
-	} else {
-		__wrn("invalid paras fb_id:%d in Display_Fb_Release\n", fb_id);
-		return DIS_FAIL;
-	}
+
+	for (sel = 0; sel < 2; sel++)
+		if (((sel == 0) && (g_fbi.fb_mode[fb_id] != FB_MODE_SCREEN1)) ||
+		    ((sel == 1) && (g_fbi.fb_mode[fb_id] != FB_MODE_SCREEN0))) {
+			__s32 layer_hdl = g_fbi.layer_hdl[fb_id][sel];
+
+			BSP_disp_layer_release(sel, layer_hdl);
+		}
+
+	g_fbi.layer_hdl[fb_id][0] = 0;
+	g_fbi.layer_hdl[fb_id][1] = 0;
+	g_fbi.fb_mode[fb_id] = FB_MODE_SCREEN0;
+	memset(&g_fbi.fb_para[fb_id], 0, sizeof(__disp_fb_create_para_t));
+	g_fbi.fb_enable[fb_id] = 0;
+
+	fb_dealloc_cmap(&info->cmap);
+	Fb_unmap_video_memory(info);
+
+	return DIS_SUCCESS;
 }
 
 __s32 Display_Fb_get_para(__u32 fb_id, __disp_fb_create_para_t *fb_para)
@@ -1676,8 +1668,10 @@ __s32 Fb_Exit(void)
 	__u8 fb_id = 0;
 
 	for (fb_id = 0; fb_id < SUNXI_MAX_FB; fb_id++) {
-		if (g_fbi.fbinfo[fb_id] != NULL)
-			Display_Fb_Release(FBIDTOHAND(fb_id));
+		if (g_fbi.fbinfo[fb_id] == NULL)
+			continue;
+
+		Display_Fb_Release(fb_id);
 
 		unregister_framebuffer(g_fbi.fbinfo[fb_id]);
 		framebuffer_release(g_fbi.fbinfo[fb_id]);
