@@ -195,8 +195,10 @@ int sw_usb_disable_ohci(__u32 usbc_no)
 {
 	struct sw_hci_hcd *sw_ohci = NULL;
 
+#if 0
 	if (usbc_no != 1 && usbc_no != 2)
 		return -EINVAL;
+#endif
 
 	sw_ohci = g_sw_ohci[usbc_no];
 	if (sw_ohci == NULL)
@@ -301,10 +303,10 @@ err_create_hcd:
 int sw_usb_enable_ohci(__u32 usbc_no)
 {
 	struct sw_hci_hcd *sw_ohci = NULL;
-
+#if 0
 	if (usbc_no != 1 && usbc_no != 2)
 		return -EINVAL;
-
+#endif
 	sw_ohci = g_sw_ohci[usbc_no];
 	if (sw_ohci == NULL)
 		return -EFAULT;

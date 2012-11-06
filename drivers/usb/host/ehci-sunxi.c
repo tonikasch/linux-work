@@ -226,10 +226,10 @@ static int sw_ehci_hcd_remove(struct platform_device *pdev)
 int sw_usb_disable_ehci(__u32 usbc_no)
 {
 	struct sw_hci_hcd *sw_ehci = NULL;
-
+#if 0
 	if (usbc_no != 1 && usbc_no != 2)
 		return -EINVAL;
-
+#endif
 	sw_ehci = g_sw_ehci[usbc_no];
 	if (sw_ehci == NULL)
 		return -EFAULT;
@@ -341,10 +341,10 @@ err_create_hcd:
 int sw_usb_enable_ehci(__u32 usbc_no)
 {
 	struct sw_hci_hcd *sw_ehci = NULL;
-
+#if 0
 	if (usbc_no != 1 && usbc_no != 2)
 		return -EINVAL;
-
+#endif
 	sw_ehci = g_sw_ehci[usbc_no];
 	if (sw_ehci == NULL)
 		return -EFAULT;
