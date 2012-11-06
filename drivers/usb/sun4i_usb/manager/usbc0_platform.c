@@ -52,15 +52,15 @@
 //---------------------------------------------------------------
 static struct sw_udc_mach_info sw_udc_cfg;
 
-//static u64 sw_udc_dmamask = 0xffffffffUL;
+static u64 sw_udc_dmamask = DMA_BIT_MASK(32);
 
 static struct platform_device sw_udc_device = {
 	.name				= "sw_usb_udc",
-	.id					= -1,
+	.id				= -1,
 
 	.dev = {
-//		.dma_mask			= &sw_udc_dmamask,
-//		.coherent_dma_mask	= DMA_BIT_MASK(32),
+		.dma_mask		= &sw_udc_dmamask,
+		.coherent_dma_mask	= DMA_BIT_MASK(32),
 		.platform_data		= &sw_udc_cfg,
 	},
 };
@@ -85,12 +85,14 @@ static struct sw_hcd_config sw_hcd_config = {
 	.multipoint		= 1,
 	.dyn_fifo		= 1,
 	.soft_con		= 1,
-	.dma			= 0,
+//	.dma			= 0,
+	.dma			= 1,
 
 	.num_eps		= USBC_MAX_EP_NUM,
-	.dma_channels	= 0,
+//	.dma_channels	= 0,
+	.dma_channels		= 1,
 	.ram_size		= USBC0_MAX_FIFO_SIZE,
-	.eps_bits	    = sw_hcd_eps,
+	.eps_bits		= sw_hcd_eps,
 };
 
 static struct sw_hcd_platform_data sw_hcd_plat = {
@@ -98,15 +100,15 @@ static struct sw_hcd_platform_data sw_hcd_plat = {
 	.config		= &sw_hcd_config,
 };
 
-//static u64 sw_hcd_dmamask = DMA_BIT_MASK(32);
+static u64 sw_hcd_dmamask = DMA_BIT_MASK(32);
 
 static struct platform_device sw_hcd_device = {
 	.name				= "sw_hcd_host0",
-	.id					= -1,
+	.id				= -1,
 
 	.dev = {
-//		.dma_mask			= &sw_hcd_dmamask,
-//		.coherent_dma_mask	= DMA_BIT_MASK(32),
+		.dma_mask		= &sw_hcd_dmamask,
+		.coherent_dma_mask	= DMA_BIT_MASK(32),
 		.platform_data		= &sw_hcd_plat,
 	},
 };
