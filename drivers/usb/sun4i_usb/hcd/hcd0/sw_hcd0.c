@@ -1057,7 +1057,7 @@ static int sw_hcd_core_init(u16 sw_hcd_type, struct sw_hcd *sw_hcd)
 		strcat(aInfo, ", SoftConn");
 	}
 
-//	DMSG_INFO_HCD0("%s: ConfigData=0x%02x (%s)\n", sw_hcd_driver_name, reg, aInfo);
+	DMSG_INFO_HCD0("%s: ConfigData=0x%02x (%s)\n", sw_hcd_driver_name, reg, aInfo);
 
 	aDate[0] = 0;
 
