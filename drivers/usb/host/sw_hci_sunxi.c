@@ -195,7 +195,7 @@ static s32 clock_init(struct sw_hci_hcd *sw_hci, u32 ohci)
 		    clk_get(NULL, usbc_ahb_ohci_name[sw_hci->usbc_no]);
 		if (IS_ERR(sw_hci->sie_clk)) {
 			DMSG_PANIC("ERR: get ohci%d abh clk failed.\n",
-				   (sw_hci->usbc_no - 1));
+				   (sw_hci->usbc_no));
 			goto failed;
 		}
 
@@ -203,7 +203,7 @@ static s32 clock_init(struct sw_hci_hcd *sw_hci, u32 ohci)
 		    clk_get(NULL, ohci_phy_gate_name[sw_hci->usbc_no]);
 		if (IS_ERR(sw_hci->ohci_gate)) {
 			DMSG_PANIC("ERR: get ohci%d gate clk failed.\n",
-				   (sw_hci->usbc_no - 1));
+				   (sw_hci->usbc_no));
 			goto failed;
 		}
 	} else {		/* ehci */
@@ -211,7 +211,7 @@ static s32 clock_init(struct sw_hci_hcd *sw_hci, u32 ohci)
 		    clk_get(NULL, usbc_ahb_ehci_name[sw_hci->usbc_no]);
 		if (IS_ERR(sw_hci->sie_clk)) {
 			DMSG_PANIC("ERR: get ehci%d abh clk failed.\n",
-				   (sw_hci->usbc_no - 1));
+				   (sw_hci->usbc_no));
 			goto failed;
 		}
 	}
@@ -505,6 +505,7 @@ static void sw_set_vbus(struct sw_hci_hcd *sw_hci, int is_on)
 #define  SW_EHCI_NAME		"sw-ehci"
 static const char ehci_name[] = SW_EHCI_NAME;
 
+static struct sw_hci_hcd sw_ehci0;
 static struct sw_hci_hcd sw_ehci1;
 static struct sw_hci_hcd sw_ehci2;
 
@@ -512,6 +513,16 @@ static u64 sw_ehci_dmamask = DMA_BIT_MASK(32);
 
 static struct platform_device sw_usb_ehci_device[] = {
 	[0] = {
+	       .name = ehci_name,
+	       .id = 0,
+	       .dev = {
+		       .dma_mask = &sw_ehci_dmamask,
+		       .coherent_dma_mask = DMA_BIT_MASK(32),
+		       .platform_data = &sw_ehci0,
+		       },
+	       },
+
+	[1] = {
 	       .name = ehci_name,
 	       .id = 1,
 	       .dev = {
@@ -521,7 +532,7 @@ static struct platform_device sw_usb_ehci_device[] = {
 		       },
 	       },
 
-	[1] = {
+	[2] = {
 	       .name = ehci_name,
 	       .id = 2,
 	       .dev = {
@@ -538,6 +549,7 @@ static struct platform_device sw_usb_ehci_device[] = {
 #define  SW_OHCI_NAME		"sw-ohci"
 static const char ohci_name[] = SW_OHCI_NAME;
 
+static struct sw_hci_hcd sw_ohci0;
 static struct sw_hci_hcd sw_ohci1;
 static struct sw_hci_hcd sw_ohci2;
 
@@ -545,6 +557,16 @@ static u64 sw_ohci_dmamask = DMA_BIT_MASK(32);
 
 static struct platform_device sw_usb_ohci_device[] = {
 	[0] = {
+	       .name = ohci_name,
+	       .id = 0,
+	       .dev = {
+		       .dma_mask = &sw_ohci_dmamask,
+		       .coherent_dma_mask = DMA_BIT_MASK(32),
+		       .platform_data = &sw_ohci0,
+		       },
+	       },
+
+	[1] = {
 	       .name = ohci_name,
 	       .id = 1,
 	       .dev = {
@@ -554,7 +576,7 @@ static struct platform_device sw_usb_ohci_device[] = {
 		       },
 	       },
 
-	[1] = {
+	[2] = {
 	       .name = ohci_name,
 	       .id = 2,
 	       .dev = {
@@ -659,7 +681,7 @@ static int __init sw_hci_sunxi_init(void)
 */
 	u32 usb1_drv_vbus_Handle = 0;
 	u32 usb2_drv_vbus_Handle = 0;
-	/* USB1 */
+
 	init_sw_hci(&sw_ehci1, 1, 0, ehci_name);
 	init_sw_hci(&sw_ohci1, 1, 1, ohci_name);
 
@@ -675,7 +697,6 @@ static int __init sw_hci_sunxi_init(void)
 	if (machine_is_sun4i()) {
 //#ifdef CONFIG_ARCH_SUN4I
 		/* A13 has only one *HCI USB controller */
-		/* USB2 */
 		init_sw_hci(&sw_ehci2, 2, 0, ehci_name);
 		init_sw_hci(&sw_ohci2, 2, 1, ohci_name);
 
@@ -695,15 +716,15 @@ static int __init sw_hci_sunxi_init(void)
 
 /* XXX '.used' flag is for USB port, not for EHCI or OHCI. So it can be checked this way */
 	if (sw_ehci1.used) {
-		platform_device_register(&sw_usb_ehci_device[0]);
-		platform_device_register(&sw_usb_ohci_device[0]);
+		platform_device_register(&sw_usb_ehci_device[1]);
+		platform_device_register(&sw_usb_ohci_device[1]);
 	} else {
 //      DMSG_PANIC("ERR: usb%d %s is disabled in script.bin\n", sw_ehci1.usbc_no, sw_ehci1.hci_name);
 	}
 
 	if (sw_ehci2.used) {
-		platform_device_register(&sw_usb_ehci_device[1]);
-		platform_device_register(&sw_usb_ohci_device[1]);
+		platform_device_register(&sw_usb_ehci_device[2]);
+		platform_device_register(&sw_usb_ohci_device[2]);
 	} else {
 //      DMSG_PANIC("ERR: usb%d %s is disabled in script.bin\n", sw_ehci2.usbc_no, sw_ehci2.hci_name);
 	}
@@ -718,8 +739,8 @@ static void __exit sw_hci_sunxi_exit(void)
 {
 /* XXX '.used' flag is for USB port, not for EHCI or OHCI. So it can be checked this way */
 	if (sw_ehci1.used) {
-		platform_device_unregister(&sw_usb_ehci_device[0]);
-		platform_device_unregister(&sw_usb_ohci_device[0]);
+		platform_device_unregister(&sw_usb_ehci_device[1]);
+		platform_device_unregister(&sw_usb_ohci_device[1]);
 
 		exit_sw_hci(&sw_ehci1, 0);
 		exit_sw_hci(&sw_ohci1, 1);
@@ -728,8 +749,8 @@ static void __exit sw_hci_sunxi_exit(void)
 	}
 
 	if (sw_ehci2.used) {
-		platform_device_unregister(&sw_usb_ehci_device[1]);
-		platform_device_unregister(&sw_usb_ohci_device[1]);
+		platform_device_unregister(&sw_usb_ehci_device[2]);
+		platform_device_unregister(&sw_usb_ohci_device[2]);
 
 		exit_sw_hci(&sw_ehci2, 0);
 		exit_sw_hci(&sw_ohci2, 1);
