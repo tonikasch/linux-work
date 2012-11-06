@@ -69,7 +69,7 @@ static ssize_t sunxi_debugreg_read_store(struct device *dev,
 		return count;
 	}
 
-	printk("0x%x\n", readl(addr));
+	printk("Reg 0x%0lx: 0x%0x\n", addr, readl(addr));
 
 	return count;
 }
