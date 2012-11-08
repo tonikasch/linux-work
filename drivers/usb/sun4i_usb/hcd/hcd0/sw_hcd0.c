@@ -1166,15 +1166,14 @@ static const struct hc_driver sw_hcd_hc_driver = {
 	.description		= "sw_hcd-hcd",
 	.product_desc		= "sw_hcd host driver",
 	.hcd_priv_size		= sizeof(struct sw_hcd),
-//	.flags              = HCD_USB2 | HCD_MEMORY,
-	.flags				= HCD_USB11 | HCD_MEMORY,
+	.flags			= HCD_USB2 | HCD_MEMORY,
 
 	/* not using irq handler or reset hooks from usbcore, since
 	 * those must be shared with peripheral code for OTG configs
 	 */
 
-	.start              = sw_hcd_h_start,
-	.stop               = sw_hcd_h_stop,
+	.start			= sw_hcd_h_start,
+	.stop			= sw_hcd_h_stop,
 
 	.get_frame_number	= sw_hcd_h_get_frame_number,
 
@@ -1185,7 +1184,7 @@ static const struct hc_driver sw_hcd_hc_driver = {
 	.hub_status_data	= sw_hcd_hub_status_data,
 	.hub_control		= sw_hcd_hub_control,
 	.bus_suspend		= sw_hcd_bus_suspend,
-	.bus_resume		    = sw_hcd_bus_resume,
+	.bus_resume		= sw_hcd_bus_resume,
 };
 
 /*
