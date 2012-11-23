@@ -14,7 +14,6 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include <linux/io.h>
-#include <asm/smp_scu.h>
 #include <asm/proc-fns.h>
 
 #include "core.h"
