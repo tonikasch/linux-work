@@ -1075,6 +1075,11 @@ MODULE_LICENSE ("GPL");
 #define PLATFORM_DRIVER		spear_ohci_hcd_driver
 #endif
 
+#ifdef CONFIG_ARCH_SUNXI
+#include "ohci-sunxi.c"
+#define PLATFORM_DRIVER		sunxi_ohci_hcd_driver
+#endif
+
 #ifdef CONFIG_PPC_PS3
 #include "ohci-ps3.c"
 #define PS3_SYSTEM_BUS_DRIVER	ps3_ohci_driver
