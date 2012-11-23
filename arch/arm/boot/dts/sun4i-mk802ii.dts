@@ -1,0 +1,69 @@
+/*
+ * Copyright 2012 Andrey Panov
+ * Andrey Panov <rockford@yandex.ru>
+ *
+ * The code contained herein is licensed under the GNU General Public
+ * License. You may obtain a copy of the GNU General Public License
+ * Version 2 or later at the following locations:
+ *
+ * http://www.opensource.org/licenses/gpl-license.html
+ * http://www.gnu.org/copyleft/gpl.html
+ */
+
+/dts-v1/;
+/* Reserve 64M for Mali */
+/memreserve/ 0x5c000000 0x04000000;
+/include/ "sun4i.dtsi"
+
+/ {
+	model = "Rikomagic MK802 II";
+	compatible = "rikomagic,mk802ii", "allwinner,sun4i";
+
+	memory {
+		reg = <0x40000000 0x40000000>;
+	};
+
+	aliases {
+		serial0 = &uart0;
+		serial1 = &uart1;
+	};
+
+        chosen {
+                bootargs = "earlyprintk console=ttyS0,115200";
+        };
+
+        soc {
+                uart0: uart@01c28000 {
+                        status = "okay";
+                };
+		/* USB1 */
+		ehci@0x1c14000 {
+			compatible = "allwinner,sunxi-ehci","usb-ehci";
+			reg = <0x01c14000 0x58>;
+			interrupts = <39>;
+			status = "okay";
+		};
+
+		ohci@0x1c14400 {
+			compatible = "allwinner,sunxi-ohci","usb-ohci";
+			reg = <0x01c14400 0x58>;
+			interrupts = <64>;
+			status = "okay";
+		};
+
+		/* USB2 */
+		ehci@0x1c1c000 {
+			compatible = "allwinner,sunxi-ehci","usb-ehci";
+			reg = <0x01c1c000 0x58>;
+			interrupts = <40>;
+			status = "okay";
+		};
+
+		ohci@0x1c1c400 {
+			compatible = "allwinner,sunxi-ohci","usb-ohci";
+			reg = <0x01c1c400 0x58>;
+			interrupts = <65>;
+			status = "okay";
+		};
+        };
+};
