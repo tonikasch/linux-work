@@ -27,7 +27,9 @@ dtb-$(CONFIG_ARCH_EXYNOS) += exynos4210-origen.dtb \
 	exynos4210-smdkv310.dtb \
 	exynos4210-trats.dtb \
 	exynos4412-smdk4412.dtb \
-	exynos5250-smdk5250.dtb
+	exynos5250-smdk5250.dtb \
+	exynos5250-snow.dtb \
+	exynos5440-ssdk5440.dtb
 dtb-$(CONFIG_ARCH_HIGHBANK) += highbank.dtb \
 	ecx-2000.dtb
 dtb-$(CONFIG_ARCH_INTEGRATOR) += integratorap.dtb \
@@ -41,11 +43,20 @@ dtb-$(CONFIG_ARCH_KIRKWOOD) += kirkwood-dns320.dtb \
 	kirkwood-ib62x0.dtb \
 	kirkwood-iconnect.dtb \
 	kirkwood-iomega_ix2_200.dtb \
+	kirkwood-is2.dtb \
 	kirkwood-km_kirkwood.dtb \
 	kirkwood-lschlv2.dtb \
 	kirkwood-lsxhl.dtb \
+	kirkwood-mplcec4.dtb \
+	kirkwood-ns2.dtb \
+	kirkwood-ns2lite.dtb \
+	kirkwood-ns2max.dtb \
+	kirkwood-ns2mini.dtb \
+	kirkwood-nsa310.dtb \
+	kirkwood-topkick.dtb \
 	kirkwood-ts219-6281.dtb \
-	kirkwood-ts219-6282.dtb
+	kirkwood-ts219-6282.dtb \
+	kirkwood-openblocks_a6.dtb
 dtb-$(CONFIG_ARCH_MSM) += msm8660-surf.dtb \
 	msm8960-cdp.dtb
 dtb-$(CONFIG_ARCH_MVEBU) += armada-370-db.dtb \
@@ -69,6 +80,7 @@ dtb-$(CONFIG_ARCH_MXS) += imx23-evk.dtb \
 	imx28-cfa10049.dtb \
 	imx28-evk.dtb \
 	imx28-m28evk.dtb \
+	imx28-sps1.dtb \
 	imx28-tx28.dtb
 dtb-$(CONFIG_ARCH_OMAP2PLUS) += omap2420-h4.dtb \
 	omap3-beagle.dtb \
@@ -83,6 +95,7 @@ dtb-$(CONFIG_ARCH_OMAP2PLUS) += omap2420-h4.dtb \
 	am335x-evm.dtb \
 	am335x-evmsk.dtb \
 	am335x-bone.dtb
+dtb-$(CONFIG_ARCH_ORION5X) += orion5x-lacie-ethernet-disk-mini-v2.dtb
 dtb-$(CONFIG_ARCH_PRIMA2) += prima2-evb.dtb
 dtb-$(CONFIG_ARCH_U8500) += snowball.dtb
 dtb-$(CONFIG_ARCH_SHMOBILE) += emev2-kzm9d.dtb \
