@@ -18,6 +18,7 @@ omap/fixes		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags
 pxa/fixes		git://github.com/hzhuang1/linux.git armsoc/fix
 				refetched @ d90cb69
 +patch <1353855220-5238-1-git-send-email-shc_work@mail.ru>
+ixp4xx/fixes		git://git.infradead.org/users/jcooper/linux ixp4xx_fixes_for_3.7
 
 next/headers:
 omap/headers		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap omap-for-v3.8/cleanup-headers-signed
@@ -80,6 +81,7 @@ samsung/pinctrl		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsu
 sunxi/soc2		git://github.com/mripard/linux.git tags/tags/sun4i-support-for-3.8
 imx/soc2		git://git.pengutronix.de/git/imx/linux-2.6.git tags/imx-soc-1
 sansung/exynos5440	git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git next/soc-exynos5440
++patch "ARM: EXYNOS: Avoid early use of of_machine_is_compatible()"
 
 next/boards:
 renesas/boards		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git boards
@@ -96,7 +98,7 @@ orion/boards		git://git.infradead.org/users/jcooper/linux.git tags/orion_boards_
 
 next/dt:
 ux500/dt		git://git.linaro.org/people/ljones/linux-3.0-ux500.git ste-dt-for-next
-				(pulled twice)
+				(pulled three times)
 omap/dt			git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.8/dt-signed
                                 depends on omap/headers4 and omap/cleanup-prcm
 imx/dt			git://git.pengutronix.de/git/imx/linux-2.6.git tags/imx-dt

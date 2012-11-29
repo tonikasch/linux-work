@@ -18,6 +18,7 @@
 #include <linux/sched.h>
 #include <linux/serial_core.h>
 #include <linux/of.h>
+#include <linux/of_fdt.h>
 #include <linux/of_irq.h>
 #include <linux/export.h>
 #include <linux/irqdomain.h>
@@ -330,8 +331,10 @@ void __init exynos_init_late(void)
 
 void __init exynos_init_io(struct map_desc *mach_desc, int size)
 {
+	unsigned long root = of_get_flat_dt_root();
+
 	/* initialize the io descriptors we need for initialization */
-	if (of_machine_is_compatible("samsung,exynos5440"))
+	if (of_flat_dt_is_compatible(root, "samsung,exynos5440"))
 		iotable_init(exynos5440_iodesc, ARRAY_SIZE(exynos5440_iodesc));
 	else
 		iotable_init(exynos_iodesc, ARRAY_SIZE(exynos_iodesc));
