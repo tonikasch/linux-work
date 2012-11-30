@@ -20,6 +20,7 @@ pxa/fixes		git://github.com/hzhuang1/linux.git armsoc/fix
 +patch <1353855220-5238-1-git-send-email-shc_work@mail.ru>
 ixp4xx/fixes		git://git.infradead.org/users/jcooper/linux ixp4xx_fixes_for_3.7
 
+
 next/headers:
 omap/headers		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap omap-for-v3.8/cleanup-headers-signed
 omap/cleanup-headers-3  git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.8/cleanup-headers-part3-signed
@@ -50,6 +51,8 @@ bcm2835/cleanup		git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-rpi
 samsung/cleanup		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git next/cleanup-samsung-2
 orion/cleanup		git://git.infradead.org/users/jcooper/linux.git tags/orion_cleanup_for_3.8
 integrator/cleanup	git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-integrator.git tags/integrator-for-arm-soc
+omap/cleanup-timer	git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.8/cleanup-timer-signed
++patch "ARM: omap: fix typo on timer cleanup"
 
 next/soc:
 ux500/core		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson.git ux500-core
@@ -80,8 +83,8 @@ clps711x/soc2		Patch series from email <1353160644-22446-1-git-send-email-shc_wo
 samsung/pinctrl		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git next/pinctrl-samsung
 sunxi/soc2		git://github.com/mripard/linux.git tags/tags/sun4i-support-for-3.8
 imx/soc2		git://git.pengutronix.de/git/imx/linux-2.6.git tags/imx-soc-1
-sansung/exynos5440	git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git next/soc-exynos5440
-+patch "ARM: EXYNOS: Avoid early use of of_machine_is_compatible()"
+samsung/exynos5440	git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git next/soc-exynos5440
++ patch  "ARM: EXYNOS: Avoid early use of of_machine_is_compatible()"
 
 next/boards:
 renesas/boards		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git boards
@@ -133,6 +136,10 @@ omap/pm2		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/o
 next/clock:
 omap/clock		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.8/clock-signed
 				depends on omap/pm
+
+next/pm2:
+omap/prcm		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.8/devel-prcm-signed
+				depends on omap/pm, omap/clock, next/cleanup and next/dt
 
 next/smp:
 socfpga/smp		patch from Dinh Nguyen <dinguyen@altera.com>
