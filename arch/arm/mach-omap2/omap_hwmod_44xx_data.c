@@ -24,13 +24,13 @@
 #include <linux/i2c-omap.h>
 #include <linux/platform_data/omap_ocp2scp.h>
 
-#include <plat-omap/dma-omap.h>
+#include <linux/omap-dma.h>
 
 #include <linux/platform_data/omap_ocp2scp.h>
 #include <linux/platform_data/spi-omap2-mcspi.h>
 #include <linux/platform_data/asoc-ti-mcbsp.h>
+#include <linux/platform_data/iommu-omap.h>
 #include <plat/dmtimer.h>
-#include <plat/iommu.h>
 
 #include "omap_hwmod.h"
 #include "omap_hwmod_common_data.h"

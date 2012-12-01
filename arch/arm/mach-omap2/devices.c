@@ -24,7 +24,7 @@
 #include <asm/mach-types.h>
 #include <asm/mach/map.h>
 
-#include <plat-omap/dma-omap.h>
+#include <linux/omap-dma.h>
 
 #include "iomap.h"
 #include "omap_hwmod.h"
@@ -129,7 +129,7 @@ static struct platform_device omap2cam_device = {
 
 #if defined(CONFIG_IOMMU_API)
 
-#include <plat/iommu.h>
+#include <linux/platform_data/iommu-omap.h>
 
 static struct resource omap3isp_resources[] = {
 	{

@@ -19,6 +19,7 @@ pxa/fixes		git://github.com/hzhuang1/linux.git armsoc/fix
 				refetched @ d90cb69
 +patch <1353855220-5238-1-git-send-email-shc_work@mail.ru>
 ixp4xx/fixes		git://git.infradead.org/users/jcooper/linux ixp4xx_fixes_for_3.7
+renesas/maintainers	git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git maintainers
 
 
 next/headers:
@@ -30,6 +31,7 @@ at91/header		git://github.com/at91linux/linux-at91.git tags/for-3.8-at91_header_
 			+ re-pull from git://github.com/at91linux/linux-at91.git tags/at91-header
 omap/cleanup-headers-4  git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.8/cleanup-headers-prepare-multiplatform-v3-signed
 +patch <1352970366-7154-1-git-send-email-haojian.zhuang@gmail.com>
+omap/cleanup-headers-iommu git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.8/cleanup-headers-iommu-signed
 
 
 next/cleanup:
@@ -53,6 +55,7 @@ orion/cleanup		git://git.infradead.org/users/jcooper/linux.git tags/orion_cleanu
 integrator/cleanup	git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-integrator.git tags/integrator-for-arm-soc
 omap/cleanup-timer	git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.8/cleanup-timer-signed
 +patch "ARM: omap: fix typo on timer cleanup"
+samsung/cleanup-3	git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git next/cleanup-samsung-3
 
 next/soc:
 ux500/core		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson.git ux500-core
@@ -60,6 +63,7 @@ clps711x/soc           patches from Alexander Shiyan <shc_work@mail.ru>
 renesas/soc		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas soc
 calxeda/ecx-2000	git://sources.calxeda.com/kernel/linux.git tags/calxeda-ecx-2000
 integrator/irq		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-integrator.git tags/integrator-irq
+			+patch "irq: versatile: delete dangling variable"
 + patch "ARM: highbank: add ifdef guards to core.h"
 + patch <201211062208.47390.arnd@arndb.de>
 lpc32xx/soc		git://git.antcom.de/linux-2.6.git lpc32xx/core
@@ -82,9 +86,13 @@ calxeda/cpuidle		git://sources.calxeda.com/kernel/linux.git tags/highbank-cpuidl
 clps711x/soc2		Patch series from email <1353160644-22446-1-git-send-email-shc_work@mail.ru>
 samsung/pinctrl		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git next/pinctrl-samsung
 sunxi/soc2		git://github.com/mripard/linux.git tags/tags/sun4i-support-for-3.8
+			+patch "ARM: sunxi: add missing include for mdelay()
 imx/soc2		git://git.pengutronix.de/git/imx/linux-2.6.git tags/imx-soc-1
 samsung/exynos5440	git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git next/soc-exynos5440
 + patch  "ARM: EXYNOS: Avoid early use of of_machine_is_compatible()"
+samsung/cam		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git next/cam-samsung
+samsung/pinctrl-2	git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git next/pinctrl-samsung-2
+samsung/devel-soc	git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git next/devel-samsung-3
 
 next/boards:
 renesas/boards		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git boards
@@ -98,6 +106,7 @@ samsung/boards		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsun
 imx/board		git://git.pengutronix.de/git/imx/linux-2.6.git tags/imx-board
 imx/defconfig		git://git.pengutronix.de/git/imx/linux-2.6.git tags/imx-defconfig
 orion/boards		git://git.infradead.org/users/jcooper/linux.git tags/orion_boards_for_3.8
+samsung/boards-2	git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git next/board-samsung-2
 
 next/dt:
 ux500/dt		git://git.linaro.org/people/ljones/linux-3.0-ux500.git ste-dt-for-next
@@ -132,6 +141,7 @@ zynq/multiplatform	git://git.monstr.eu/linux-2.6-microblaze.git zynq/multiplatfo
 next/pm:
 omap/pm			git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.8/pm-signed
 omap/pm2		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.8/pm-part2-v3-signed
+samsung/pm		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git next/pm-samsung
 
 next/clock:
 omap/clock		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.8/clock-signed
@@ -140,6 +150,8 @@ omap/clock		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags
 next/pm2:
 omap/prcm		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.8/devel-prcm-signed
 				depends on omap/pm, omap/clock, next/cleanup and next/dt
+omap/late-cleanup	git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/tags/omap-for-v3.8/cleanup-multiplatform-no-clock-signed
+				depends on omap/pm, omap/clock and a bunch of cleanup branches
 
 next/smp:
 socfpga/smp		patch from Dinh Nguyen <dinguyen@altera.com>
@@ -174,3 +186,7 @@ samsung/devel		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung
 next/dt2:
 spear/dt2:		git://git.linaro.org/people/vireshk/linux.git spear-for-3.8
 				depends on depends/pinctrl2
+
+late/mvebu:
+mvebu/devel		git://git.infradead.org/users/jcooper/linux.git tags/mvebu_everything_for_3.8
+mvebu/cache		git://git.infradead.org/users/jcooper/linux.git tags/mvebu_cache_l2x0_for_3.8
