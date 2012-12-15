@@ -92,9 +92,9 @@
 					compatible = "fsl,imx53-esdhc";
 					reg = <0x50004000 0x4000>;
 					interrupts = <1>;
-					bus-width = <4>;
 					clocks = <&clks 44>, <&clks 0>, <&clks 71>;
 					clock-names = "ipg", "ahb", "per";
+					bus-width = <4>;
 					status = "disabled";
 				};
 
@@ -102,9 +102,9 @@
 					compatible = "fsl,imx53-esdhc";
 					reg = <0x50008000 0x4000>;
 					interrupts = <2>;
-					bus-width = <4>;
 					clocks = <&clks 45>, <&clks 0>, <&clks 72>;
 					clock-names = "ipg", "ahb", "per";
+					bus-width = <4>;
 					status = "disabled";
 				};
 
@@ -142,9 +142,9 @@
 					compatible = "fsl,imx53-esdhc";
 					reg = <0x50020000 0x4000>;
 					interrupts = <3>;
-					bus-width = <4>;
 					clocks = <&clks 46>, <&clks 0>, <&clks 73>;
 					clock-names = "ipg", "ahb", "per";
+					bus-width = <4>;
 					status = "disabled";
 				};
 
@@ -152,9 +152,9 @@
 					compatible = "fsl,imx53-esdhc";
 					reg = <0x50024000 0x4000>;
 					interrupts = <4>;
-					bus-width = <4>;
 					clocks = <&clks 47>, <&clks 0>, <&clks 74>;
 					clock-names = "ipg", "ahb", "per";
+					bus-width = <4>;
 					status = "disabled";
 				};
 			};

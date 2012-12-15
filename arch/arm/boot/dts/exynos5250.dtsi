@@ -31,6 +31,10 @@
 		gsc1 = &gsc_1;
 		gsc2 = &gsc_2;
 		gsc3 = &gsc_3;
+		mshc0 = &dwmmc_0;
+		mshc1 = &dwmmc_1;
+		mshc2 = &dwmmc_2;
+		mshc3 = &dwmmc_3;
 		i2c0 = &i2c_0;
 		i2c1 = &i2c_1;
 		i2c2 = &i2c_2;
@@ -40,10 +44,6 @@
 		i2c6 = &i2c_6;
 		i2c7 = &i2c_7;
 		i2c8 = &i2c_8;
-		mshc0 = &dwmmc_0;
-		mshc1 = &dwmmc_1;
-		mshc2 = &dwmmc_2;
-		mshc3 = &dwmmc_3;
 	};
 
 	gic:interrupt-controller@10481000 {

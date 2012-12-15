@@ -658,6 +658,36 @@ static inline void u300_gpio_free_ports(struct u300_gpio *gpio)
 	}
 }
 
+/*
+ * Here we map a GPIO in the local gpio_chip pin space to a pin in
+ * the local pinctrl pin space. The pin controller used is
+ * pinctrl-u300.
+ */
+struct coh901_pinpair {
+	unsigned int offset;
+	unsigned int pin_base;
+};
+
+#define COH901_PINRANGE(a, b) { .offset = a, .pin_base = b }
+
+static struct coh901_pinpair coh901_pintable[] = {
+	COH901_PINRANGE(10, 426),
+	COH901_PINRANGE(11, 180),
+	COH901_PINRANGE(12, 165), /* MS/MMC card insertion */
+	COH901_PINRANGE(13, 179),
+	COH901_PINRANGE(14, 178),
+	COH901_PINRANGE(16, 194),
+	COH901_PINRANGE(17, 193),
+	COH901_PINRANGE(18, 192),
+	COH901_PINRANGE(19, 191),
+	COH901_PINRANGE(20, 186),
+	COH901_PINRANGE(21, 185),
+	COH901_PINRANGE(22, 184),
+	COH901_PINRANGE(23, 183),
+	COH901_PINRANGE(24, 182),
+	COH901_PINRANGE(25, 181),
+};
+
 static int __init u300_gpio_probe(struct platform_device *pdev)
 {
 	struct u300_gpio_platform *plat = dev_get_platdata(&pdev->dev);
@@ -752,8 +782,10 @@ static int __init u300_gpio_probe(struct platform_device *pdev)
 						     U300_GPIO_PINS_PER_PORT,
 						     &irq_domain_simple_ops,
 						     port);
-		if (!port->domain)
+		if (!port->domain) {
+			err = -ENOMEM;
 			goto err_no_domain;
+		}
 
 		irq_set_chained_handler(port->irq, u300_gpio_irq_handler);
 		irq_set_handler_data(port->irq, port);
@@ -784,24 +816,31 @@ static int __init u300_gpio_probe(struct platform_device *pdev)
 		goto err_no_chip;
 	}
 
-	/* Spawn pin controller device as child of the GPIO, pass gpio chip */
-	plat->pinctrl_device->dev.platform_data = &gpio->chip;
-	err = platform_device_register(plat->pinctrl_device);
-	if (err)
-		goto err_no_pinctrl;
+	/*
+	 * Add pinctrl pin ranges, the pin controller must be registered
+	 * at this point
+	 */
+	for (i = 0; i < ARRAY_SIZE(coh901_pintable); i++) {
+		struct coh901_pinpair *p = &coh901_pintable[i];
+
+		err = gpiochip_add_pin_range(&gpio->chip, "pinctrl-u300",
+					     p->offset, p->pin_base, 1);
+		if (err)
+			goto err_no_range;
+	}
 
 	platform_set_drvdata(pdev, gpio);
 
 	return 0;
 
-err_no_pinctrl:
+err_no_range:
 	err = gpiochip_remove(&gpio->chip);
 err_no_chip:
 err_no_domain:
 err_no_port:
 	u300_gpio_free_ports(gpio);
 	clk_disable_unprepare(gpio->clk);
-	dev_info(&pdev->dev, "module ERROR:%d\n", err);
+	dev_err(&pdev->dev, "module ERROR:%d\n", err);
 	return err;
 }
 

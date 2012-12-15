@@ -17,13 +17,12 @@
 #include <linux/platform_device.h>
 #include <linux/io.h>
 #include <linux/mfd/abx500/ab8500.h>
-#include <linux/platform_data/usb-musb-ux500.h>
-#include <linux/platform_data/pinctrl-nomadik.h>
-#include <linux/random.h>
 #include <linux/mfd/dbx500-prcmu.h>
 #include <linux/of.h>
 #include <linux/of_platform.h>
 #include <linux/regulator/machine.h>
+#include <linux/platform_data/pinctrl-nomadik.h>
+#include <linux/random.h>
 
 #include <asm/pmu.h>
 #include <asm/mach/map.h>
@@ -168,7 +167,7 @@ static void __init db8500_add_gpios(struct device *parent)
 
 	dbx500_add_gpios(parent, ARRAY_AND_SIZE(db8500_gpio_base),
 			 IRQ_DB8500_GPIO0, &pdata);
-	dbx500_add_pinctrl(parent, "pinctrl-db8500");
+	dbx500_add_pinctrl(parent, "pinctrl-db8500", U8500_PRCMU_BASE);
 }
 
 static int usb_db8500_rx_dma_cfg[] = {
@@ -226,9 +225,6 @@ struct device * __init u8500_init_devices(struct ab8500_platform_data *ab8500)
 	db8500_add_gpios(parent);
 	db8500_add_usb(parent, usb_db8500_rx_dma_cfg, usb_db8500_tx_dma_cfg);
 
-	platform_device_register_data(parent,
-		"cpufreq-ux500", -1, NULL, 0);
-
 	for (i = 0; i < ARRAY_SIZE(platform_devs); i++)
 		platform_devs[i]->dev.parent = parent;
 
@@ -247,9 +243,6 @@ static struct device * __init u8500_of_init_devices(void)
 	struct device *parent = db8500_soc_device_init();
 
 	db8500_add_usb(parent, usb_db8500_rx_dma_cfg, usb_db8500_tx_dma_cfg);
-
-	platform_device_register_data(parent,
-		"cpufreq-ux500", -1, NULL, 0);
 
 	u8500_dma40_device.dev.parent = parent;
 

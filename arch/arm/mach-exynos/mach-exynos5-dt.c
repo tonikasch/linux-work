@@ -12,9 +12,8 @@
 #include <linux/of_platform.h>
 #include <linux/of_fdt.h>
 #include <linux/serial_core.h>
-#include <linux/io.h>
 #include <linux/memblock.h>
-#include <linux/of_fdt.h>
+#include <linux/io.h>
 
 #include <asm/mach/arch.h>
 #include <asm/hardware/gic.h>

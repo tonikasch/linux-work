@@ -104,20 +104,6 @@ static void orion_usb_phy_v1_setup(struct usb_hcd *hcd)
 	wrl(USB_MODE, 0x13);
 }
 
-static int ehci_orion_setup(struct usb_hcd *hcd)
-{
-	struct ehci_hcd *ehci = hcd_to_ehci(hcd);
-	int retval;
-
-	retval = ehci_setup(hcd);
-	if (retval)
-		return retval;
-
-	ehci_port_power(ehci, 0);
-
-	return retval;
-}
-
 static const struct hc_driver ehci_orion_hc_driver = {
 	.description = hcd_name,
 	.product_desc = "Marvell Orion EHCI",
@@ -132,7 +118,7 @@ static const struct hc_driver ehci_orion_hc_driver = {
 	/*
 	 * basic lifecycle operations
 	 */
-	.reset = ehci_orion_setup,
+	.reset = ehci_setup,
 	.start = ehci_run,
 	.stop = ehci_stop,
 	.shutdown = ehci_shutdown,
@@ -163,7 +149,7 @@ static const struct hc_driver ehci_orion_hc_driver = {
 	.clear_tt_buffer_complete = ehci_clear_tt_buffer_complete,
 };
 
-static void __devinit
+static void
 ehci_orion_conf_mbus_windows(struct usb_hcd *hcd,
 			     const struct mbus_dram_target_info *dram)
 {
@@ -186,7 +172,7 @@ ehci_orion_conf_mbus_windows(struct usb_hcd *hcd,
 
 static u64 ehci_orion_dma_mask = DMA_BIT_MASK(32);
 
-static int __devinit ehci_orion_drv_probe(struct platform_device *pdev)
+static int ehci_orion_drv_probe(struct platform_device *pdev)
 {
 	struct orion_ehci_data *pd = pdev->dev.platform_data;
 	const struct mbus_dram_target_info *dram;

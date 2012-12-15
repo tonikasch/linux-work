@@ -425,7 +425,7 @@ void __init v2m_dt_init_early(void)
 	vexpress_sysreg_of_early_init();
 
 	/* Confirm board type against DT property, if available */
-	if (of_property_read_u32(allnodes, "arm,hbi", &dt_hbi) == 0) {
+	if (of_property_read_u32(of_allnodes, "arm,hbi", &dt_hbi) == 0) {
 		u32 hbi = vexpress_get_hbi(VEXPRESS_SITE_MASTER);
 
 		if (WARN_ON(dt_hbi != hbi))

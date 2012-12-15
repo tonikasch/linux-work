@@ -14,7 +14,6 @@
  */
 
 #include <linux/err.h>
-#include <linux/io.h>
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
@@ -28,16 +27,6 @@
 #include "pinctrl-spear.h"
 
 #define DRIVER_NAME "spear-pinmux"
-
-static inline u32 pmx_readl(struct spear_pmx *pmx, u32 reg)
-{
-	return readl_relaxed(pmx->vbase + reg);
-}
-
-static inline void pmx_writel(struct spear_pmx *pmx, u32 val, u32 reg)
-{
-	writel_relaxed(val, pmx->vbase + reg);
-}
 
 static void muxregs_endisable(struct spear_pmx *pmx,
 		struct spear_muxreg *muxregs, u8 count, bool enable)
@@ -97,10 +86,10 @@ void __devinit
 pmx_init_gpio_pingroup_addr(struct spear_gpio_pingroup *gpio_pingroup,
 		unsigned count, u16 reg)
 {
-	int i = 0, j = 0;
+	int i, j;
 
-	for (; i < count; i++)
-		for (; j < gpio_pingroup[i].nmuxregs; j++)
+	for (i = 0; i < count; i++)
+		for (j = 0; j < gpio_pingroup[i].nmuxregs; j++)
 			gpio_pingroup[i].muxregs[j].reg = reg;
 }
 
@@ -155,9 +144,10 @@ static void spear_pinctrl_pin_dbg_show(struct pinctrl_dev *pctldev,
 	seq_printf(s, " " DRIVER_NAME);
 }
 
-int spear_pinctrl_dt_node_to_map(struct pinctrl_dev *pctldev,
-				 struct device_node *np_config,
-				 struct pinctrl_map **map, unsigned *num_maps)
+static int spear_pinctrl_dt_node_to_map(struct pinctrl_dev *pctldev,
+					struct device_node *np_config,
+					struct pinctrl_map **map,
+					unsigned *num_maps)
 {
 	struct spear_pmx *pmx = pinctrl_dev_get_drvdata(pctldev);
 	struct device_node *np;
@@ -202,8 +192,9 @@ int spear_pinctrl_dt_node_to_map(struct pinctrl_dev *pctldev,
 	return 0;
 }
 
-void spear_pinctrl_dt_free_map(struct pinctrl_dev *pctldev,
-		struct pinctrl_map *map, unsigned num_maps)
+static void spear_pinctrl_dt_free_map(struct pinctrl_dev *pctldev,
+				      struct pinctrl_map *map,
+				      unsigned num_maps)
 {
 	kfree(map);
 }
@@ -295,12 +286,12 @@ static struct spear_gpio_pingroup *get_gpio_pingroup(struct spear_pmx *pmx,
 		unsigned pin)
 {
 	struct spear_gpio_pingroup *gpio_pingroup;
-	int i = 0, j;
+	int i, j;
 
 	if (!pmx->machdata->gpio_pingroups)
 		return NULL;
 
-	for (; i < pmx->machdata->ngpio_pingroups; i++) {
+	for (i = 0; i < pmx->machdata->ngpio_pingroups; i++) {
 		gpio_pingroup = &pmx->machdata->gpio_pingroups[i];
 
 		for (j = 0; j < gpio_pingroup->npins; j++) {
@@ -309,22 +300,31 @@ static struct spear_gpio_pingroup *get_gpio_pingroup(struct spear_pmx *pmx,
 		}
 	}
 
-	return ERR_PTR(-EINVAL);
+	return NULL;
 }
 
 static int gpio_request_endisable(struct pinctrl_dev *pctldev,
 		struct pinctrl_gpio_range *range, unsigned offset, bool enable)
 {
 	struct spear_pmx *pmx = pinctrl_dev_get_drvdata(pctldev);
+	struct spear_pinctrl_machdata *machdata = pmx->machdata;
 	struct spear_gpio_pingroup *gpio_pingroup;
 
+	/*
+	 * Some SoC have configuration options applicable to group of pins,
+	 * rather than a single pin.
+	 */
 	gpio_pingroup = get_gpio_pingroup(pmx, offset);
-	if (IS_ERR(gpio_pingroup))
-		return PTR_ERR(gpio_pingroup);
-
 	if (gpio_pingroup)
 		muxregs_endisable(pmx, gpio_pingroup->muxregs,
 				gpio_pingroup->nmuxregs, enable);
+
+	/*
+	 * SoC may need some extra configurations, or configurations for single
+	 * pin
+	 */
+	if (machdata->gpio_request_endisable)
+		machdata->gpio_request_endisable(pmx, offset, enable);
 
 	return 0;
 }
@@ -417,7 +417,7 @@ int __devinit spear_pinctrl_probe(struct platform_device *pdev,
 	return 0;
 }
 
-int __devexit spear_pinctrl_remove(struct platform_device *pdev)
+int spear_pinctrl_remove(struct platform_device *pdev)
 {
 	struct spear_pmx *pmx = platform_get_drvdata(pdev);
 

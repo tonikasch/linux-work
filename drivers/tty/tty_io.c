@@ -236,7 +236,7 @@ void tty_free_file(struct file *file)
 }
 
 /* Delete file from its tty */
-void tty_del_file(struct file *file)
+static void tty_del_file(struct file *file)
 {
 	struct tty_file_private *priv = file->private_data;
 
@@ -554,7 +554,7 @@ EXPORT_SYMBOL_GPL(tty_wakeup);
  *		  tasklist_lock to walk task list for hangup event
  *		    ->siglock to protect ->signal/->sighand
  */
-void __tty_hangup(struct tty_struct *tty)
+static void __tty_hangup(struct tty_struct *tty)
 {
 	struct file *cons_filp = NULL;
 	struct file *filp, *f = NULL;
@@ -2687,6 +2687,11 @@ long tty_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	case TIOCNXCL:
 		clear_bit(TTY_EXCLUSIVE, &tty->flags);
 		return 0;
+	case TIOCGEXCL:
+	{
+		int excl = test_bit(TTY_EXCLUSIVE, &tty->flags);
+		return put_user(excl, (int __user *)p);
+	}
 	case TIOCNOTTY:
 		if (current->signal->tty != tty)
 			return -ENOTTY;

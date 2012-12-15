@@ -345,18 +345,47 @@ void pinctrl_add_gpio_ranges(struct pinctrl_dev *pctldev,
 }
 EXPORT_SYMBOL_GPL(pinctrl_add_gpio_ranges);
 
-struct pinctrl_dev *find_pinctrl_and_add_gpio_range(const char *devname,
+struct pinctrl_dev *pinctrl_find_and_add_gpio_range(const char *devname,
 		struct pinctrl_gpio_range *range)
 {
 	struct pinctrl_dev *pctldev = get_pinctrl_dev_from_devname(devname);
 
+	/*
+	 * If we can't find this device, let's assume that is because
+	 * it has not probed yet, so the driver trying to register this
+	 * range need to defer probing.
+	 */
 	if (!pctldev)
-		return NULL;
+		return ERR_PTR(-EPROBE_DEFER);
 
 	pinctrl_add_gpio_range(pctldev, range);
 	return pctldev;
 }
-EXPORT_SYMBOL_GPL(find_pinctrl_and_add_gpio_range);
+EXPORT_SYMBOL_GPL(pinctrl_find_and_add_gpio_range);
+
+/**
+ * pinctrl_find_gpio_range_from_pin() - locate the GPIO range for a pin
+ * @pctldev: the pin controller device to look in
+ * @pin: a controller-local number to find the range for
+ */
+struct pinctrl_gpio_range *
+pinctrl_find_gpio_range_from_pin(struct pinctrl_dev *pctldev,
+				 unsigned int pin)
+{
+	struct pinctrl_gpio_range *range = NULL;
+
+	/* Loop over the ranges */
+	list_for_each_entry(range, &pctldev->gpio_ranges, node) {
+		/* Check if we're in the valid range */
+		if (pin >= range->pin_base &&
+		    pin < range->pin_base + range->npins) {
+			return range;
+		}
+	}
+
+	return NULL;
+}
+EXPORT_SYMBOL_GPL(pinctrl_find_gpio_range_from_pin);
 
 /**
  * pinctrl_remove_gpio_range() - remove a range of GPIOs fro a pin controller

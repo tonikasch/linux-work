@@ -1006,7 +1006,7 @@ err_free_devinfo:
 	return ret;
 }
 
-static int __devexit omap_sr_remove(struct platform_device *pdev)
+static int omap_sr_remove(struct platform_device *pdev)
 {
 	struct omap_sr_data *pdata = pdev->dev.platform_data;
 	struct omap_sr *sr_info;
@@ -1039,7 +1039,7 @@ static int __devexit omap_sr_remove(struct platform_device *pdev)
 	return 0;
 }
 
-static void __devexit omap_sr_shutdown(struct platform_device *pdev)
+static void omap_sr_shutdown(struct platform_device *pdev)
 {
 	struct omap_sr_data *pdata = pdev->dev.platform_data;
 	struct omap_sr *sr_info;
@@ -1063,8 +1063,8 @@ static void __devexit omap_sr_shutdown(struct platform_device *pdev)
 }
 
 static struct platform_driver smartreflex_driver = {
-	.remove         = __devexit_p(omap_sr_remove),
-	.shutdown	= __devexit_p(omap_sr_shutdown),
+	.remove         = omap_sr_remove,
+	.shutdown	= omap_sr_shutdown,
 	.driver		= {
 		.name	= "smartreflex",
 	},

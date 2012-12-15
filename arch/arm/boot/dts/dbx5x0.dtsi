@@ -203,6 +203,14 @@
 				reg = <0x80157450 0xC>;
 			};
 
+			thermal@801573c0 {
+				compatible = "stericsson,db8500-thermal";
+				reg = <0x801573c0 0x40>;
+				interrupts = <21 0x4>, <22 0x4>;
+				interrupt-names = "IRQ_HOTMON_LOW", "IRQ_HOTMON_HIGH";
+				status = "disabled";
+			 };
+
 			db8500-prcmu-regulators {
 				compatible = "stericsson,db8500-prcmu-regulator";
 
@@ -332,7 +340,33 @@
 					vddadc-supply = <&ab8500_ldo_tvout_reg>;
 				};
 
-				ab8500-usb {
+				ab8500_battery: ab8500_battery {
+					stericsson,battery-type = "LIPO";
+					thermistor-on-batctrl;
+				};
+
+				ab8500_fg {
+					compatible = "stericsson,ab8500-fg";
+					battery	   = <&ab8500_battery>;
+				};
+
+				ab8500_btemp {
+					compatible = "stericsson,ab8500-btemp";
+					battery	   = <&ab8500_battery>;
+				};
+
+				ab8500_charger {
+					compatible	= "stericsson,ab8500-charger";
+					battery		= <&ab8500_battery>;
+					vddadc-supply	= <&ab8500_ldo_tvout_reg>;
+				};
+
+				ab8500_chargalg {
+					compatible	= "stericsson,ab8500-chargalg";
+					battery		= <&ab8500_battery>;
+				};
+
+				ab8500_usb {
 					compatible = "stericsson,ab8500-usb";
 					interrupts = < 90 0x4
 						       96 0x4
@@ -629,6 +663,11 @@
 			ranges = <0 0x50000000 0x4000000>;
 			status = "disabled";
 		};
+
+		cpufreq-cooling {
+			compatible = "stericsson,db8500-cpufreq-cooling";
+			status = "disabled";
+		 };
 
 		vmmci: regulator-gpio {
 			compatible = "regulator-gpio";

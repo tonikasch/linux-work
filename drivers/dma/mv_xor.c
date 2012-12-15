@@ -901,7 +901,7 @@ static void mv_xor_issue_pending(struct dma_chan *chan)
  */
 #define MV_XOR_TEST_SIZE 2000
 
-static int __devinit mv_xor_memcpy_self_test(struct mv_xor_chan *mv_chan)
+static int mv_xor_memcpy_self_test(struct mv_xor_chan *mv_chan)
 {
 	int i;
 	void *src, *dest;
@@ -970,7 +970,7 @@ out:
 }
 
 #define MV_XOR_NUM_SRC_TEST 4 /* must be <= 15 */
-static int __devinit
+static int
 mv_xor_xor_self_test(struct mv_xor_chan *mv_chan)
 {
 	int i, src_idx;
@@ -1245,7 +1245,7 @@ mv_xor_conf_mbus_windows(struct mv_xor_device *xordev,
 	writel(0, base + WINDOW_OVERRIDE_CTRL(1));
 }
 
-static int __devinit mv_xor_probe(struct platform_device *pdev)
+static int mv_xor_probe(struct platform_device *pdev)
 {
 	const struct mbus_dram_target_info *dram;
 	struct mv_xor_device *xordev;
@@ -1371,7 +1371,7 @@ err_channel_add:
 	return ret;
 }
 
-static int __devexit mv_xor_remove(struct platform_device *pdev)
+static int mv_xor_remove(struct platform_device *pdev)
 {
 	struct mv_xor_device *xordev = platform_get_drvdata(pdev);
 	int i;
@@ -1390,7 +1390,7 @@ static int __devexit mv_xor_remove(struct platform_device *pdev)
 }
 
 #ifdef CONFIG_OF
-static struct of_device_id mv_xor_dt_ids[] __devinitdata = {
+static struct of_device_id mv_xor_dt_ids[] = {
        { .compatible = "marvell,orion-xor", },
        {},
 };
@@ -1399,7 +1399,7 @@ MODULE_DEVICE_TABLE(of, mv_xor_dt_ids);
 
 static struct platform_driver mv_xor_driver = {
 	.probe		= mv_xor_probe,
-	.remove		= __devexit_p(mv_xor_remove),
+	.remove		= mv_xor_remove,
 	.driver		= {
 		.owner	        = THIS_MODULE,
 		.name	        = MV_XOR_NAME,

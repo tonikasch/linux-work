@@ -22,6 +22,9 @@ config DW_APB_TIMER_OF
 config ARMADA_370_XP_TIMER
 	bool
 
+config SUNXI_TIMER
+	bool
+
 config CLKSRC_NOMADIK_MTU
 	bool
 	depends on (ARCH_NOMADIK || ARCH_U8500)
@@ -36,9 +39,6 @@ config CLKSRC_NOMADIK_MTU_SCHED_CLOCK
 	depends on CLKSRC_NOMADIK_MTU
 	help
 	  Use the Multi Timer Unit as the sched_clock.
-
-config SUNXI_TIMER
-	bool
 
 config CLKSRC_DBX500_PRCMU
 	bool "Clocksource PRCMU Timer"

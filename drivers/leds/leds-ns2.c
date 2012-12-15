@@ -185,7 +185,7 @@ static ssize_t ns2_led_sata_show(struct device *dev,
 
 static DEVICE_ATTR(sata, 0644, ns2_led_sata_show, ns2_led_sata_store);
 
-static int __devinit
+static int
 create_ns2_led(struct platform_device *pdev, struct ns2_led_data *led_dat,
 	       const struct ns2_led *template)
 {
@@ -268,7 +268,7 @@ static void delete_ns2_led(struct ns2_led_data *led_dat)
 /*
  * Translate OpenFirmware node properties into platform_data.
  */
-static int __devinit
+static int
 ns2_leds_get_of_pdata(struct device *dev, struct ns2_led_platform_data *pdata)
 {
 	struct device_node *np = dev->of_node;
@@ -320,7 +320,7 @@ static const struct of_device_id of_ns2_leds_match[] = {
 };
 #endif /* CONFIG_OF_GPIO */
 
-static int __devinit ns2_led_probe(struct platform_device *pdev)
+static int ns2_led_probe(struct platform_device *pdev)
 {
 	struct ns2_led_platform_data *pdata = pdev->dev.platform_data;
 	struct ns2_led_data *leds_data;
@@ -363,7 +363,7 @@ static int __devinit ns2_led_probe(struct platform_device *pdev)
 	return 0;
 }
 
-static int __devexit ns2_led_remove(struct platform_device *pdev)
+static int ns2_led_remove(struct platform_device *pdev)
 {
 	int i;
 	struct ns2_led_platform_data *pdata = pdev->dev.platform_data;
@@ -381,7 +381,7 @@ static int __devexit ns2_led_remove(struct platform_device *pdev)
 
 static struct platform_driver ns2_led_driver = {
 	.probe		= ns2_led_probe,
-	.remove		= __devexit_p(ns2_led_remove),
+	.remove		= ns2_led_remove,
 	.driver		= {
 		.name		= "leds-ns2",
 		.owner		= THIS_MODULE,
