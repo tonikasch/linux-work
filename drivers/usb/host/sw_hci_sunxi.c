@@ -695,7 +695,6 @@ static int __init sw_hci_sunxi_init(void)
 	sw_ohci1.drv_vbus_Handle = usb1_drv_vbus_Handle;
 
 	if (machine_is_sun4i()) {
-//#ifdef CONFIG_ARCH_SUN4I
 		/* A13 has only one *HCI USB controller */
 		init_sw_hci(&sw_ehci2, 2, 0, ehci_name);
 		init_sw_hci(&sw_ohci2, 2, 1, ohci_name);
@@ -709,10 +708,8 @@ static int __init sw_hci_sunxi_init(void)
 		sw_ehci2.drv_vbus_Handle = usb2_drv_vbus_Handle;
 		sw_ohci2.drv_vbus_Handle = usb2_drv_vbus_Handle;
 	} else {
-//#else
 		sw_ehci2.used = 0;
 	}
-//#endif
 
 /* XXX '.used' flag is for USB port, not for EHCI or OHCI. So it can be checked this way */
 	if (sw_ehci1.used) {
