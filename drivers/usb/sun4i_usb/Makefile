@@ -14,14 +14,16 @@ sw_usbc-objs := usbc/usbc.o \
                 hcd/core/sw_hcd_host.o \
                 hcd/core/sw_hcd_virt_hub.o \
                 hcd/core/sw_hcd_debug.o \
-                hcd/core/sw_hcd_dma.o \
-                hcd/hcd0/sw_hcd0.o
+                hcd/core/sw_hcd_dma.o
 
 ifeq ($(CONFIG_USB_SW_SUN4I_USB0_OTG),y)
 	sw_usbc-objs += manager/usb_hw_scan.o manager/usb_msg_center.o
 endif
 
 obj-$(CONFIG_USB_SW_SUN4I_USB_MANAGER) += sw_usbc.o
+
+sw_usb_hcd0-objs := hcd/hcd0/sw_hcd0.o
+obj-$(CONFIG_USB_SW_SUN4I_HCD0) += sw_usb_hcd0.o
 
 sw_usb_udc-objs :=  udc/sw_udc.o \
                     udc/sw_udc_board.o \
