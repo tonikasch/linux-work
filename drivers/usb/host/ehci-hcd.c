@@ -1229,12 +1229,7 @@ MODULE_LICENSE ("GPL");
 #define	PLATFORM_DRIVER		ehci_hcd_au1xxx_driver
 #endif
 
-#ifdef CONFIG_USB_SW_SUN4I_HCI
-#include "ehci-sunxi.c"
-#define	PLATFORM_DRIVER		sw_ehci_hcd_driver
-#endif
-
-#ifdef CONFIG_USB_SW_SUN5I_HCI
+#if defined(CONFIG_ARCH_SUN4I) || defined (CONFIG_ARCH_SUN5I)
 #include "ehci-sunxi.c"
 #define	PLATFORM_DRIVER		sw_ehci_hcd_driver
 #endif
