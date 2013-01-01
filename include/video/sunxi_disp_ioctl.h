@@ -228,7 +228,14 @@ typedef enum {
 	DISP_TV_MOD_PAL_M_SVIDEO = 0x12,
 	DISP_TV_MOD_PAL_NC = 0x14,
 	DISP_TV_MOD_PAL_NC_SVIDEO = 0x15,
-	DISP_TV_MODE_NUM = 0x1a,
+
+	DISP_TV_MOD_H1360_V768_60HZ = 0x1a,
+	DISP_TV_MOD_H1280_V1024_60HZ = 0x1b,
+
+	DISP_TV_MODE_NUM = 0x1c,
+
+	/* Reserved, do not use in fex files */
+	DISP_TV_MODE_EDID = 0xff
 } __disp_tv_mode_t;
 
 typedef enum {
@@ -419,11 +426,35 @@ typedef struct {
 	__disp_fb_t output_fb;
 } __disp_capture_screen_para_t;
 
+struct __disp_video_timing {
+	__s32 VIC;
+	__s32 PCLK;
+	__s32 AVI_PR;
+
+	__s32 INPUTX;
+	__s32 INPUTY;
+	__s32 HT;
+	__s32 HBP;
+	__s32 HFP;
+	__s32 HPSW;
+	__s32 VT;
+	__s32 VBP;
+	__s32 VFP;
+	__s32 VPSW;
+
+	__s32 I;	/* 0: Progressive 1: Interlaced */
+	__s32 HSYNC;	/* 0: Negative 1: Positive */
+	__s32 VSYNC;	/* 0: Negative 1: Positive */
+};
+
 typedef struct {
+	__s32(*hdmi_wait_edid) (void);
 	__s32(*Hdmi_open) (void);
 	__s32(*Hdmi_close) (void);
 	__s32(*hdmi_set_mode) (__disp_tv_mode_t mode);
 	__s32(*hdmi_mode_support) (__disp_tv_mode_t mode);
+	__s32(*hdmi_get_video_timing) (__disp_tv_mode_t mode,
+				struct __disp_video_timing *video_timing);
 	__s32(*hdmi_get_HPD_status) (void);
 	__s32(*hdmi_set_pll) (__u32 pll, __u32 clk);
 } __disp_hdmi_func;
