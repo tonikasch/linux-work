@@ -6,7 +6,7 @@
  *
  * Author: javen
  * History:
- *    <author>		<time>		<version>    		<desc>
+ *    <author>          <time>          <version>               <desc>
  *    yangnaitian      2011-5-24            1.0          create this file
  *    javen            2011-7-18            1.1          添加了时钟开关和供电开关
  *
@@ -43,9 +43,9 @@
 #include <linux/debugfs.h>
 #include <linux/seq_file.h>
 #include <linux/dma-mapping.h>
+#include <linux/io.h>
 
 #include <asm/byteorder.h>
-#include <asm/io.h>
 #include <asm/irq.h>
 #include <asm/system.h>
 #include <asm/unaligned.h>
@@ -64,31 +64,31 @@ static char *usbc_phy_gate_name[3] = { "usb_phy", "usb_phy", "usb_phy" };
 static char *ohci_phy_gate_name[3] = { "", "usb_ohci0", "usb_ohci1" };
 static char *usbc_phy_reset_name[3] = { "usb_phy0", "usb_phy1", "usb_phy2" };
 
-static u32 usbc_base[3] =
-    { SW_VA_USB0_IO_BASE, SW_VA_USB1_IO_BASE, SW_VA_USB2_IO_BASE };
+static u32 usbc_base[3] = {
+	SW_VA_USB0_IO_BASE, SW_VA_USB1_IO_BASE, SW_VA_USB2_IO_BASE
+};
 static u32 ehci_irq_no[3] = { 0, SW_INT_SRC_EHCI0, SW_INT_SRC_EHCI1 };
 static u32 ohci_irq_no[3] = { 0, SW_INT_SRC_OHCI0, SW_INT_SRC_OHCI1 };
 
-static u32 usb1_set_vbus_cnt = 0;
-static u32 usb2_set_vbus_cnt = 0;
+static u32 usb1_set_vbus_cnt;
+static u32 usb2_set_vbus_cnt;
 
 static s32 get_usb_cfg(struct sw_hci_hcd *sw_hci)
 {
 	__s32 ret = 0;
 
 	/* usbc enable */
-	ret =
-	    script_parser_fetch(usbc_name[sw_hci->usbc_no], "usb_used",
-				(int *)&sw_hci->used, 64);
+	ret = script_parser_fetch(usbc_name[sw_hci->usbc_no], "usb_used",
+				  (int *)&sw_hci->used, 64);
 	if (ret != 0) {
 		DMSG_PANIC("ERR: get usbc2 enable failed\n");
-		//return -1;
+		/*return -1;*/
 	}
 
 	/* request gpio */
-	ret =
-	    script_parser_fetch(usbc_name[sw_hci->usbc_no], "usb_drv_vbus_gpio",
-				(int *)&sw_hci->drv_vbus_gpio_set, 64);
+	ret = script_parser_fetch(usbc_name[sw_hci->usbc_no],
+				  "usb_drv_vbus_gpio",
+				  (int *)&sw_hci->drv_vbus_gpio_set, 64);
 	if (ret != 0) {
 		DMSG_PANIC("ERR: get usbc%d(%s) id failed\n", sw_hci->usbc_no,
 			   usbc_name[sw_hci->usbc_no]);
@@ -96,10 +96,9 @@ static s32 get_usb_cfg(struct sw_hci_hcd *sw_hci)
 	}
 
 	/* host_init_state */
-	ret =
-	    script_parser_fetch(usbc_name[sw_hci->usbc_no],
-				"usb_host_init_state",
-				(int *)&(sw_hci->host_init_state), 64);
+	ret = script_parser_fetch(usbc_name[sw_hci->usbc_no],
+				  "usb_host_init_state",
+				  (int *)&(sw_hci->host_init_state), 64);
 	if (ret != 0) {
 		DMSG_PANIC("ERR: script_parser_fetch host_init_state failed\n");
 		return -1;
@@ -111,6 +110,14 @@ static s32 get_usb_cfg(struct sw_hci_hcd *sw_hci)
 static __u32 USBC_Phy_GetCsr(__u32 usbc_no)
 {
 	__u32 val = 0x0;
+
+	/*
+	 * XXX: TODO: Check if this really is correct, function is returning
+	 * same 'val' for usbc_no == 0,1,2 !??!?!?!
+	 *
+	 * Maybe this should use SW_VA_USB1_IO_BASE for usbc_no==1 and
+	 * SW_VA_USB2_IO_BASE for usbc_no==2?
+	 */
 
 	switch (usbc_no) {
 	case 0:
@@ -166,24 +173,24 @@ static __u32 USBC_Phy_Write(__u32 usbc_no, __u32 addr, __u32 data, __u32 len)
 
 static void UsbPhyInit(__u32 usbc_no)
 {
-//      DMSG_INFO("csr1: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Readl(USBC_Phy_GetCsr(usbc_no)));
+/*	DMSG_INFO("csr1: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Readl(USBC_Phy_GetCsr(usbc_no))); */
 
 	/* 调节45欧阻抗 */
-	if (usbc_no == 0) {
+	if (usbc_no == 0)
 		USBC_Phy_Write(usbc_no, 0x0c, 0x01, 1);
-	}
-//      DMSG_INFO("csr2-0: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x0c, 1));
+
+/*	DMSG_INFO("csr2-0: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x0c, 1)); */
 
 	/* 调整 USB0 PHY 的幅度和速率 */
 	USBC_Phy_Write(usbc_no, 0x20, 0x14, 5);
 
-//      DMSG_INFO("csr2-1: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x20, 5));
+/*	DMSG_INFO("csr2-1: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x20, 5)); */
 
 	/* 调节 disconnect 域值 */
 	USBC_Phy_Write(usbc_no, 0x2a, 3, 2);
 
-//      DMSG_INFO("csr2: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x2a, 2));
-//      DMSG_INFO("csr3: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Readl(USBC_Phy_GetCsr(usbc_no)));
+/*	DMSG_INFO("csr2: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x2a, 2));
+	DMSG_INFO("csr3: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Readl(USBC_Phy_GetCsr(usbc_no))); */
 
 	return;
 }
@@ -293,9 +300,8 @@ static int open_clock(struct sw_hci_hcd *sw_hci, u32 ohci)
 		clk_enable(sw_hci->phy_reset);
 		clk_reset(sw_hci->phy_reset, 0);
 
-		if (ohci && sw_hci->ohci_gate) {
+		if (ohci && sw_hci->ohci_gate)
 			clk_enable(sw_hci->ohci_gate);
-		}
 
 		mdelay(10);
 
@@ -328,9 +334,8 @@ static int close_clock(struct sw_hci_hcd *sw_hci, u32 ohci)
 
 		sw_hci->clk_is_open = 0;
 
-		if (ohci && sw_hci->ohci_gate) {
+		if (ohci && sw_hci->ohci_gate)
 			clk_disable(sw_hci->ohci_gate);
-		}
 
 		clk_reset(sw_hci->phy_reset, 1);
 		clk_disable(sw_hci->phy_reset);
@@ -366,17 +371,21 @@ static void usb_passby(struct sw_hci_hcd *sw_hci, u32 enable)
 		reg_value =
 		    USBC_Readl(sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE);
 		reg_value |= (1 << 10);	/* AHB Master interface INCR8 enable */
-		reg_value |= (1 << 9);	/* AHB Master interface burst type INCR4 enable */
-		reg_value |= (1 << 8);	/* AHB Master interface INCRX align enable */
+		reg_value |= (1 << 9);	/* AHB Master interface burst type
+					   INCR4 enable */
+		reg_value |= (1 << 8);	/* AHB Master interface INCRX align
+					   enable */
 		reg_value |= (1 << 0);	/* ULPI bypass enable */
 		USBC_Writel(reg_value,
 			    (sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE));
 	} else {
 		reg_value =
 		    USBC_Readl(sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE);
-		reg_value &= ~(1 << 10);	/* AHB Master interface INCR8 disable */
-		reg_value &= ~(1 << 9);	/* AHB Master interface burst type INCR4 disable */
-		reg_value &= ~(1 << 8);	/* AHB Master interface INCRX align disable */
+		reg_value &= ~(1 << 10);/* AHB Master interface INCR8 disable */
+		reg_value &= ~(1 << 9);	/* AHB Master interface burst type
+					   INCR4 disable */
+		reg_value &= ~(1 << 8);	/* AHB Master interface INCRX align
+					   disable */
 		reg_value &= ~(1 << 0);	/* ULPI bypass disable */
 		USBC_Writel(reg_value,
 			    (sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE));
@@ -402,17 +411,17 @@ static void hci_port_configure(struct sw_hci_hcd *sw_hci, u32 enable)
 	}
 
 	reg_value = USBC_Readl(sw_hci->sdram_vbase + usbc_sdram_hpcr);
-	if (enable) {
+	if (enable)
 		reg_value |= (1 << SW_SDRAM_BP_HPCR_ACCESS_EN);
-	} else {
+	else
 		reg_value &= ~(1 << SW_SDRAM_BP_HPCR_ACCESS_EN);
-	}
+
 	USBC_Writel(reg_value, (sw_hci->sdram_vbase + usbc_sdram_hpcr));
 
 	return;
 }
 
-static u32 alloc_pin(user_gpio_set_t * gpio_list)
+static u32 alloc_pin(user_gpio_set_t *gpio_list)
 {
 	u32 pin_handle = 0;
 
@@ -433,9 +442,8 @@ static u32 alloc_pin(user_gpio_set_t * gpio_list)
 
 static void free_pin(u32 pin_handle)
 {
-	if (pin_handle) {
+	if (pin_handle)
 		gpio_release(pin_handle, 0);
-	}
 
 	return;
 }
@@ -451,11 +459,10 @@ static void __sw_set_vbus(struct sw_hci_hcd *sw_hci, int is_on)
 	sw_hci->power_flag = is_on;
 
 	/* set power */
-	if (sw_hci->drv_vbus_gpio_set.data == 0) {
+	if (sw_hci->drv_vbus_gpio_set.data == 0)
 		on_off = is_on ? 1 : 0;
-	} else {
+	else
 		on_off = is_on ? 0 : 1;
-	}
 
 	gpio_write_one_pin_value(sw_hci->drv_vbus_Handle, on_off, NULL);
 
@@ -470,37 +477,35 @@ static void sw_set_vbus(struct sw_hci_hcd *sw_hci, int is_on)
 		    1) ? usb1_set_vbus_cnt : usb2_set_vbus_cnt);
 
 	if (sw_hci->usbc_no == 1) {
-		if (is_on && usb1_set_vbus_cnt == 0) {
+		if (is_on && usb1_set_vbus_cnt == 0)
 			__sw_set_vbus(sw_hci, is_on);	/* power on */
-		} else if (!is_on && usb1_set_vbus_cnt == 1) {
+		else if (!is_on && usb1_set_vbus_cnt == 1)
 			__sw_set_vbus(sw_hci, is_on);	/* power off */
-		}
 
-		if (is_on) {
+		if (is_on)
 			usb1_set_vbus_cnt++;
-		} else {
+		else
 			usb1_set_vbus_cnt--;
-		}
 	} else {
-		if (is_on && usb2_set_vbus_cnt == 0) {
+		if (is_on && usb2_set_vbus_cnt == 0)
 			__sw_set_vbus(sw_hci, is_on);	/* power on */
-		} else if (!is_on && usb2_set_vbus_cnt == 1) {
+		else if (!is_on && usb2_set_vbus_cnt == 1)
 			__sw_set_vbus(sw_hci, is_on);	/* power off */
-		}
 
-		if (is_on) {
+		if (is_on)
 			usb2_set_vbus_cnt++;
-		} else {
+		else
 			usb2_set_vbus_cnt--;
-		}
 	}
 
 	return;
 }
 
-//---------------------------------------------------------------
-//  EHCI
-//---------------------------------------------------------------
+/*
+ *---------------------------------------------------------------
+ * EHCI
+ *---------------------------------------------------------------
+ */
 
 #define  SW_EHCI_NAME		"sw-ehci"
 static const char ehci_name[] = SW_EHCI_NAME;
@@ -543,9 +548,12 @@ static struct platform_device sw_usb_ehci_device[] = {
 	       },
 };
 
-//---------------------------------------------------------------
-//  OHCI
-//---------------------------------------------------------------
+/*
+ *---------------------------------------------------------------
+ * OHCI
+ *---------------------------------------------------------------
+ */
+
 #define  SW_OHCI_NAME		"sw-ohci"
 static const char ohci_name[] = SW_OHCI_NAME;
 
@@ -631,11 +639,10 @@ static int init_sw_hci(struct sw_hci_hcd *sw_hci, u32 usbc_no, u32 ohci,
 
 	sw_hci->usbc_no = usbc_no;
 
-	if (ohci) {
+	if (ohci)
 		sw_hci->irq_no = ohci_irq_no[sw_hci->usbc_no];
-	} else {
+	else
 		sw_hci->irq_no = ehci_irq_no[sw_hci->usbc_no];
-	}
 
 	sprintf(sw_hci->hci_name, "%s%d", hci_name, sw_hci->usbc_no);
 
@@ -663,7 +670,6 @@ static int init_sw_hci(struct sw_hci_hcd *sw_hci, u32 usbc_no, u32 ohci,
 	return 0;
 
 failed1:
-
 	return -1;
 }
 
@@ -716,14 +722,14 @@ static int __init sw_hci_sunxi_init(void)
 		platform_device_register(&sw_usb_ehci_device[1]);
 		platform_device_register(&sw_usb_ohci_device[1]);
 	} else {
-//      DMSG_PANIC("ERR: usb%d %s is disabled in script.bin\n", sw_ehci1.usbc_no, sw_ehci1.hci_name);
+/*      DMSG_PANIC("ERR: usb%d %s is disabled in script.bin\n", sw_ehci1.usbc_no, sw_ehci1.hci_name); */
 	}
 
 	if (sw_ehci2.used) {
 		platform_device_register(&sw_usb_ehci_device[2]);
 		platform_device_register(&sw_usb_ohci_device[2]);
 	} else {
-//      DMSG_PANIC("ERR: usb%d %s is disabled in script.bin\n", sw_ehci2.usbc_no, sw_ehci2.hci_name);
+/*      DMSG_PANIC("ERR: usb%d %s is disabled in script.bin\n", sw_ehci2.usbc_no, sw_ehci2.hci_name); */
 	}
 
 	return 0;

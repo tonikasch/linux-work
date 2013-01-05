@@ -33,6 +33,101 @@
 #include "disp_lcd.h"
 
 fb_info_t g_fbi;
+static DEFINE_MUTEX(g_fbi_mutex);
+
+static int screen0_output_type = -1;
+module_param(screen0_output_type, int, 0444);
+MODULE_PARM_DESC(screen0_output_type, "0:none; 1:lcd; 2:tv; 3:hdmi; 4:vga");
+
+static char *screen0_output_mode;
+module_param(screen0_output_mode, charp, 0444);
+MODULE_PARM_DESC(screen0_output_mode,
+	"tv/hdmi: <width>x<height><i|p><24|50|60> vga: <width>x<height> "
+	"hdmi modes can be prefixed with \"EDID:\". Then EDID will be used, "
+	"with the specified mode as a fallback, ie \"EDID:1280x720p60\".");
+
+static int screen1_output_type = -1;
+module_param(screen1_output_type, int, 0444);
+MODULE_PARM_DESC(screen1_output_type, "0:none; 1:lcd; 2:tv; 3:hdmi; 4:vga");
+
+static char *screen1_output_mode;
+module_param(screen1_output_mode, charp, 0444);
+MODULE_PARM_DESC(screen1_output_mode, "See screen0_output_mode");
+
+static u32 tv_mode_to_frame_rate(u32 mode)
+{
+	switch (mode) {
+	case DISP_TV_MOD_1080P_24HZ:
+	case DISP_TV_MOD_1080P_24HZ_3D_FP:
+		return 24;
+	case DISP_TV_MOD_576I:
+	case DISP_TV_MOD_576P:
+	case DISP_TV_MOD_PAL:
+	case DISP_TV_MOD_PAL_SVIDEO:
+	case DISP_TV_MOD_PAL_NC:
+	case DISP_TV_MOD_PAL_NC_SVIDEO:
+	case DISP_TV_MOD_720P_50HZ:
+	case DISP_TV_MOD_720P_50HZ_3D_FP:
+	case DISP_TV_MOD_1080I_50HZ:
+	case DISP_TV_MOD_1080P_50HZ:
+		return 50;
+	default:
+		return 60;
+	}
+}
+
+static int parse_output_mode(char *mode, int type, int fallback, __bool *edid)
+{
+	u32 i, max, width, height, interlace, frame_rate;
+	char *ep;
+
+	if (type == DISP_OUTPUT_TYPE_HDMI && strncmp(mode, "EDID:", 5) == 0) {
+		*edid = true;
+		mode += 5;
+	}
+
+	width = simple_strtol(mode, &ep, 10);
+	if (*ep != 'x') {
+		__wrn("Invalid mode string: %s, ignoring\n", mode);
+		return fallback;
+	}
+	height = simple_strtol(ep + 1, &ep, 10);
+
+	if (type == DISP_OUTPUT_TYPE_TV || type == DISP_OUTPUT_TYPE_HDMI) {
+		if (*ep == 'i') {
+			interlace = 1;
+		} else if (*ep == 'p') {
+			interlace = 0;
+		} else {
+			__wrn("Invalid tv-mode string: %s, ignoring\n", mode);
+			return fallback;
+		}
+		frame_rate = simple_strtol(ep + 1, &ep, 10);
+
+		max = (type == DISP_OUTPUT_TYPE_TV) ?
+			DISP_TV_MOD_1080P_24HZ_3D_FP : DISP_TV_MODE_NUM;
+		for (i = 0; i < max; i++) {
+			if (tv_mode_to_width(i) == width &&
+			    tv_mode_to_height(i) == height &&
+			    Disp_get_screen_scan_mode(i) == interlace &&
+			    tv_mode_to_frame_rate(i) == frame_rate) {
+				return i;
+			}
+		}
+	} else {
+		for (i = 0; i < DISP_VGA_MODE_NUM; i++) {
+			if (i == DISP_VGA_H1440_V900_RB)
+				i = DISP_VGA_H1920_V1080; /* Skip RB modes */
+
+			if (vga_mode_to_width(i) == width &&
+			    vga_mode_to_height(i) == height) {
+				return i;
+			}
+		}
+	}
+	__wrn("Unsupported mode: %s, ignoring\n", mode);
+	return fallback;
+}
 
 static int screen0_output_type = -1;
 module_param(screen0_output_type, int, 0444);
@@ -1564,6 +1659,7 @@ void hdmi_edid_received(unsigned char *edid, int block)
 	struct fb_event event;
 	__u32 sel = 0;
 
+	mutex_lock(&g_fbi_mutex);
 	for (sel = 0; sel < 2; sel++) {
 		struct fb_info *fbi = g_fbi.fbinfo[sel];
 		int err = 0;
@@ -1571,10 +1667,12 @@ void hdmi_edid_received(unsigned char *edid, int block)
 		if (g_fbi.disp_init.output_type[sel] != DISP_OUTPUT_TYPE_HDMI)
 			continue;
 
-		if (!lock_fb_info(fbi))
-			continue;
+		if (g_fbi.fb_registered[sel]) {
+			if (!lock_fb_info(fbi))
+				continue;
 
-		console_lock();
+			console_lock();
+		}
 
 		if (block == 0) {
 			if (fbi->monspecs.modedb != NULL) {
@@ -1592,8 +1690,10 @@ void hdmi_edid_received(unsigned char *edid, int block)
 			 * Should not happen? Avoid panics and skip in this
 			 * case.
 			 */
-			console_unlock();
-			unlock_fb_info(fbi);
+			if (g_fbi.fb_registered[sel]) {
+				console_unlock();
+				unlock_fb_info(fbi);
+			}
 
 			WARN_ON(fbi->monspecs.modedb_len == 0);
 			continue;
@@ -1616,11 +1716,14 @@ void hdmi_edid_received(unsigned char *edid, int block)
 		event.info = fbi;
 		err = fb_notifier_call_chain(FB_EVENT_NEW_MODELIST, &event);
 
-		console_unlock();
-		unlock_fb_info(fbi);
+		if (g_fbi.fb_registered[sel]) {
+			console_unlock();
+			unlock_fb_info(fbi);
+		}
 
 		WARN_ON(err);
 	}
+	mutex_unlock(&g_fbi_mutex);
 }
 EXPORT_SYMBOL(hdmi_edid_received);
 
@@ -1825,9 +1928,13 @@ __s32 Fb_Init(__u32 from)
 #endif
 		}
 
-		for (i = 0; i < SUNXI_MAX_FB; i++)
+		mutex_lock(&g_fbi_mutex);
+		for (i = 0; i < SUNXI_MAX_FB; i++) {
 			/* Register framebuffers after they are initialized */
 			register_framebuffer(g_fbi.fbinfo[i]);
+			g_fbi.fb_registered[i] = true;
+		}
+		mutex_unlock(&g_fbi_mutex);
 
 		if (g_fbi.disp_init.scaler_mode[0])
 			BSP_disp_print_reg(0, DISP_REG_SCALER0);
