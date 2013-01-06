@@ -460,8 +460,9 @@ static int __init Fb_map_video_memory(struct fb_info *info)
 		return -ENOMEM;
 	}
 #else
-	info->screen_base = (char __iomem *)disp_malloc(info->fix.smem_len);
-	info->fix.smem_start = (unsigned long)__pa(info->screen_base);
+	g_fbi.malloc_screen_base = disp_malloc(info->fix.smem_len);
+	info->fix.smem_start = (unsigned long)__pa(g_fbi.malloc_screen_base);
+	info->screen_base = ioremap_wc(info->fix.smem_start, fb_size);
 	memset_io(info->screen_base, 0, info->fix.smem_len);
 
 	__inf("Fb_map_video_memory, pa=0x%08lx size:0x%x\n",
@@ -478,7 +479,8 @@ static inline void Fb_unmap_video_memory(struct fb_info *info)
 
 	free_pages((unsigned long)info->screen_base, get_order(map_size));
 #else
-	disp_free((void __kernel __force *) info->screen_base);
+	iounmap(info->screen_base);
+	disp_free((void __kernel __force *) g_fbi.malloc_screen_base);
 #endif
 }
 
