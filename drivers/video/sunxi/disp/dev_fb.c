@@ -34,7 +34,7 @@
 
 fb_info_t g_fbi;
 static DEFINE_MUTEX(g_fbi_mutex);
-
+#if 0
 static int screen0_output_type = -1;
 module_param(screen0_output_type, int, 0444);
 MODULE_PARM_DESC(screen0_output_type, "0:none; 1:lcd; 2:tv; 3:hdmi; 4:vga");
@@ -128,7 +128,7 @@ static int parse_output_mode(char *mode, int type, int fallback, __bool *edid)
 	__wrn("Unsupported mode: %s, ignoring\n", mode);
 	return fallback;
 }
-
+#endif
 static int screen0_output_type = -1;
 module_param(screen0_output_type, int, 0444);
 MODULE_PARM_DESC(screen0_output_type, "0:none; 1:lcd; 2:tv; 3:hdmi; 4:vga");
