@@ -59,6 +59,8 @@ typedef struct {
 #ifdef CONFIG_FB_SUNXI_UMP
 	ump_dd_handle ump_wrapped_buffer[SUNXI_MAX_FB][2];
 #endif
+	/* screen_base address, allocated with disp_malloc() */
+	void *malloc_screen_base[SUNXI_MAX_FB];
 } fb_info_t;
 
 extern fb_info_t g_fbi;
@@ -74,7 +76,6 @@ __s32 Display_Fb_get_para(__u32 fb_id, __disp_fb_create_para_t *fb_para);
 
 __s32 Display_get_disp_init_para(__disp_init_t *init_para);
 
-__s32 Fb_Init(__u32 from);
 __s32 Fb_Exit(void);
 
 #endif /* __DEV_FB_H__ */

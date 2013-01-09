@@ -441,7 +441,7 @@ fb_draw_gray_pictures(__u32 base, __u32 width, __u32 height,
 }
 #endif /* UNUSED */
 
-static int __init Fb_map_video_memory(struct fb_info *info)
+static int __init Fb_map_video_memory(__u32 fb_id, struct fb_info *info)
 {
 #ifndef CONFIG_FB_SUNXI_RESERVED_MEM
 	unsigned map_size = PAGE_ALIGN(info->fix.smem_len);
@@ -460,8 +460,18 @@ static int __init Fb_map_video_memory(struct fb_info *info)
 		return -ENOMEM;
 	}
 #else
-	info->screen_base = (char __iomem *)disp_malloc(info->fix.smem_len);
-	info->fix.smem_start = (unsigned long)__pa(info->screen_base);
+	g_fbi.malloc_screen_base[fb_id] = disp_malloc(info->fix.smem_len);
+	info->fix.smem_start = (unsigned long)
+					__pa(g_fbi.malloc_screen_base[fb_id]);
+	info->screen_base = ioremap_wc(info->fix.smem_start,
+				       info->fix.smem_len);
+	__inf("Fb_map_video_memory: fb_id=%d, disp_malloc=%p, ioremap_wc=%p\n",
+		    fb_id, g_fbi.malloc_screen_base[fb_id], info->screen_base);
+	if (!info->screen_base) {
+		__wrn("ioremap_wc() failed, falling back to the existing "
+		      "cached mapping\n");
+		info->screen_base = g_fbi.malloc_screen_base[fb_id];
+	}
 	memset_io(info->screen_base, 0, info->fix.smem_len);
 
 	__inf("Fb_map_video_memory, pa=0x%08lx size:0x%x\n",
@@ -471,14 +481,21 @@ static int __init Fb_map_video_memory(struct fb_info *info)
 #endif
 }
 
-static inline void Fb_unmap_video_memory(struct fb_info *info)
+static inline void Fb_unmap_video_memory(__u32 fb_id, struct fb_info *info)
 {
 #ifndef CONFIG_FB_SUNXI_RESERVED_MEM
 	unsigned map_size = PAGE_ALIGN(info->fix.smem_len);
 
 	free_pages((unsigned long)info->screen_base, get_order(map_size));
 #else
-	disp_free((void __kernel __force *) info->screen_base);
+	if ((void *)info->screen_base != g_fbi.malloc_screen_base[fb_id]) {
+		__inf("Fb_unmap_video_memory: fb_id=%d, iounmap(%p)\n",
+						fb_id, info->screen_base);
+		iounmap(info->screen_base);
+	}
+	__inf("Fb_unmap_video_memory: fb_id=%d, disp_free(%p)\n",
+			fb_id, g_fbi.malloc_screen_base[fb_id]);
+	disp_free(g_fbi.malloc_screen_base[fb_id]);
 #endif
 }
 
@@ -1035,8 +1052,19 @@ static int Fb_pan_display(struct fb_var_screeninfo *var, struct fb_info *info)
 static int Fb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 {
 	__disp_pixel_fmt_t fmt;
+	int dummy, sel;
 	__inf("Fb_check_var: %dx%d %dbits\n", var->xres, var->yres,
 	      var->bits_per_pixel);
+
+	for (sel = 0; sel < 2; sel++) {
+		if (g_fbi.disp_init.output_type[sel] != DISP_OUTPUT_TYPE_HDMI)
+			continue;
+
+		/* Check that pll is found */
+		if (disp_get_pll_freq(PICOS2KHZ(var->pixclock) *
+				1000, &dummy, &dummy))
+			return -EINVAL;
+	}
 
 	switch (var->bits_per_pixel) {
 	case 16:
@@ -1087,10 +1115,27 @@ static int Fb_set_par(struct fb_info *info)
 		     (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN0))) {
 			struct fb_var_screeninfo *var = &info->var;
 			struct fb_fix_screeninfo *fix = &info->fix;
+			bool mode_changed = false;
 			__s32 layer_hdl = g_fbi.layer_hdl[info->node][sel];
 			__disp_layer_info_t layer_para;
 			__u32 buffer_num = 1;
 			__u32 y_offset = 0;
+
+
+			if (g_fbi.disp_init.output_type[sel] ==
+					DISP_OUTPUT_TYPE_HDMI) {
+				struct fb_videomode new_mode;
+				struct fb_videomode old_mode;
+				fb_var_to_videomode(&new_mode, var);
+				var->yres_virtual = new_mode.yres *
+						g_fbi.fb_para[sel].buffer_num;
+				BSP_disp_get_videomode(sel, &old_mode);
+				if (!fb_mode_is_equal(&new_mode, &old_mode)) {
+					mode_changed = (BSP_disp_set_videomode(
+							sel, &new_mode) == 0);
+
+				}
+			}
 
 			if (g_fbi.fb_mode[info->node] ==
 			    FB_MODE_DUAL_SAME_SCREEN_TB)
@@ -1107,7 +1152,8 @@ static int Fb_set_par(struct fb_info *info)
 			layer_para.src_win.y = var->yoffset + y_offset;
 			layer_para.src_win.width = var->xres;
 			layer_para.src_win.height = var->yres / buffer_num;
-			if (layer_para.mode != DISP_LAYER_WORK_MODE_SCALER) {
+			if (layer_para.mode != DISP_LAYER_WORK_MODE_SCALER ||
+					mode_changed) {
 				layer_para.scn_win.width =
 					layer_para.src_win.width;
 				layer_para.scn_win.height =
@@ -1380,7 +1426,7 @@ __s32 Display_Fb_Request(__u32 fb_id, __disp_fb_create_para_t * fb_para)
 		(fb_para->width * info->var.bits_per_pixel) >> 3;
 	info->fix.smem_len =
 		info->fix.line_length * fb_para->height * fb_para->buffer_num;
-	Fb_map_video_memory(info);
+	Fb_map_video_memory(fb_id, info);
 
 	for (sel = 0; sel < 2; sel++) {
 		if (((sel == 0) && (fb_para->fb_mode != FB_MODE_SCREEN1)) ||
@@ -1396,21 +1442,12 @@ __s32 Display_Fb_Request(__u32 fb_id, __disp_fb_create_para_t * fb_para)
 			    ((sel == fb_para->primary_screen_id) &&
 			     (fb_para->fb_mode ==
 			      FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS))) {
-				__disp_tcon_timing_t tt;
 
-				if (BSP_disp_get_timing(sel, &tt) >= 0) {
-					info->var.pixclock =
-					    1000000000 / tt.pixel_clk;
-					info->var.left_margin =
-					    tt.hor_back_porch;
-					info->var.right_margin =
-					    tt.hor_front_porch;
-					info->var.upper_margin =
-					    tt.ver_back_porch;
-					info->var.lower_margin =
-					    tt.ver_front_porch;
-					info->var.hsync_len = tt.hor_sync_time;
-					info->var.vsync_len = tt.ver_sync_time;
+				struct fb_videomode mode;
+				if (BSP_disp_get_videomode(sel, &mode) == 0) {
+					fb_videomode_to_var(&info->var, &mode);
+					info->var.yres_virtual =
+						mode.yres * fb_para->buffer_num;
 				}
 			}
 
@@ -1509,7 +1546,7 @@ __s32 Display_Fb_Release(__u32 fb_id)
 	g_fbi.fb_enable[fb_id] = 0;
 
 	fb_dealloc_cmap(&info->cmap);
-	Fb_unmap_video_memory(info);
+	Fb_unmap_video_memory(fb_id, info);
 
 	return DIS_SUCCESS;
 }
@@ -1541,33 +1578,24 @@ __s32 Display_set_fb_timing(__u32 sel)
 	__u8 fb_id = 0;
 
 	for (fb_id = 0; fb_id < SUNXI_MAX_FB; fb_id++) {
+		__disp_fb_create_para_t *fb_para = &g_fbi.fb_para[fb_id];
+		__fb_mode_t fb_mode = g_fbi.fb_mode[fb_id];
+		struct fb_var_screeninfo *var = &g_fbi.fbinfo[sel]->var;
 		if (g_fbi.fb_enable[fb_id]) {
 			if (((sel == 0) &&
-			     (g_fbi.fb_mode[fb_id] == FB_MODE_SCREEN0 ||
-			      g_fbi.fb_mode[fb_id] ==
-			      FB_MODE_DUAL_SAME_SCREEN_TB)) ||
+			     (fb_mode == FB_MODE_SCREEN0 ||
+				 fb_mode == FB_MODE_DUAL_SAME_SCREEN_TB)) ||
 			    ((sel == 1) &&
-			     (g_fbi.fb_mode[fb_id] == FB_MODE_SCREEN1)) ||
-			    ((sel == g_fbi.fb_para[fb_id].primary_screen_id) &&
-			     (g_fbi.fb_mode[fb_id] ==
+			     (fb_mode == FB_MODE_SCREEN1)) ||
+			    ((sel == fb_para->primary_screen_id) &&
+			     (fb_mode ==
 			      FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS))) {
-				__disp_tcon_timing_t tt;
 
-				if (BSP_disp_get_timing(sel, &tt) >= 0) {
-					g_fbi.fbinfo[fb_id]->var.pixclock =
-					    1000000000 / tt.pixel_clk;
-					g_fbi.fbinfo[fb_id]->var.left_margin =
-					    tt.hor_back_porch;
-					g_fbi.fbinfo[fb_id]->var.right_margin =
-					    tt.hor_front_porch;
-					g_fbi.fbinfo[fb_id]->var.upper_margin =
-					    tt.ver_back_porch;
-					g_fbi.fbinfo[fb_id]->var.lower_margin =
-					    tt.ver_front_porch;
-					g_fbi.fbinfo[fb_id]->var.hsync_len =
-					    tt.hor_sync_time;
-					g_fbi.fbinfo[fb_id]->var.vsync_len =
-					    tt.ver_sync_time;
+				struct fb_videomode mode;
+				if (BSP_disp_get_videomode(sel, &mode) == 0) {
+					fb_videomode_to_var(var, &mode);
+					var->yres_virtual = mode.yres *
+						fb_para->buffer_num;
 				}
 			}
 		}
@@ -1740,10 +1768,10 @@ __s32 Fb_Init(__u32 from)
 
 	__inf("Fb_Init: %d %d\n", from, need_open_hdmi);
 
-	if (need_open_hdmi == 1 && from == 0)
+	if (need_open_hdmi == 1 && from == SUNXI_LCD)
 		/* it is called from lcd driver, but hdmi need to be opened */
 		return 0;
-	else if (need_open_hdmi == 0 && from == 1)
+	else if (need_open_hdmi == 0 && from == SUNXI_HDMI)
 		/* it is called from hdmi driver, but hdmi need not be opened */
 		return 0;
 
