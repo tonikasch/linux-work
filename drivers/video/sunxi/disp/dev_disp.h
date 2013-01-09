@@ -63,9 +63,11 @@ extern __s32 DRV_DISP_Exit(void);
 
 extern __disp_drv_t g_disp_drv;
 
+extern void hdmi_edid_received(unsigned char *edid, int block);
 extern __s32 DRV_lcd_open(__u32 sel);
 extern __s32 DRV_lcd_close(__u32 sel);
 
 __s32 disp_set_hdmi_func(__disp_hdmi_func *func);
+__s32 disp_get_pll_freq(__u32 pclk, __u32 *pll_freq,  __u32 *pll_2x);
 
 #endif

@@ -1288,6 +1288,7 @@ __s32 Disp_lcdc_exit(__u32 sel)
 
 __u32 tv_mode_to_width(__disp_tv_mode_t mode)
 {
+	struct __disp_video_timing video_timing;
 	__u32 width = 0;
 
 	switch (mode) {
@@ -1309,7 +1310,11 @@ __u32 tv_mode_to_width(__disp_tv_mode_t mode)
 	case DISP_TV_MOD_720P_60HZ:
 	case DISP_TV_MOD_720P_50HZ_3D_FP:
 	case DISP_TV_MOD_720P_60HZ_3D_FP:
+	case DISP_TV_MOD_H1280_V1024_60HZ:
 		width = 1280;
+		break;
+	case DISP_TV_MOD_H1360_V768_60HZ:
+		width = 1360;
 		break;
 	case DISP_TV_MOD_1080I_50HZ:
 	case DISP_TV_MOD_1080I_60HZ:
@@ -1318,6 +1323,11 @@ __u32 tv_mode_to_width(__disp_tv_mode_t mode)
 	case DISP_TV_MOD_1080P_60HZ:
 	case DISP_TV_MOD_1080P_24HZ_3D_FP:
 		width = 1920;
+		break;
+	case DISP_TV_MODE_EDID:
+		if (gdisp.init_para.hdmi_get_video_timing(mode,
+							  &video_timing) == 0)
+			width = video_timing.INPUTX;
 		break;
 	default:
 		width = 0;
@@ -1329,6 +1339,7 @@ __u32 tv_mode_to_width(__disp_tv_mode_t mode)
 
 __u32 tv_mode_to_height(__disp_tv_mode_t mode)
 {
+	struct __disp_video_timing video_timing;
 	__u32 height = 0;
 
 	switch (mode) {
@@ -1352,6 +1363,12 @@ __u32 tv_mode_to_height(__disp_tv_mode_t mode)
 	case DISP_TV_MOD_720P_60HZ:
 		height = 720;
 		break;
+	case DISP_TV_MOD_H1360_V768_60HZ:
+		height = 768;
+		break;
+	case DISP_TV_MOD_H1280_V1024_60HZ:
+		height = 1024;
+		break;
 	case DISP_TV_MOD_1080I_50HZ:
 	case DISP_TV_MOD_1080I_60HZ:
 	case DISP_TV_MOD_1080P_24HZ:
@@ -1365,6 +1382,11 @@ __u32 tv_mode_to_height(__disp_tv_mode_t mode)
 	case DISP_TV_MOD_720P_50HZ_3D_FP:
 	case DISP_TV_MOD_720P_60HZ_3D_FP:
 		height = 720 * 2;
+		break;
+	case DISP_TV_MODE_EDID:
+		if (gdisp.init_para.hdmi_get_video_timing(mode,
+							  &video_timing) == 0)
+			height = video_timing.INPUTY;
 		break;
 	default:
 		height = 0;
@@ -1473,6 +1495,7 @@ __u32 vga_mode_to_height(__disp_vga_mode_t mode)
  */
 __u32 Disp_get_screen_scan_mode(__disp_tv_mode_t tv_mode)
 {
+	struct __disp_video_timing video_timing;
 	__u32 ret = 0;
 
 	switch (tv_mode) {
@@ -1489,6 +1512,11 @@ __u32 Disp_get_screen_scan_mode(__disp_tv_mode_t tv_mode)
 	case DISP_TV_MOD_1080I_50HZ:
 	case DISP_TV_MOD_1080I_60HZ:
 		ret = 1;
+	case DISP_TV_MODE_EDID:
+		if (gdisp.init_para.hdmi_get_video_timing(tv_mode,
+							  &video_timing) == 0)
+			ret = video_timing.I;
+		break;
 	default:
 		break;
 	}
@@ -1543,73 +1571,6 @@ __s32 BSP_disp_get_output_type(__u32 sel)
 		return (__s32) DISP_OUTPUT_TYPE_VGA;
 
 	return (__s32) DISP_OUTPUT_TYPE_NONE;
-}
-
-__s32 BSP_disp_get_frame_rate(__u32 sel)
-{
-	__s32 frame_rate = 60;
-
-	if (gdisp.screen[sel].output_type & DISP_OUTPUT_TYPE_LCD) {
-		frame_rate = (gpanel_info[sel].lcd_dclk_freq * 1000000) /
-			(gpanel_info[sel].lcd_ht *
-			 (gpanel_info[sel].lcd_vt / 2));
-	} else if (gdisp.screen[sel].output_type & DISP_OUTPUT_TYPE_TV) {
-		switch (gdisp.screen[sel].tv_mode) {
-		case DISP_TV_MOD_480I:
-		case DISP_TV_MOD_480P:
-		case DISP_TV_MOD_NTSC:
-		case DISP_TV_MOD_NTSC_SVIDEO:
-		case DISP_TV_MOD_PAL_M:
-		case DISP_TV_MOD_PAL_M_SVIDEO:
-		case DISP_TV_MOD_720P_60HZ:
-		case DISP_TV_MOD_1080I_60HZ:
-		case DISP_TV_MOD_1080P_60HZ:
-			frame_rate = 60;
-			break;
-		case DISP_TV_MOD_576I:
-		case DISP_TV_MOD_576P:
-		case DISP_TV_MOD_PAL:
-		case DISP_TV_MOD_PAL_SVIDEO:
-		case DISP_TV_MOD_PAL_NC:
-		case DISP_TV_MOD_PAL_NC_SVIDEO:
-		case DISP_TV_MOD_720P_50HZ:
-		case DISP_TV_MOD_1080I_50HZ:
-		case DISP_TV_MOD_1080P_50HZ:
-			frame_rate = 50;
-			break;
-		default:
-			break;
-		}
-	} else if (gdisp.screen[sel].output_type & DISP_OUTPUT_TYPE_HDMI) {
-		switch (gdisp.screen[sel].hdmi_mode) {
-		case DISP_TV_MOD_480I:
-		case DISP_TV_MOD_480P:
-		case DISP_TV_MOD_720P_60HZ:
-		case DISP_TV_MOD_1080I_60HZ:
-		case DISP_TV_MOD_1080P_60HZ:
-		case DISP_TV_MOD_720P_60HZ_3D_FP:
-			frame_rate = 60;
-			break;
-		case DISP_TV_MOD_576I:
-		case DISP_TV_MOD_576P:
-		case DISP_TV_MOD_720P_50HZ:
-		case DISP_TV_MOD_1080I_50HZ:
-		case DISP_TV_MOD_1080P_50HZ:
-		case DISP_TV_MOD_720P_50HZ_3D_FP:
-			frame_rate = 50;
-			break;
-		case DISP_TV_MOD_1080P_24HZ:
-		case DISP_TV_MOD_1080P_24HZ_3D_FP:
-			frame_rate = 24;
-			break;
-		default:
-			break;
-		}
-	} else if (gdisp.screen[sel].output_type & DISP_OUTPUT_TYPE_VGA) {
-		frame_rate = 60;
-	}
-
-	return frame_rate;
 }
 
 __s32 BSP_disp_lcd_open_before(__u32 sel)
@@ -1864,14 +1825,20 @@ __s32 BSP_disp_get_timing(__u32 sel, __disp_tcon_timing_t *tt)
 	if (gdisp.screen[sel].status & LCD_ON) {
 		LCDC_get_timing(sel, 0, tt);
 		tt->pixel_clk = gpanel_info[sel].lcd_dclk_freq * 1000;
-	} else if ((gdisp.screen[sel].status & TV_ON) ||
-		   (gdisp.screen[sel].status & HDMI_ON)) {
+	} else if ((gdisp.screen[sel].status & TV_ON)) {
 		__disp_tv_mode_t mode = gdisp.screen[sel].tv_mode;
-
 		LCDC_get_timing(sel, 1, tt);
 		tt->pixel_clk =
 			(clk_tab.tv_clk_tab[mode].tve_clk /
 			 clk_tab.tv_clk_tab[mode].pre_scale) / 1000;
+	} else if (gdisp.screen[sel].status & HDMI_ON) {
+		struct __disp_video_timing video_timing;
+		__disp_tv_mode_t hdmi_mode = gdisp.screen[sel].hdmi_mode;
+
+		LCDC_get_timing(sel, 1, tt);
+		if (gdisp.init_para.hdmi_get_video_timing(
+				hdmi_mode, &video_timing) == 0)
+			tt->pixel_clk = video_timing.PCLK / 1000;
 	} else if (gdisp.screen[sel].status & VGA_ON) {
 		__disp_vga_mode_t mode = gdisp.screen[sel].vga_mode;
 

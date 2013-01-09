@@ -49,6 +49,26 @@ static __s32 Hdmi_enable(__bool enable)
 	return 0;
 }
 
+__s32 hdmi_wait_edid(void)
+{
+	unsigned long start = jiffies;
+
+	while (time_before(jiffies, start + 10 * HZ)) { /* Wait max 10 sec */
+		if (hdmi_state > HDMI_State_EDID_Parse) {
+			pr_info("waited %ld ms for EDID info\n",
+				(jiffies - start) * 1000 / HZ);
+			if (!Device_Support_VIC[HDMI_EDID]) {
+				pr_warn("No valid EDID mode found\n");
+				return -1;
+			}
+			return 0;
+		}
+		hdmi_delay_ms(1);
+	}
+	pr_warn("Timeout waiting for EDID info\n");
+	return -1;
+}
+
 __s32 Hdmi_open(void)
 {
 	__inf("[Hdmi_open]\n");
@@ -75,74 +95,63 @@ __s32 Hdmi_close(void)
 	return 0;
 }
 
+/* Translate a fex tv-mode into a VIC as used in the hdmi code */
+static __u32 Hdmi_tv_mode_to_hdmi_mode(__disp_tv_mode_t mode)
+{
+	switch (mode) {
+	case DISP_TV_MOD_480I:
+		return HDMI1440_480I;
+	case DISP_TV_MOD_576I:
+		return HDMI1440_576I;
+	case DISP_TV_MOD_480P:
+		return HDMI480P;
+	case DISP_TV_MOD_576P:
+		return HDMI576P;
+	case DISP_TV_MOD_720P_50HZ:
+		return HDMI720P_50;
+	case DISP_TV_MOD_720P_60HZ:
+		return HDMI720P_60;
+	case DISP_TV_MOD_1080I_50HZ:
+		return HDMI1080I_50;
+	case DISP_TV_MOD_1080I_60HZ:
+		return HDMI1080I_60;
+	case DISP_TV_MOD_1080P_24HZ:
+		return HDMI1080P_24;
+	case DISP_TV_MOD_1080P_50HZ:
+		return HDMI1080P_50;
+	case DISP_TV_MOD_1080P_60HZ:
+		return HDMI1080P_60;
+	case DISP_TV_MOD_1080P_24HZ_3D_FP:
+		return HDMI1080P_24_3D_FP;
+	case DISP_TV_MOD_720P_50HZ_3D_FP:
+		return HDMI720P_50_3D_FP;
+	case DISP_TV_MOD_720P_60HZ_3D_FP:
+		return HDMI720P_60_3D_FP;
+	case DISP_TV_MOD_H1360_V768_60HZ:
+		return HDMI1360_768_60;
+	case DISP_TV_MOD_H1280_V1024_60HZ:
+		return HDMI1280_1024_60;
+	case DISP_TV_MODE_EDID:
+		if (!Device_Support_VIC[HDMI_EDID]) {
+			pr_err("EDID mode used without valid EDID info\n");
+			return 0;
+		}
+		return HDMI_EDID;
+	default:
+		__wrn("unsupported video mode %d\n", mode);
+		return 0;
+	}
+}
+
 __s32 Hdmi_set_display_mode(__disp_tv_mode_t mode)
 {
 	__u32 hdmi_mode;
 
 	__inf("[Hdmi_set_display_mode],mode:%d\n", mode);
 
-	switch (mode) {
-	case DISP_TV_MOD_480I:
-		hdmi_mode = HDMI1440_480I;
-		break;
-
-	case DISP_TV_MOD_576I:
-		hdmi_mode = HDMI1440_576I;
-		break;
-
-	case DISP_TV_MOD_480P:
-		hdmi_mode = HDMI480P;
-		break;
-
-	case DISP_TV_MOD_576P:
-		hdmi_mode = HDMI576P;
-		break;
-
-	case DISP_TV_MOD_720P_50HZ:
-		hdmi_mode = HDMI720P_50;
-		break;
-
-	case DISP_TV_MOD_720P_60HZ:
-		hdmi_mode = HDMI720P_60;
-		break;
-
-	case DISP_TV_MOD_1080I_50HZ:
-		hdmi_mode = HDMI1080I_50;
-		break;
-
-	case DISP_TV_MOD_1080I_60HZ:
-		hdmi_mode = HDMI1080I_60;
-		break;
-
-	case DISP_TV_MOD_1080P_24HZ:
-		hdmi_mode = HDMI1080P_24;
-		break;
-
-	case DISP_TV_MOD_1080P_50HZ:
-		hdmi_mode = HDMI1080P_50;
-		break;
-
-	case DISP_TV_MOD_1080P_60HZ:
-		hdmi_mode = HDMI1080P_60;
-		break;
-
-	case DISP_TV_MOD_1080P_24HZ_3D_FP:
-		hdmi_mode = HDMI1080P_24_3D_FP;
-		break;
-
-	case DISP_TV_MOD_720P_50HZ_3D_FP:
-		hdmi_mode = HDMI720P_50_3D_FP;
-		break;
-
-	case DISP_TV_MOD_720P_60HZ_3D_FP:
-		hdmi_mode = HDMI720P_60_3D_FP;
-		break;
-
-	default:
-		__wrn("unsupported video mode %d when set display mode\n",
-		      mode);
+	hdmi_mode = Hdmi_tv_mode_to_hdmi_mode(mode);
+	if (!hdmi_mode)
 		return -1;
-	}
 
 	ghdmi.mode = mode;
 	if (hdmi_mode != video_mode) {
@@ -197,77 +206,34 @@ __s32 Hdmi_Set_Audio_Para(hdmi_audio_t *audio_para)
 
 __s32 Hdmi_mode_support(__disp_tv_mode_t mode)
 {
-	__u32 hdmi_mode;
+	__u32 hdmi_mode = Hdmi_tv_mode_to_hdmi_mode(mode);
 
-	switch (mode) {
-	case DISP_TV_MOD_480I:
-		hdmi_mode = HDMI1440_480I;
-		break;
-
-	case DISP_TV_MOD_576I:
-		hdmi_mode = HDMI1440_576I;
-		break;
-
-	case DISP_TV_MOD_480P:
-		hdmi_mode = HDMI480P;
-		break;
-
-	case DISP_TV_MOD_576P:
-		hdmi_mode = HDMI576P;
-		break;
-
-	case DISP_TV_MOD_720P_50HZ:
-		hdmi_mode = HDMI720P_50;
-		break;
-
-	case DISP_TV_MOD_720P_60HZ:
-		hdmi_mode = HDMI720P_60;
-		break;
-
-	case DISP_TV_MOD_1080I_50HZ:
-		hdmi_mode = HDMI1080I_50;
-		break;
-
-	case DISP_TV_MOD_1080I_60HZ:
-		hdmi_mode = HDMI1080I_60;
-		break;
-
-	case DISP_TV_MOD_1080P_24HZ:
-		hdmi_mode = HDMI1080P_24;
-		break;
-
-	case DISP_TV_MOD_1080P_50HZ:
-		hdmi_mode = HDMI1080P_50;
-		break;
-
-	case DISP_TV_MOD_1080P_60HZ:
-		hdmi_mode = HDMI1080P_60;
-		break;
-
-	case DISP_TV_MOD_1080P_24HZ_3D_FP:
-		hdmi_mode = HDMI1080P_24_3D_FP;
-		break;
-
-	case DISP_TV_MOD_720P_50HZ_3D_FP:
-		hdmi_mode = HDMI720P_50_3D_FP;
-		break;
-
-	case DISP_TV_MOD_720P_60HZ_3D_FP:
-		hdmi_mode = HDMI720P_60_3D_FP;
-		break;
-
-	default:
-		hdmi_mode = HDMI720P_50;
-		break;
-	}
-
-	if (Hpd_Check() == 0)
+	if (hdmi_mode == 0 || Hpd_Check() == 0)
 		return 0;
 
 	while (hdmi_state < HDMI_State_Wait_Video_config)
 		hdmi_delay_ms(1);
 
-	return Device_Support_VIC[mode];
+	return Device_Support_VIC[hdmi_mode];
+}
+
+__s32 hdmi_get_video_timing(__disp_tv_mode_t mode,
+	struct __disp_video_timing *video_timing_dest)
+{
+	__u32 hdmi_mode;
+	__s32 vic_tab;
+
+	hdmi_mode = Hdmi_tv_mode_to_hdmi_mode(mode);
+	if (!hdmi_mode)
+		return -1;
+
+	vic_tab = get_video_info(hdmi_mode);
+	if (vic_tab == -1)
+		return -1;
+
+	memcpy(video_timing_dest, &video_timing[vic_tab],
+	       sizeof(struct __disp_video_timing));
+	return 0;
 }
 
 __s32 Hdmi_get_HPD_status(void)
@@ -292,7 +258,11 @@ Hdmi_run_thread(void *parg)
 		if (kthread_should_stop())
 			break;
 
-		hdmi_delay_ms(2000);
+		if (hdmi_state == HDMI_State_Wait_Hpd ||
+		    hdmi_state == HDMI_State_Playback)
+			hdmi_delay_ms(2000);
+		else
+			hdmi_delay_ms(1);
 	}
 
 	return 0;
@@ -305,17 +275,6 @@ __s32 Hdmi_init(void)
 
 	run_sem = kmalloc(sizeof(struct semaphore), GFP_KERNEL | __GFP_ZERO);
 	sema_init((struct semaphore *)run_sem, 0);
-
-	HDMI_task = kthread_create(Hdmi_run_thread, (void *)0, "hdmi proc");
-	if (IS_ERR(HDMI_task)) {
-		__s32 err = 0;
-
-		__wrn("Unable to start kernel thread %s.\n", "hdmi proc");
-		err = PTR_ERR(HDMI_task);
-		HDMI_task = NULL;
-		return err;
-	}
-	wake_up_process(HDMI_task);
 
 	HDMI_BASE = (void __iomem *) ghdmi.base_hdmi;
 	hdmi_core_initial();
@@ -333,14 +292,32 @@ __s32 Hdmi_init(void)
 #endif
 
 
+	/* Run main task once, should give EDID information directly */
+	hdmi_main_task_loop();
+
+	HDMI_task = kthread_create(Hdmi_run_thread, (void *)0, "hdmi proc");
+	if (IS_ERR(HDMI_task)) {
+		__s32 err = 0;
+
+		__wrn("Unable to start kernel thread %s.\n", "hdmi proc");
+		err = PTR_ERR(HDMI_task);
+		HDMI_task = NULL;
+		return err;
+	}
+	/* Launch main task loop */
+	wake_up_process(HDMI_task);
+
+
 	audio_func.hdmi_audio_enable = Hdmi_Audio_Enable;
 	audio_func.hdmi_set_audio_para = Hdmi_Set_Audio_Para;
 	audio_set_hdmi_func(&audio_func);
 
+	disp_func.hdmi_wait_edid = hdmi_wait_edid;
 	disp_func.Hdmi_open = Hdmi_open;
 	disp_func.Hdmi_close = Hdmi_close;
 	disp_func.hdmi_set_mode = Hdmi_set_display_mode;
 	disp_func.hdmi_mode_support = Hdmi_mode_support;
+	disp_func.hdmi_get_video_timing = hdmi_get_video_timing;
 	disp_func.hdmi_get_HPD_status = Hdmi_get_HPD_status;
 	disp_func.hdmi_set_pll = Hdmi_set_pll;
 	disp_set_hdmi_func(&disp_func);

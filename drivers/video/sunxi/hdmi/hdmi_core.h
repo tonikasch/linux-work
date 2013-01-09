@@ -24,7 +24,6 @@
 
 extern void __iomem *HDMI_BASE;
 
-#define HDMI_State_Idle			0x00
 #define HDMI_State_Wait_Hpd		0x02
 #define HDMI_State_Rx_Sense		0x03
 #define HDMI_State_EDID_Parse		0x04
@@ -49,6 +48,11 @@ extern void __iomem *HDMI_BASE;
 #define HDMI720P_50_3D_FP	(HDMI720P_50  + 0x80)
 #define HDMI720P_60_3D_FP	(HDMI720P_60  + 0x80)
 
+/* Non CEA-861-D modes */
+#define HDMI1360_768_60		256
+#define HDMI1280_1024_60	257
+#define HDMI_EDID		511
+
 #define HDMI_WUINT32(offset, value)	writel(value, HDMI_BASE + offset)
 #define HDMI_RUINT32(offset)		readl(HDMI_BASE + offset)
 #define HDMI_WUINT16(offset, value)	writew(value, HDMI_BASE + offset)
@@ -65,24 +69,9 @@ extern void __iomem *HDMI_BASE;
 #define Explicit_Offset_Address_E_DDC_Read	6
 #define Implicit_Offset_Address_E_DDC_Read	7
 
-typedef struct video_timing {
-	__s32 VIC;
-	__s32 PCLK;
-	__s32 AVI_PR;
-
-	__s32 INPUTX;
-	__s32 INPUTY;
-	__s32 HT;
-	__s32 HBP;
-	__s32 HFP;
-	__s32 HPSW;
-	__s32 VT;
-	__s32 VBP;
-	__s32 VFP;
-	__s32 VPSW;
-} HDMI_VIDE_INFO;
-
 typedef struct audio_timing {
+
+	unsigned long supported_rates;
 
 	__s32 audio_en;
 	__s32 sample_rate;
@@ -104,6 +93,7 @@ __s32 Hpd_Check(void);
 __s32 ParseEDID(void);
 __s32 video_config(__s32 vic);
 __s32 audio_config(void);
+__s32 get_video_info(__s32 vic);
 
 extern __u32 hdmi_pll; /* 0: video pll 0; 1: video pll 1 */
 extern __u32 hdmi_clk;
@@ -119,5 +109,8 @@ extern __bool video_enable;
 extern __s32 hdmi_state;
 extern __s32 video_mode;
 extern HDMI_AUDIO_INFO audio_info;
+
+extern struct __disp_video_timing video_timing[];
+extern const int video_timing_edid;
 
 #endif
