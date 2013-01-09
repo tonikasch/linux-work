@@ -452,6 +452,7 @@ typedef struct {
 	__s32(*Hdmi_open) (void);
 	__s32(*Hdmi_close) (void);
 	__s32(*hdmi_set_mode) (__disp_tv_mode_t mode);
+	__s32(*hdmi_set_videomode) (const struct __disp_video_timing *mode);
 	__s32(*hdmi_mode_support) (__disp_tv_mode_t mode);
 	__s32(*hdmi_get_video_timing) (__disp_tv_mode_t mode,
 				struct __disp_video_timing *video_timing);
@@ -541,20 +542,6 @@ typedef struct {
 	__u32 start_delay; /* not need to config for user */
 	__u32 tcon_index; /* not need to config for user */
 } __panel_para_t;
-
-typedef struct {
-	__u32 pixel_clk; /* khz */
-	__u32 hor_pixels;
-	__u32 ver_pixels;
-	__u32 hor_total_time;
-	__u32 hor_front_porch;
-	__u32 hor_sync_time;
-	__u32 hor_back_porch;
-	__u32 ver_total_time;
-	__u32 ver_front_porch;
-	__u32 ver_sync_time;
-	__u32 ver_back_porch;
-} __disp_tcon_timing_t;
 
 typedef struct {
 	__u32 base_lcdc0;
