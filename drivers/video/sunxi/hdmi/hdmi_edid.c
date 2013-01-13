@@ -427,16 +427,24 @@ __s32 ParseEDID(void)
 
 	pr_info("ParseEDID\n");
 
-	memset(Device_Support_VIC, 0, sizeof(Device_Support_VIC));
+	if (video_mode == HDMI_EDID) {
+		/* HDMI_DEVICE_SUPPORT_VIC_SIZE - 1 so as to not overwrite
+		   the currently in use timings with a new preferred mode! */
+		memset(Device_Support_VIC, 0,
+		       HDMI_DEVICE_SUPPORT_VIC_SIZE - 1);
+	} else {
+		memset(Device_Support_VIC, 0, HDMI_DEVICE_SUPPORT_VIC_SIZE);
+	}
 	memset(EDID_Buf, 0, sizeof(EDID_Buf));
 
 	DDC_Init();
 
 	GetEDIDData(0, EDID_Buf);
-	hdmi_edid_received(EDID_Buf, 0);
 
 	if (EDID_CheckSum(0, EDID_Buf) != 0)
 		return 0;
+
+	hdmi_edid_received(EDID_Buf, 0);
 
 	if (EDID_Header_Check(EDID_Buf) != 0)
 		return 0;
@@ -456,9 +464,11 @@ __s32 ParseEDID(void)
 
 		for (i = 1; i <= BlockCount; i++) {
 			GetEDIDData(i, EDID_Buf);
-			hdmi_edid_received(EDID_Buf+(0x80*i), i);
+
 			if (EDID_CheckSum(i, EDID_Buf) != 0)
 				return 0;
+
+			hdmi_edid_received(EDID_Buf+(0x80*i), i);
 
 			if (EDID_Buf[0x80 * i + 0] == 2) {
 				if (EDID_Buf[0x80 * i + 3] & 0x40) {
