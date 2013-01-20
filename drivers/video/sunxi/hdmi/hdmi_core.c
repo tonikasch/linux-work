@@ -329,20 +329,25 @@ __s32 video_config(__s32 vic)
 	HDMI_WUINT8(0x082, 0x0d);
 	HDMI_WUINT8(0x083, 0x00);
 #ifdef YUV_COLORSPACE /* Fix me */
-	/* 4:4:4 YCbCr */
-	HDMI_WUINT8(0x084, 0x50); /* Data Byte 1 */
-	if (video_timing[vic_tab].PCLK < 74250000) /* 4:3 601 */
-		HDMI_WUINT8(0x085, 0x58); /* Data Byte 2 */
-	else /* 16:9 709 */
-		HDMI_WUINT8(0x085, 0xa8); /* Data Byte 2 */
+	HDMI_WUINT8(0x084, 0x52); /* Data Byte 1: 4:4:4 YCbCr */
 #else
-	/* RGB */
-	HDMI_WUINT8(0x084, 0x1E); /* Data Byte 1 */
-	/* 4:3 601 */
-	HDMI_WUINT8(0x085, 0x58); /* Data Byte 2 */
+	HDMI_WUINT8(0x084, 0x12); /* Data Byte 1: RGB */
 #endif
-
-	HDMI_WUINT8(0x086, 0x00);
+	if (video_timing[vic_tab].PCLK <= 27000000)
+		reg_val = 0x40;  /* SD-modes, assume ITU601 colorspace */
+	else
+		reg_val = 0x80;  /* HD-modes, assume ITU709 colorspace */
+	if (video_timing[vic_tab].INPUTX * 100 /
+			video_timing[vic_tab].INPUTY < 156)
+		reg_val |= 0x18; /* 4 : 3 */
+	else
+		reg_val |= 0x28; /* 16 : 9 */
+	HDMI_WUINT8(0x085, reg_val); /* Data Byte 2 */
+#ifdef YUV_COLORSPACE /* Fix me */
+	HDMI_WUINT8(0x086, 0x80);
+#else
+	HDMI_WUINT8(0x086, 0x88);
+#endif
 	HDMI_WUINT8(0x087, (video_timing[vic_tab].VIC >=
 					HDMI_NON_CEA861D_START) ?
 			   0 : video_timing[vic_tab].VIC);
