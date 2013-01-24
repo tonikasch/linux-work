@@ -85,11 +85,9 @@ static struct sw_hcd_config sw_hcd_config = {
 	.multipoint		= 1,
 	.dyn_fifo		= 1,
 	.soft_con		= 1,
-//	.dma			= 0,
 	.dma			= 1,
 
 	.num_eps		= USBC_MAX_EP_NUM,
-//	.dma_channels	= 0,
 	.dma_channels		= 1,
 	.ram_size		= USBC0_MAX_FIFO_SIZE,
 	.eps_bits		= sw_hcd_eps,

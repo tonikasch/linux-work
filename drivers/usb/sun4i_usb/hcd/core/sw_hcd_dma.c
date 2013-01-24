@@ -264,10 +264,6 @@ void sw_hcd_dma_start(struct sw_hcd_qh *qh, __u32 fifo, __u32 buffer, __u32 len)
 	qh->dma_working = 1;
 
 #if 0
-/* XXX BUG in DMA mode
-   read works, write fails
- */
-
 	hcd_CleanFlushDCacheRegion((void *)phys_to_virt(buffer), len);
 #endif
 	sw_hcd_switch_bus_to_dma(qh, is_direction_in(qh));

@@ -38,7 +38,7 @@
 //#define        XUSB_DEBUG    /* 调试开关 */
 
 /* xusb hcd 调试打印 */
-#if	1
+#if	0
     #define DMSG_DBG_HCD     			DMSG_PRINT
 #else
     #define DMSG_DBG_HCD(...)
