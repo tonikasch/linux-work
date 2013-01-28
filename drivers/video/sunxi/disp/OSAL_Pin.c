@@ -21,7 +21,13 @@
 #include "OSAL_Pin.h"
 
 #ifdef CONFIG_ARCH_SUN5I
+#if defined(CONFIG_AW_AXP) || \
+    (defined(CONFIG_FB_SUNXI_MODULE) && defined(CONFIG_AW_AXP_MODULE))
 #include "../../../power/axp_power/axp-gpio.h"
+#define SUNXI_USE_AXP_GPIO
+#else
+#warning "Building sunxi-fb without axp gpio support"
+#endif
 #endif
 
 __hdle OSAL_GPIO_Request(user_gpio_set_t *gpio_list, __u32 group_count_max)
