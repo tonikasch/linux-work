@@ -8,6 +8,24 @@ Format is a little different from before in an attempt to make it easier to read
 		<...>
 	<...>
 
+depends/cleanup
+	This branch contains next/cleanup as of
+	f8060f5446b1f2782f0a8ca9be2d870ea4198aee for others to base
+	their submissions on as needed.
+
+depends/rmk-perf
+	(perf branch from Will, merged through rmk and us for dependency reasons)
+	pull	 git://git.kernel.org/pub/scm/linux/kernel/git/will/linux.git for-rmk/perf
+
+depends/rmk/psci
+	(psci branch from Will, merged through rmk and us for dependency reasons)
+	pull	git://git.kernel.org/pub/scm/linux/kernel/git/will/linux.git for-rmk/virt/psci
+
+
+next/fixes-non-critical
+	pxa/fixes-for-3.9
+		pull	git://github.com/hzhuang1/linux.git armsoc/fix                                  
+
 next/cleanup
 	timer/cleanup
 		pull	git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git swarren-for-3.9-arm-timer-rework
@@ -21,6 +39,8 @@ next/cleanup
 	irqchip/gic-vic-move
 		pull	git://sources.calxeda.com/kernel/linux.git tags/gic-vic-to-irqchip
 	patch	1358499506-9790-1-git-send-email-shawn.guo@linaro.org
+	mvebu/cleanup
+		pull	git://git.infradead.org/users/jcooper/linux.git tags/cleanup_for_v3.9           
 
 next/drivers
 	ux500/cpufreq
@@ -38,7 +58,14 @@ next/soc
 		depends	vt8500/multiplatform
 		pull	git://server.prisktech.co.nz/git/linuxwmt.git tags/armsoc-3.9
 		patch	1358577868-29042-1-git-send-email-linux@prisktech.co.nz
+	prima2/marco
+		depends	depends/cleanup
+		pull	git://gitorious.org/sirfprima2-kernel/sirfprima2-kernel.git marco-timer-cleanup-rebase
+	imx/soc
+		pull	git://git.pengutronix.de/git/imx/linux-2.6.git tags/imx-soc
 
 next/boards
 	renesas/defconfig
 		pull	git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git defconfig
+	pxa/boards
+		pull	git://github.com/hzhuang1/linux.git armsoc/boar
