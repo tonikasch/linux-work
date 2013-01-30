@@ -25,6 +25,9 @@ depends/rmk/psci
 next/fixes-non-critical
 	pxa/fixes-for-3.9
 		pull	git://github.com/hzhuang1/linux.git armsoc/fix                                  
+	vexpress/fixes
+		pull	git://git.linaro.org/people/pawelmoll/linux.git tags/vexpress/fixes-for-3.9
+	patch	1358786701-28414-1-git-send-email-michal.simek@xilinx.com
 
 next/cleanup
 	timer/cleanup
@@ -41,6 +44,19 @@ next/cleanup
 	patch	1358499506-9790-1-git-send-email-shawn.guo@linaro.org
 	mvebu/cleanup
 		pull	git://git.infradead.org/users/jcooper/linux.git tags/cleanup_for_v3.9           
+		pull	git://git.infradead.org/users/jcooper/linux.git tags/cleanup_for_v3.9_round2
+	imx/cleanup
+		pull	git://git.linaro.org/people/shawnguo/linux-2.6.git tags/imx-cleanup-3.9
+	bcm2835/cleanup
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-rpi.git bcm2835-for-3.9-cleanup
+	patch	1359376250-18841-1-git-send-email-michal.simek@xilinx.com
+	ux500/no-idh
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson.git tags/ux500-no-idh
+	zynq/timer
+		pull	git://git.xilinx.com/linux-xlnx.git zynq/timer
+
+next/sh-pinmux
+	pull	git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git pfc
 
 next/drivers
 	ux500/cpufreq
@@ -67,9 +83,31 @@ next/soc
 		pull	git://gitorious.org/sirfprima2-kernel/sirfprima2-kernel.git marco-timer-cleanup-rebase
 	imx/soc
 		pull	git://git.pengutronix.de/git/imx/linux-2.6.git tags/imx-soc
+	renesas/soc
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git soc
+	davinci/soc
+		pull	git://gitorious.org/linux-davinci/linux-davinci.git tags/davinci-for-v3.9/soc
+	bcm2835/soc
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-rpi.git bcm2835-for-3.9-soc
 
 next/boards
 	renesas/defconfig
 		pull	git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git defconfig
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git defconfig2
 	pxa/boards
 		pull	git://github.com/hzhuang1/linux.git armsoc/boar
+	renesas/boards
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git boards
+	davinci/boards
+		pull	git://gitorious.org/linux-davinci/linux-davinci.git tags/davinci-for-v3.9/board
+	bcm2835/defconfig
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-rpi.git bcm2835-for-3.9-defconfig
+
+next/dt
+	davinci/dt
+		pull	git://gitorious.org/linux-davinci/linux-davinci.git tags/davinci-for-v3.9/dt
+	nomadik/dt
+		(depends on depends/cleanup)
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-nomadik.git tags/nomadik-devicetree
+	bcm2835/dt
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-rpi.git bcm2835-for-3.9-dt

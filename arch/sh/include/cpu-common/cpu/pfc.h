@@ -1,10 +1,11 @@
 /*
- * Copyright 2012 Simon Arlott
+ * SH Pin Function Control Initialization
+ *
+ * Copyright (C) 2012  Renesas Solutions Corp.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * the Free Software Foundation; version 2 of the License.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -12,11 +13,14 @@
  * GNU General Public License for more details.
  */
 
-#ifndef __BCM2835_TIMER_H
-#define __BCM2835_TIMER_H
+#ifndef __ARCH_SH_CPU_PFC_H__
+#define __ARCH_SH_CPU_PFC_H__
 
-#include <asm/mach/time.h>
+#include <linux/types.h>
 
-extern void bcm2835_timer_init(void);
+struct resource;
 
-#endif
+int sh_pfc_register(const char *name,
+		    struct resource *resource, u32 num_resources);
+
+#endif /* __ARCH_SH_CPU_PFC_H__ */
