@@ -210,10 +210,21 @@ EDID_Version_Check(__u8 *pbuf)
 	return 0;
 }
 
+struct pclk_override {
+	struct __disp_video_timing video_timing;
+	int pclk;
+};
+
+struct pclk_override pclk_override[] = {
+	/* VIC PCLK  AVI_PR INPUTX INPUTY HT   HBP  HFP  HPSW VT   VBP VFP VPSW I  HS VS   override */
+	{ { HDMI_EDID, 146250000, 0, 1680, 1050, 2240, 456, 104, 176, 1089, 36,  3, 6,  0, 0, 1 }, 146000000 },
+	{ { 0, }, -1 }
+};
+
 static __s32
 Parse_DTD_Block(__u8 *pbuf)
 {
-	__u32 dummy, pclk, sizex, Hblanking, sizey, Vblanking, Hsync_offset,
+	__u32 i, dummy, pclk, sizex, Hblanking, sizey, Vblanking, Hsync_offset,
 		Hsync_pulsew, Vsync_offset, Vsync_pulsew, H_image_size,
 		V_image_size, H_Border, V_Border, pixels_total, frame_rate,
 		Hsync, Vsync, HT, VT;
@@ -291,38 +302,56 @@ Parse_DTD_Block(__u8 *pbuf)
 
 	/* Pick the first mode with a width which is a multiple of 8 and
 	   a supported pixel-clock */
-	if (Device_Support_VIC[HDMI_EDID] == 0 && !(sizex & 7) &&
-	    disp_get_pll_freq(pclk, &dummy, &dummy) == 0) {
-		pr_info("Using above mode as preferred EDID mode\n");
-		video_timing[video_timing_edid].PCLK = pclk;
-		video_timing[video_timing_edid].AVI_PR = 0;
-		video_timing[video_timing_edid].INPUTX = sizex;
-		video_timing[video_timing_edid].INPUTY = sizey;
-		video_timing[video_timing_edid].HT = HT;
-		video_timing[video_timing_edid].HBP = Hblanking - Hsync_offset;
-		video_timing[video_timing_edid].HFP = Hsync_offset;
-		video_timing[video_timing_edid].HPSW = Hsync_pulsew;
-		video_timing[video_timing_edid].VT = VT;
-		video_timing[video_timing_edid].VBP = Vblanking - Vsync_offset;
-		video_timing[video_timing_edid].VFP = Vsync_offset;
-		video_timing[video_timing_edid].VPSW = Vsync_pulsew;
-		video_timing[video_timing_edid].I = (pbuf[17] & 0x80) >> 7;
-		if (video_timing[video_timing_edid].I) {
-			video_timing[video_timing_edid].INPUTY *= 2;
-			video_timing[video_timing_edid].VT *= 2;
+	if (Device_Support_VIC[HDMI_EDID] || (sizex & 7))
+		return 0;
 
-			/* Should VT be VT * 2 + 1, or VT * 2 ? */
-			frame_rate = (frame_rate + 1) / 2;
-			if ((HT * (VT * 2 + 1) * frame_rate) == pclk)
-				video_timing[video_timing_edid].VT++;
+	video_timing[video_timing_edid].PCLK = pclk;
+	video_timing[video_timing_edid].AVI_PR = 0;
+	video_timing[video_timing_edid].INPUTX = sizex;
+	video_timing[video_timing_edid].INPUTY = sizey;
+	video_timing[video_timing_edid].HT = HT;
+	video_timing[video_timing_edid].HBP = Hblanking - Hsync_offset;
+	video_timing[video_timing_edid].HFP = Hsync_offset;
+	video_timing[video_timing_edid].HPSW = Hsync_pulsew;
+	video_timing[video_timing_edid].VT = VT;
+	video_timing[video_timing_edid].VBP = Vblanking - Vsync_offset;
+	video_timing[video_timing_edid].VFP = Vsync_offset;
+	video_timing[video_timing_edid].VPSW = Vsync_pulsew;
+	video_timing[video_timing_edid].I = (pbuf[17] & 0x80) >> 7;
+	video_timing[video_timing_edid].HSYNC = Hsync;
+	video_timing[video_timing_edid].VSYNC = Vsync;
 
-			pr_info("Interlaced VT %d\n",
-				video_timing[video_timing_edid].VT);
+	for (i = 0; pclk_override[i].pclk != -1; i++) {
+		if (memcmp(&video_timing[video_timing_edid],
+			   &pclk_override[i].video_timing,
+			   sizeof(struct __disp_video_timing)) == 0) {
+			pr_info("Patching %d pclk to %d\n", pclk,
+				pclk_override[i].pclk);
+			video_timing[video_timing_edid].PCLK =
+				pclk_override[i].pclk;
+			break;
 		}
-		video_timing[video_timing_edid].HSYNC = Hsync;
-		video_timing[video_timing_edid].VSYNC = Vsync;
-		Device_Support_VIC[HDMI_EDID] = 1;
 	}
+
+	if (disp_get_pll_freq(video_timing[video_timing_edid].PCLK,
+			      &dummy, &dummy) != 0)
+		return 0;
+
+	pr_info("Using above mode as preferred EDID mode\n");
+
+	if (video_timing[video_timing_edid].I) {
+		video_timing[video_timing_edid].INPUTY *= 2;
+		video_timing[video_timing_edid].VT *= 2;
+
+		/* Should VT be VT * 2 + 1, or VT * 2 ? */
+		frame_rate = (frame_rate + 1) / 2;
+		if ((HT * (VT * 2 + 1) * frame_rate) == pclk)
+			video_timing[video_timing_edid].VT++;
+
+		pr_info("Interlaced VT %d\n",
+			video_timing[video_timing_edid].VT);
+	}
+	Device_Support_VIC[HDMI_EDID] = 1;
 
 	return 0;
 }
