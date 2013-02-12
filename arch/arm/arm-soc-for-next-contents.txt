@@ -1,5 +1,4 @@
-for-next contents for 3.9:
-
+for-next contents for 3.9: 
 Format is a little different from before in an attempt to make it easier to read:
 
 <next/* branch>
@@ -28,6 +27,9 @@ next/fixes-non-critical
 	vexpress/fixes
 		pull	git://git.linaro.org/people/pawelmoll/linux.git tags/vexpress/fixes-for-3.9
 	patch	1358786701-28414-1-git-send-email-michal.simek@xilinx.com
+	omap/fixes-non-critical
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.9/fixes-non-critical-signed-v2
+	patch	1359123276-15833-4-git-send-email-arnd@arndb.de
 
 next/cleanup
 	timer/cleanup
@@ -56,6 +58,25 @@ next/cleanup
 		pull	git://git.xilinx.com/linux-xlnx.git zynq/timer
 	patch	1359518177-21245-1-git-send-email-swarren@wwwdotorg.org
 	patch	1359568170-26479-1-git-send-email-swarren@wwwdotorg.org
+	samsung/cleanup-header
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git next/cleanup-header
+	mvebu/cleanup
+		pull	git://git.infradead.org/users/jcooper/linux.git tags/drivers_for_v3.9
+	wdog/cleanup
+		pull	git://git.linaro.org/people/shawnguo/linux-2.6.git tags/cleanup-decompwdog-3.9
+	patch	1360017159-24318-1-git-send-email-maxime.ripard@free-electrons.com
+	tegra/cleanup
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.9-cleanup
+	samsung/cleanup-s3c24xx
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git next/cleanup-s3c24xx
+	samsung/irq-s3c24xx
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git next/irq-s3c24xx
+	samsung/cleanup-s3c24xx-2
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git next/cleanup-s3c24xx-2
+	samsung/cleanup
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git next/cleanup-samsung
+	at91/cleanup
+		pull	git://github.com/at91linux/linux-at91.git tags/at91-cleanup
 
 next/sh-pinmux
 	pull	git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git pfc
@@ -67,6 +88,10 @@ next/drivers
 		pull	http://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson.git tags/coh901318-for-arm-soc
 	vexpress/drivers
 		pull	git://git.linaro.org/people/pawelmoll/linux.git tags/vexpress/drivers-for-3.9
+	omap/gpmc
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.9/gpmc-signed
+	mxs/soc
+		pull	git://git.linaro.org/people/shawnguo/linux-2.6.git tags/mxs-soc-3.9
 
 
 next/multiplatform
@@ -76,6 +101,8 @@ next/multiplatform
 		pull	git://server.prisktech.co.nz/git/linuxwmt.git tags/vt8500-multiplatform-3.9
 	patch	621fb4946273492b88fe9a903118047f497e00ee.1359057921.git.josh.cartwright@ni.com
 	patch	20130124201709.GB1036@beefymiracle.amer.corp.natinst.com
+	patch	20130205175126.GH25185@atomide.com
+	+ two more patches for omap
 
 next/soc
 	vt8500/wm8x50
@@ -95,6 +122,29 @@ next/soc
 		pull	git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-rpi.git bcm2835-for-3.9-soc
 	renesas/soc2
 		pull	git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-soc2-for-v3.9
+	patch	1359956496-8997-1-git-send-email-Barry.Song@csr.com
+	imx/cpuidle
+		pull	git://git.linaro.org/people/shawnguo/linux-2.6.git tags/imx6q-cpudile-3.9
+	mvebu/drivers
+		pull	git://git.infradead.org/users/jcooper/linux.git tags/drivers_for_v3.9
+	renesas/soc3
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-soc3-for-v3.9
+	tegra/soc-ccf
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.9-soc-ccf
+	tegra/usb-cleanup
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.9-soc-usb
+	tegra/cpuidle
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.9-soc-cpuidle
+	tegra/t114
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.9-soc-t114
+		+ three fixes from email
+	patch	1359976100-28871-1-git-send-email-hdoyu@nvidia.com
+	omap/pm
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.9/pm-signed
+	imx/soc2
+		pull	git://git.linaro.org/people/shawnguo/linux-2.6.git tags/imx-soc-3.9
+	renesas/soc
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-soc4-for-v3.9
 
 next/boards
 	renesas/defconfig
@@ -110,6 +160,12 @@ next/boards
 		pull	git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-rpi.git bcm2835-for-3.9-defconfig
 	reneasas/boards2
 		pull	git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-boards2-for-v3.9
+	tegra/defconfig
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.9-defconfig
+	omap/boards
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.9/board-signed
+	omap/twl
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.9/twl-signed-v2
 
 next/dt
 	davinci/dt
@@ -119,3 +175,26 @@ next/dt
 		pull	git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-nomadik.git tags/nomadik-devicetree
 	bcm2835/dt
 		pull	git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-rpi.git bcm2835-for-3.9-dt
+	patch	1359708725-21978-1-git-send-email-linus.walleij@stericsson.com
+	tegra/dt
+		(pulls in next/soc as of tegra/t114 merge)
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.9-dt
+	at91/dt
+		pull	git://github.com/at91linux/linux-at91.git tags/at91-dt
+	davinci/dt2
+		pull	git://gitorious.org/linux-davinci/linux-davinci.git tags/davinci-for-v3.9/dt-2
+	mxs/dt
+		pull	git://git.linaro.org/people/shawnguo/linux-2.6.git tags/mxs-dt-3.9
+
+
+next/virt
+	depends	depends/rmk-perf
+	depends depends/rmk-psci
+	depends depends/rmk-virt-base
+	depends depends/cleanup
+	timer/arch-timers
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/will/linux.git for-arm-soc/arch-timers
+	virt/mach
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/will/linux.git for-arm-soc/virt/mach
+	patch	20130211174731.GO9801@mudshark.cambridge.arm.com
+	+patch to fix warning (local only)

@@ -4,6 +4,7 @@ config ARM
 	select ARCH_BINFMT_ELF_RANDOMIZE_PIE
 	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
 	select ARCH_HAVE_CUSTOM_GPIO_H
+	select ARCH_HAS_TICK_BROADCAST if GENERIC_CLOCKEVENTS_BROADCAST
 	select ARCH_WANT_IPC_PARSE_VERSION
 	select BUILDTIME_EXTABLE_SORT if MMU
 	select CPU_PM if (SUSPEND || CPU_IDLE)
@@ -641,8 +642,10 @@ config ARCH_LPC32XX
 config ARCH_TEGRA
 	bool "NVIDIA Tegra"
 	select ARCH_HAS_CPUFREQ
+	select ARCH_REQUIRE_GPIOLIB
 	select CLKDEV_LOOKUP
 	select CLKSRC_MMIO
+	select CLKSRC_OF
 	select COMMON_CLK
 	select GENERIC_CLOCKEVENTS
 	select HAVE_CLK
@@ -899,7 +902,7 @@ config ARCH_NOMADIK
 	select CPU_ARM926T
 	select GENERIC_CLOCKEVENTS
 	select MIGHT_HAVE_CACHE_L2X0
-	select OF
+	select USE_OF
 	select PINCTRL
 	select PINCTRL_STN8815
 	select SPARSE_IRQ
@@ -1074,17 +1077,12 @@ source "arch/arm/mach-realview/Kconfig"
 source "arch/arm/mach-sa1100/Kconfig"
 
 source "arch/arm/plat-samsung/Kconfig"
-source "arch/arm/plat-s3c24xx/Kconfig"
 
 source "arch/arm/mach-socfpga/Kconfig"
 
 source "arch/arm/plat-spear/Kconfig"
 
 source "arch/arm/mach-s3c24xx/Kconfig"
-if ARCH_S3C24XX
-source "arch/arm/mach-s3c2412/Kconfig"
-source "arch/arm/mach-s3c2440/Kconfig"
-endif
 
 if ARCH_S3C64XX
 source "arch/arm/mach-s3c64xx/Kconfig"
@@ -1114,6 +1112,8 @@ source "arch/arm/mach-versatile/Kconfig"
 
 source "arch/arm/mach-vexpress/Kconfig"
 source "arch/arm/plat-versatile/Kconfig"
+
+source "arch/arm/mach-virt/Kconfig"
 
 source "arch/arm/mach-vt8500/Kconfig"
 
@@ -1560,9 +1560,10 @@ config HAVE_ARM_SCU
 	help
 	  This option enables support for the ARM system coherency unit
 
-config ARM_ARCH_TIMER
+config HAVE_ARM_ARCH_TIMER
 	bool "Architected timer support"
 	depends on CPU_V7
+	select ARM_ARCH_TIMER
 	help
 	  This option enables support for the ARM architected timer
 
@@ -1607,6 +1608,16 @@ config HOTPLUG_CPU
 	help
 	  Say Y here to experiment with turning CPUs off and on.  CPUs
 	  can be controlled through /sys/devices/system/cpu.
+
+config ARM_PSCI
+	bool "Support for the ARM Power State Coordination Interface (PSCI)"
+	depends on CPU_V7
+	help
+	  Say Y here if you want Linux to communicate with system firmware
+	  implementing the PSCI specification for CPU-centric power
+	  management operations described in ARM document number ARM DEN
+	  0022A ("Power State Coordination Interface System Software on
+	  ARM processors").
 
 config LOCAL_TIMERS
 	bool "Use local timer interrupts"
@@ -2310,3 +2321,5 @@ source "security/Kconfig"
 source "crypto/Kconfig"
 
 source "lib/Kconfig"
+
+source "arch/arm/kvm/Kconfig"

@@ -99,12 +99,12 @@ config ARCH_OMAP4
 
 config SOC_OMAP5
 	bool "TI OMAP5"
-	select ARM_ARCH_TIMER
 	select ARM_CPU_SUSPEND if PM
 	select ARM_GIC
 	select CPU_V7
 	select HAVE_SMP
 	select COMMON_CLK
+	select HAVE_ARM_ARCH_TIMER
 
 comment "OMAP Core Type"
 	depends on ARCH_OMAP2
@@ -187,12 +187,6 @@ config MACH_OMAP_H4
 	default y
 	select OMAP_DEBUG_DEVICES
 	select OMAP_PACKAGE_ZAF
-
-config MACH_OMAP_APOLLON
-	bool "OMAP 2420 Apollon board"
-	depends on SOC_OMAP2420
-	default y
-	select OMAP_PACKAGE_ZAC
 
 config MACH_OMAP_2430SDP
 	bool "OMAP 2430 SDP board"
