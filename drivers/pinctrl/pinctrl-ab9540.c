@@ -455,10 +455,10 @@ struct alternate_functions ab9540alternate_functions[AB9540_GPIO_MAX_NUMBER + 1]
 };
 
 struct abx500_gpio_irq_cluster ab9540_gpio_irq_cluster[] = {
-	GPIO_IRQ_CLUSTER(9, 12, 0), /* GPIO numbers start from 1 */
-	GPIO_IRQ_CLUSTER(23, 24, 0),
-	GPIO_IRQ_CLUSTER(39, 40, 0),
-	GPIO_IRQ_CLUSTER(49, 53, 0),
+	GPIO_IRQ_CLUSTER(10, 13, AB8500_INT_GPIO10R),
+	GPIO_IRQ_CLUSTER(24, 25, AB8500_INT_GPIO24R),
+	GPIO_IRQ_CLUSTER(40, 41, AB8500_INT_GPIO40R),
+	GPIO_IRQ_CLUSTER(50, 54, AB9540_INT_GPIO50R),
 };
 
 static struct abx500_pinctrl_soc_data ab9540_soc = {
@@ -478,7 +478,11 @@ static struct abx500_pinctrl_soc_data ab9540_soc = {
 	.irq_gpio_factor = 1,
 };
 
+<<<<<<< HEAD
 void __devinit
+=======
+void
+>>>>>>> pinctrl/for-next
 abx500_pinctrl_ab9540_init(struct abx500_pinctrl_soc_data **soc)
 {
 	*soc = &ab9540_soc;

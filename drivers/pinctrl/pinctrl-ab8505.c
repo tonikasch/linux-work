@@ -349,11 +349,11 @@ struct alternate_functions ab8505_alternate_functions[AB8505_GPIO_MAX_NUMBER + 1
  *	GPIO52 to GPIO53
  */
 struct abx500_gpio_irq_cluster ab8505_gpio_irq_cluster[] = {
-	GPIO_IRQ_CLUSTER(9, 10, 0), /* GPIO numbers start from 1 */
-	GPIO_IRQ_CLUSTER(12, 12, 0),
-	GPIO_IRQ_CLUSTER(39, 40, 0),
-	GPIO_IRQ_CLUSTER(49, 49, 0),
-	GPIO_IRQ_CLUSTER(51, 52, 0),
+	GPIO_IRQ_CLUSTER(10, 11, AB8500_INT_GPIO10R),
+	GPIO_IRQ_CLUSTER(13, 13, AB8500_INT_GPIO13R),
+	GPIO_IRQ_CLUSTER(40, 41, AB8500_INT_GPIO40R),
+	GPIO_IRQ_CLUSTER(50, 50, AB9540_INT_GPIO50R),
+	GPIO_IRQ_CLUSTER(52, 53, AB9540_INT_GPIO52R),
 };
 
 static struct abx500_pinctrl_soc_data ab8505_soc = {
@@ -373,7 +373,11 @@ static struct abx500_pinctrl_soc_data ab8505_soc = {
 	.irq_gpio_factor = 1,
 };
 
+<<<<<<< HEAD
 void __devinit
+=======
+void
+>>>>>>> pinctrl/for-next
 abx500_pinctrl_ab8505_init(struct abx500_pinctrl_soc_data **soc)
 {
 	*soc = &ab8505_soc;
