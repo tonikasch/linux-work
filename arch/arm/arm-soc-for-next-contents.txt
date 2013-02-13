@@ -77,6 +77,9 @@ next/cleanup
 		pull	git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git next/cleanup-samsung
 	at91/cleanup
 		pull	git://github.com/at91linux/linux-at91.git tags/at91-cleanup
+	patch	1360706692-13622-1-git-send-email-robherring2@gmail.com
+	ux500/no-idh-fixes
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson.git tags/for-arm-soc-cleanup
 
 next/sh-pinmux
 	pull	git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git pfc
@@ -145,6 +148,11 @@ next/soc
 		pull	git://git.linaro.org/people/shawnguo/linux-2.6.git tags/imx-soc-3.9
 	renesas/soc
 		pull	git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-soc4-for-v3.9
+	socfpga/hw
+		patch	1360625433-28067-2-git-send-email-dinguyen@altera.com
+		patch	1360625433-28067-3-git-send-email-dinguyen@altera.com
+		patch	1360625433-28067-4-git-send-email-dinguyen@altera.com
+		patch	1360625433-28067-5-git-send-email-dinguyen@altera.com
 
 next/boards
 	renesas/defconfig
@@ -166,6 +174,8 @@ next/boards
 		pull	git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.9/board-signed
 	omap/twl
 		pull	git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.9/twl-signed-v2
+	imx/defconfig
+		pull	git://git.pengutronix.de/git/imx/linux-2.6.git tags/arm-imx-defconfig
 
 next/dt
 	davinci/dt
@@ -198,3 +208,21 @@ next/virt
 		pull	git://git.kernel.org/pub/scm/linux/kernel/git/will/linux.git for-arm-soc/virt/mach
 	patch	20130211174731.GO9801@mudshark.cambridge.arm.com
 	+patch to fix warning (local only)
+	virt/vgic-vtimer
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/maz/arm-platforms.git kvm-arm/timer
+
+late/dt
+	imx/dt
+		pull	git://git.linaro.org/people/shawnguo/linux-2.6.git tags/imx-dt-3.9
+
+late/omap
+	omap/late-soc
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.9/soc-signed
+	omap/late-am33xx
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.9/am33xx-signed
+	omap/late-pm
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.9/pm-wfi-take2-signed-v2
+	omap/late-clock
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.9/clock-signed
+	omap/late-pm-omap4
+		pull	git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.9/pm-omap4-signed
