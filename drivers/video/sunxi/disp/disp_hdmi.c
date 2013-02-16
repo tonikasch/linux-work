@@ -43,7 +43,7 @@ __s32 Display_Hdmi_Exit(void)
 	return DIS_SUCCESS;
 }
 
-__s32 BSP_disp_hdmi_open(__u32 sel)
+__s32 BSP_disp_hdmi_open(__u32 sel, __u32 wait_edid)
 {
 	if (!(gdisp.screen[sel].status & HDMI_ON)) {
 		__disp_tv_mode_t tv_mod = gdisp.screen[sel].hdmi_mode;
@@ -55,8 +55,7 @@ __s32 BSP_disp_hdmi_open(__u32 sel)
 
 		hdmi_clk_on();
 
-		if (gdisp.screen[sel].use_edid &&
-		    gdisp.init_para.hdmi_wait_edid() == 0) {
+		if (wait_edid && gdisp.init_para.hdmi_wait_edid() == 0) {
 			tv_mod = DISP_TV_MODE_EDID;
 			gdisp.init_para.hdmi_set_mode(tv_mod);
 			gdisp.screen[sel].hdmi_mode = tv_mod;
@@ -256,19 +255,21 @@ __s32 BSP_disp_set_videomode(__u32 sel, const struct fb_videomode *mode)
 
 	videomode_to_video_timing(new_video_timing, mode);
 
+	gdisp.init_para.hdmi_set_mode(DISP_TV_MODE_EDID);
 	if (gdisp.init_para.hdmi_set_videomode(new_video_timing) != 0)
-		return DIS_FAIL;
+		goto failure;
 
-	if (disp_clk_cfg(sel, DISP_OUTPUT_TYPE_HDMI, hdmi_mode) != 0)
+	if (disp_clk_cfg(sel, DISP_OUTPUT_TYPE_HDMI, DISP_TV_MODE_EDID) != 0)
 		goto failure;
 
 	if (DE_BE_set_display_size(sel, new_video_timing->INPUTX,
 			new_video_timing->INPUTY) != 0)
 		goto failure;
 
-	if (TCON1_set_hdmi_mode(sel, hdmi_mode) != 0)
+	if (TCON1_set_hdmi_mode(sel, DISP_TV_MODE_EDID) != 0)
 		goto failure;
 
+	gdisp.screen[sel].hdmi_mode = DISP_TV_MODE_EDID;
 	gdisp.screen[sel].b_out_interlace = new_video_timing->I;
 
 	kfree(old_video_timing);
@@ -276,6 +277,7 @@ __s32 BSP_disp_set_videomode(__u32 sel, const struct fb_videomode *mode)
 	return DIS_SUCCESS;
 
 failure:
+	gdisp.init_para.hdmi_set_mode(hdmi_mode);
 	gdisp.init_para.hdmi_set_videomode(old_video_timing);
 	disp_clk_cfg(sel, DISP_OUTPUT_TYPE_HDMI, hdmi_mode);
 	DE_BE_set_display_size(sel, old_video_timing->INPUTX,

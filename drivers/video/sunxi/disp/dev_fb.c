@@ -465,10 +465,13 @@ fb_draw_gray_pictures(__u32 base, __u32 width, __u32 height,
 
 static int __init Fb_map_video_memory(__u32 fb_id, struct fb_info *info)
 {
-#ifndef CONFIG_FB_SUNXI_RESERVED_MEM
 	unsigned map_size = PAGE_ALIGN(info->fix.smem_len);
 	struct page *page;
 
+#ifdef CONFIG_FB_SUNXI_RESERVED_MEM
+	if (fb_size)
+		goto use_reserved_mem;
+#endif
 	page = alloc_pages(GFP_KERNEL, get_order(map_size));
 	if (page != NULL) {
 		info->screen_base = page_address(page);
@@ -481,8 +484,11 @@ static int __init Fb_map_video_memory(__u32 fb_id, struct fb_info *info)
 		__wrn("alloc_pages fail!\n");
 		return -ENOMEM;
 	}
-#else
+#ifdef CONFIG_FB_SUNXI_RESERVED_MEM
+use_reserved_mem:
 	g_fbi.malloc_screen_base[fb_id] = disp_malloc(info->fix.smem_len);
+	if (g_fbi.malloc_screen_base[fb_id] == NULL)
+		return -ENOMEM;
 	info->fix.smem_start = (unsigned long)
 					__pa(g_fbi.malloc_screen_base[fb_id]);
 	info->screen_base = ioremap_wc(info->fix.smem_start,
@@ -505,20 +511,22 @@ static int __init Fb_map_video_memory(__u32 fb_id, struct fb_info *info)
 
 static inline void Fb_unmap_video_memory(__u32 fb_id, struct fb_info *info)
 {
-#ifndef CONFIG_FB_SUNXI_RESERVED_MEM
 	unsigned map_size = PAGE_ALIGN(info->fix.smem_len);
-
-	free_pages((unsigned long)info->screen_base, get_order(map_size));
-#else
-	if ((void *)info->screen_base != g_fbi.malloc_screen_base[fb_id]) {
-		__inf("Fb_unmap_video_memory: fb_id=%d, iounmap(%p)\n",
-						fb_id, info->screen_base);
-		iounmap(info->screen_base);
-	}
-	__inf("Fb_unmap_video_memory: fb_id=%d, disp_free(%p)\n",
-			fb_id, g_fbi.malloc_screen_base[fb_id]);
-	disp_free(g_fbi.malloc_screen_base[fb_id]);
+#ifdef CONFIG_FB_SUNXI_RESERVED_MEM
+	if (fb_size) {
+		if ((void *)info->screen_base !=
+					g_fbi.malloc_screen_base[fb_id]) {
+			__inf("Fb_unmap_video_memory: fb_id=%d, iounmap(%p)\n",
+				fb_id, info->screen_base);
+			iounmap(info->screen_base);
+		}
+		__inf("Fb_unmap_video_memory: fb_id=%d, disp_free(%p)\n",
+				fb_id, g_fbi.malloc_screen_base[fb_id]);
+		disp_free(g_fbi.malloc_screen_base[fb_id]);
+	} else
 #endif
+		free_pages((unsigned long)info->screen_base,
+			   get_order(map_size));
 }
 
 /*
@@ -1282,25 +1290,35 @@ static int
 Fb_blank(int blank_mode, struct fb_info *info)
 {
 	__u32 sel = 0;
+	int ret = 0;
 
 	__inf("Fb_blank,mode:%d\n", blank_mode);
 
-	for (sel = 0; sel < 2; sel++) {
-		if (((sel == 0) &&
-		     (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN1)) ||
-		    ((sel == 1) &&
-		     (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN0))) {
-			__s32 layer_hdl = g_fbi.layer_hdl[info->node][sel];
+	switch (blank_mode)	{
+	case FB_BLANK_POWERDOWN:
+		disp_suspend(3, 3);
+		break;
+	case FB_BLANK_UNBLANK:
+		disp_resume(3, 3);
+		/* fall through */
+	case FB_BLANK_NORMAL:
+		for (sel = 0; sel < 2; sel++) {
+			if (((sel == 0) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN1))
+			 || ((sel == 1) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN0))) {
+				__s32 layer_hdl = g_fbi.layer_hdl[info->node][sel];
 
-			if (blank_mode == FB_BLANK_POWERDOWN)
-				BSP_disp_layer_close(sel, layer_hdl);
-			else
-				BSP_disp_layer_open(sel, layer_hdl);
-
-			//DRV_disp_wait_cmd_finish(sel);
+				if (blank_mode == FB_BLANK_NORMAL)
+					BSP_disp_layer_close(sel, layer_hdl);
+				else
+					BSP_disp_layer_open(sel, layer_hdl);
+			}
 		}
+		break;
+	default:
+		ret = -EINVAL;
 	}
-	return 0;
+
+	return ret;
 }
 
 static int Fb_cursor(struct fb_info *info, struct fb_cursor *cursor)
@@ -1633,10 +1651,14 @@ __s32 Display_set_fb_timing(__u32 sel)
 	return 0;
 }
 
-void hdmi_edid_received(unsigned char *edid, int block)
+void hdmi_edid_received(unsigned char *edid, int block_count)
 {
 	struct fb_event event;
+	struct fb_modelist *m, *n;
+	int dummy;
 	__u32 sel = 0;
+	__u32 block = 0;
+	LIST_HEAD(old_modelist);
 
 	mutex_lock(&g_fbi_mutex);
 	for (sel = 0; sel < 2; sel++) {
@@ -1653,15 +1675,17 @@ void hdmi_edid_received(unsigned char *edid, int block)
 			console_lock();
 		}
 
-		if (block == 0) {
-			if (fbi->monspecs.modedb != NULL) {
-				fb_destroy_modedb(fbi->monspecs.modedb);
-				fbi->monspecs.modedb = NULL;
-			}
+		for (block = 0; block < block_count; block++) {
+			if (block == 0) {
+				if (fbi->monspecs.modedb != NULL) {
+					fb_destroy_modedb(fbi->monspecs.modedb);
+					fbi->monspecs.modedb = NULL;
+				}
 
-			fb_edid_to_monspecs(edid, &fbi->monspecs);
-		} else {
-			fb_edid_add_monspecs(edid, &fbi->monspecs);
+				fb_edid_to_monspecs(edid, &fbi->monspecs);
+			} else {
+				fb_edid_add_monspecs(edid + 0x80 * block, &fbi->monspecs);
+			}
 		}
 
 		if (fbi->monspecs.modedb_len == 0) {
@@ -1678,15 +1702,27 @@ void hdmi_edid_received(unsigned char *edid, int block)
 			continue;
 		}
 
-		if (fbi->modelist.prev && fbi->modelist.next &&
-		    !list_empty(&fbi->modelist)) {
-			/* Non-empty modelist, destroy before overwriting. */
-			fb_destroy_modelist(&fbi->modelist);
-		}
+		list_splice(&fbi->modelist, &old_modelist);
 
 		fb_videomode_to_modelist(fbi->monspecs.modedb,
 					 fbi->monspecs.modedb_len,
 					 &fbi->modelist);
+
+		/* Filter out modes which we cannot do */
+		list_for_each_entry_safe(m, n, &fbi->modelist, list) {
+			if (disp_get_pll_freq(
+				fb_videomode_pixclock_to_hdmi_pclk(
+					m->mode.pixclock), &dummy, &dummy)) {
+				list_del(&m->list);
+				kfree(m);
+			}
+		}
+		/* Are there any usable modes left? */
+		if (list_empty(&fbi->modelist)) {
+			list_splice(&old_modelist, &fbi->modelist);
+			pr_warn("EDID: No modes with good pixelclock found\n");
+			continue;
+		}
 
 		/*
 		 * Tell framebuffer users that modelist was replaced. This is
@@ -1694,6 +1730,8 @@ void hdmi_edid_received(unsigned char *edid, int block)
 		 */
 		event.info = fbi;
 		err = fb_notifier_call_chain(FB_EVENT_NEW_MODELIST, &event);
+
+		fb_destroy_modelist(&old_modelist);
 
 		if (g_fbi.fb_registered[sel]) {
 			console_unlock();
@@ -1731,6 +1769,7 @@ __s32 Fb_Init(__u32 from)
 
 		for (i = 0; i < SUNXI_MAX_FB; i++) {
 			g_fbi.fbinfo[i] = framebuffer_alloc(0, g_fbi.dev);
+			INIT_LIST_HEAD(&g_fbi.fbinfo[i]->modelist);
 			g_fbi.fbinfo[i]->fbops = &dispfb_ops;
 			g_fbi.fbinfo[i]->flags = 0;
 			g_fbi.fbinfo[i]->device = g_fbi.dev;
@@ -1826,7 +1865,8 @@ __s32 Fb_Init(__u32 from)
 					BSP_disp_hdmi_set_mode(sel,
 							       g_fbi.disp_init.
 							       tv_mode[sel]);
-					BSP_disp_hdmi_open(sel);
+					BSP_disp_hdmi_open(sel,
+						gdisp.screen[sel].use_edid);
 				} else if (g_fbi.disp_init.output_type[sel] ==
 					   DISP_OUTPUT_TYPE_VGA) {
 					BSP_disp_vga_set_mode(sel,
