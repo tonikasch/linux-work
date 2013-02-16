@@ -31,6 +31,7 @@ next/fixes-non-critical
 		pull	git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.9/fixes-non-critical-signed-v2
 	patch	1359123276-15833-4-git-send-email-arnd@arndb.de
 	patches 1360849767-1463135-1-git-send-email-arnd@arndb.de
+	patch	1360882071-4072668-3-git-send-email-arnd@arndb.de
 
 next/cleanup
 	timer/cleanup
@@ -108,6 +109,8 @@ next/multiplatform
 	patch	20130124201709.GB1036@beefymiracle.amer.corp.natinst.com
 	patch	20130205175126.GH25185@atomide.com
 	+ two more patches for omap
+	omap/multiplatform-fixes
+		patches from 1360882071-4072668-1-git-send-email-arnd@arndb.de
 
 next/soc
 	vt8500/wm8x50
@@ -213,6 +216,7 @@ next/virt
 	+patch to fix warning (local only)
 	virt/vgic-vtimer
 		pull	git://git.kernel.org/pub/scm/linux/kernel/git/maz/arm-platforms.git kvm-arm/timer
+	+patch	1360882071-4072668-2-git-send-email-arnd@arndb.de
 
 late/dt
 	imx/dt
@@ -229,3 +233,4 @@ late/omap
 		pull	git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.9/clock-signed
 	omap/late-pm-omap4
 		pull	git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.9/pm-omap4-signed
+	+patch 1360882071-4072668-4-git-send-email-arnd@arndb.de
