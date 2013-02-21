@@ -41,11 +41,19 @@ next/fixes-non-critical
 	imx/fixes
 		pull	git://git.pengutronix.de/git/imx/linux-2.6.git tags/arm-imx-clk-fixes
 
+Bug fixes that did not make it into v3.8, mostly because they were not
+considered important enough, and in some cases because bugs only show
+up in combination with other patches destined for 3.9.
+This includes a few larger patches for GPIO on the Marvell PXA platform
+and a lot of Samsung specific bug fixes, as well as a series from Arnd
+to fix older build warnings.
+
+====
 next/cleanup
 	timer/cleanup
 		pull	git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git swarren-for-3.9-arm-timer-rework
 		patch	1357666417-8803-1-git-send-email-swarren@wwwdotorg.org
-		patch	1358185342-7518-1-git-send-email-swarren@wwwdotorg.org
+			1358185342-7518-1-git-send-email-swarren@wwwdotorg.org
 		patch	1358232649-19964-1-git-send-email-linux@prisktech.co.nz
 	clocksource/cleanup
 		bundle	https://patchwork.kernel.org/user/bundle/3531/
@@ -93,9 +101,43 @@ next/cleanup
 		pull	git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson.git tags/for-arm-soc-cleanup
 	patch	1360850491-1463387-1-git-send-email-arnd@arndb.de
 
+A large number of cleanups, all over the platforms. This is dominated
+largely by the Samsung platforms (s3c, s5p, exynos) and a few of the
+others moving code out of arch/arm into more appropriate subsystems.
+The clocksource and irqchip drivers are now abstracted to the point
+where platforms that are already cleaned up do not need to even specify
+the driver they use, it can all get configured from the device tree
+as we do for normal device drivers. The clocksource changes basically
+touch every single platform in the process.
+
+We further clean up the use of platform specific header files here,
+with the goal of turning more of the platforms over to being
+"multiplatform" enabled, which implies that they cannot expose
+their headers to architecture independent code any more.
+
+It is expected that no functional changes are part of the cleanup.
+The overall reduction in total code lines is mostly the result of
+removing broken and obsolete code.
+
 next/sh-pinmux
 	pull	git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git pfc
 	pull	git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-pinmux2-for-v3.9
+
+This is another cleanup series, containing the move of the Renesas
+SH-Mobile pin controller code from arch/arm/mach-shmobile over to the
+generic pinctrl subsystem, changing it over to the common interfaces in
+the process.
+
+Based on agreement between me, Paul Mundt, Linus Walleij and Simon,
+we're mergning this large branch of pinctrl conversion through arm-soc,
+even though it contains the corresponding conversions for arch/sh. Main
+reason for this is tight dependencies (that will now mostly be broken)
+between the arch/sh and mach-shmobile implementations.
+
+There will be more of this in 3.10 to do device-tree bindings, but this
+is the initial conversion.
+
+====
 
 next/drivers
 	ux500/cpufreq
@@ -110,6 +152,18 @@ next/drivers
 		pull	git://git.linaro.org/people/shawnguo/linux-2.6.git tags/mxs-soc-3.9
 
 
+Device driver specific changes:
+* Updates to the ux500 cpufree code
+* Moving the u300 DMA controller driver to drivers/dma
+* Moving versatile express drivers out of arch/arm for sharing with arch/arm64
+* Device tree bindings for the OMAP General Purpose Memory Controller
+
+There is a simple conflict in drivers/cpufreq/dbx500-cpufreq.c, because
+the mach/id.h header and the cpu_is_u8500_family() function in it are now
+gone.
+
+====
+
 next/multiplatform
 	omap/multiplatform
 		pull	git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.9/multiplatform-enable-signed-v2
@@ -121,6 +175,18 @@ next/multiplatform
 	+ two more patches for omap
 	omap/multiplatform-fixes
 		patches from 1360882071-4072668-1-git-send-email-arnd@arndb.de
+
+Converting more ARM platforms to multiplatform support. This time, OMAP gets
+converted, which is a major step since this is by far the largest platform
+in terms of code size. The same thing happens to the vt8500 platform.
+
+Conflicts include:
+* Two mach/uncompress.h files are removed, the changes made to them elsewhere
+  can be discarded now.
+* Moving the OMAP4 irq_match array has context clashes with turning
+  omap4_sar_ram_init into an omap_early_initcall()
+
+====
 
 next/soc
 	vt8500/wm8x50
@@ -172,6 +238,24 @@ next/soc
 	omap/usb
 		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.9/usb-signed
 
+
+This is a larger set of new functionality for the existing SoC families,
+including:
+
+* vt8500 gains support for new CPU cores, notably the Cortex-A9 based wm8850
+* prima2 gains support for the "marco" SoC family, its SMP based cousin
+* tegra gains support for the new Tegra4 (Tegra114) family
+* socfpga now supports a newer version of the hardware including SMP
+* i.mx31 and bcm2835 are now using DT probing for their clocks
+* lots of updates for sh-mobile
+* OMAP updates for clocks, power management and USB
+* i.mx6q and tegra now support cpuidle
+* kirkwood now supports PCIe hot plugging
+* tegra clock support is updated
+* tegra USB PHY probing gets implemented diffently
+
+====
+
 next/boards
 	renesas/defconfig
 		pull	git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git defconfig
@@ -194,6 +278,20 @@ next/boards
 		pull	git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.9/twl-signed-v2
 	imx/defconfig
 		pull	git://git.pengutronix.de/git/imx/linux-2.6.git tags/arm-imx-defconfig
+
+These updates are all for board specific code, including
+
+* defconfig updates for shmobile, davinci, bcm2835, imx, omap and tegra
+* SD/MMC and I2C support on bcm2835 (Raspberry PI)
+* minor updates for PXA
+* shmobile updates to GPIO usage in board files
+* More things in OMAP board files are moved over to device tree probing
+* Better support for audio devices on some OMAP platforms
+
+Conflicts include the omap board-apollon.c file that is removed without
+a replacement, and conflicting context in the 4430sdp board file.
+
+====
 
 next/dt
 	davinci/dt
@@ -222,6 +320,20 @@ next/dt
 		pull	git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.9-soc-ccf-fixes
 
 
+These are device tree conversions for a number of platforms,
+with the intention of turning code from board files into
+device tree descriptions. Notable changes are:
+
+* davinci bindings for pinctrl, MTD, RTC, watchdog and i2c
+* nomadik bindings for all devices, removing the board files
+* bcm2835 bindings for mmc and i2c
+* tegra bindings for hdmi, keyboard, audio, as well as some updates
+* at91 bindings for hardware ecc and for devices on RM9200
+* mxs bindings for cfa100xx
+* sunxi support for Miniand Hackberry board
+
+====
+
 next/virt
 	depends	depends/rmk-perf
 	depends depends/rmk-psci
@@ -236,6 +348,22 @@ next/virt
 	virt/vgic-vtimer
 		pull	git://git.kernel.org/pub/scm/linux/kernel/git/maz/arm-platforms.git kvm-arm/timer
 	+patch	1360882071-4072668-2-git-send-email-arnd@arndb.de
+
+
+This contains parts of the ARM KVM support that have dependencies on
+other patches merged through the arm-soc tree. In combination with
+patches coming through Russell's tree, this will finally add full
+support for the kernel based virtual machine on ARM,  which has
+been awaited for some time now.
+
+Further, we now have a separate platform for virtual machines
+and qemu booting that is used by both Xen and KVM, separating
+these from the Versatile Express reference implementation.
+Obviously, this new platform is multiplatform capable so it
+can be combined with existing machines in the same kernel.
+
+====
+
 
 late/dt
 	depends on imx/cpuidle
