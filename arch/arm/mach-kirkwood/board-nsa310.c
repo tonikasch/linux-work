@@ -10,8 +10,6 @@
 
 #include <linux/kernel.h>
 #include <linux/init.h>
-#include <linux/gpio.h>
-#include <linux/i2c.h>
 #include <mach/kirkwood.h>
 #include <linux/of.h>
 #include "common.h"
