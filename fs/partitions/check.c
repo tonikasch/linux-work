@@ -113,7 +113,7 @@ static int (*check_part[])(struct parsed_partitions *) = {
 #ifdef CONFIG_SYSV68_PARTITION
 	sysv68_partition,
 #endif
-#ifdef CONFIG_SUNXI_NAND
+#ifdef CONFIG_SUNXI_NAND_PARTITION
 	sunxi_nand_partition,
 #endif
 	NULL
@@ -479,6 +479,11 @@ struct hd_struct *add_partition(struct gendisk *disk, int partno,
 	}
 
 	dname = dev_name(ddev);
+#ifdef CONFIG_SUNXI_NAND_COMPAT_DEV
+	if (!strcmp(dname, "nand"))
+		dev_set_name(pdev, "%s%c", dname, 'a' - 1 + partno);
+	else
+#endif
 	if (isdigit(dname[strlen(dname) - 1]))
 		dev_set_name(pdev, "%sp%d", dname, partno);
 	else
