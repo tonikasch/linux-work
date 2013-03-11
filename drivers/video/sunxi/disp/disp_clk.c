@@ -907,6 +907,9 @@ static __s32 disp_get_pll_freq_between(__u32 pclk, __u32 min, __u32 max,
 
 __s32 disp_get_pll_freq(__u32 pclk, __u32 *pll_freq,  __u32 *pll_2x)
 {
+	if (pclk == 0)
+		return -1;
+
 	/* First try the 2 special video pll clks */
 	if ((270000000 % pclk) == 0) {
 		*pll_freq = 270000000;
@@ -963,17 +966,17 @@ __s32 disp_clk_cfg(__u32 sel, __u32 type, __u8 mode)
 				tve_freq  = 27000000;
 			else
 				tve_freq  = 54000000;
-			lcd_clk_div = 2;
+			pre_scale = 2;
 		} else {
 			tve_freq = hdmi_freq;
-			lcd_clk_div = 1;
+			pre_scale = 1;
 		}
 
 		if (disp_get_pll_freq(hdmi_freq, &pll_freq, &pll_2x) != 0)
 			return -1;
 
-		pr_info("disp clks: lcd %d lcd_div %d hdmi %d pll %d 2x %d\n",
-			tve_freq, lcd_clk_div, hdmi_freq, pll_freq, pll_2x);
+		pr_info("disp clks: lcd %d pre_scale %d hdmi %d pll %d 2x %d\n",
+			tve_freq, pre_scale, hdmi_freq, pll_freq, pll_2x);
 	} else if (type == DISP_OUTPUT_TYPE_VGA) {
 		pll_freq = clk_tab.vga_clk_tab[mode].pll_clk;
 		tve_freq = clk_tab.vga_clk_tab[mode].tve_clk;

@@ -1,5 +1,5 @@
 /*
- * arch/arm/mach-sun5i/include/mach/sys_config.h
+ * arch/arm/plat-sunxi/include/plat/sys_config.h
  *
  * (C) Copyright 2007-2012
  * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
@@ -24,9 +24,8 @@
 #ifndef __SW_SYS_CONFIG_H
 #define __SW_SYS_CONFIG_H
 
+#include <plat/script.h>
 
-#define   SYS_CONFIG_MEMBASE                 (PLAT_PHYS_OFFSET + SZ_32M + SZ_16M)
-#define   SYS_CONFIG_MEMSIZE                 (SZ_64K)
 #define   SCRIPT_PARSER_OK                   (0)
 #define   SCRIPT_PARSER_EMPTY_BUFFER         (-1)
 #define   SCRIPT_PARSER_KEYNAME_NULL         (-2)
@@ -36,11 +35,11 @@
 
 typedef enum
 {
-	SCIRPT_PARSER_VALUE_TYPE_INVALID = 0,
-	SCIRPT_PARSER_VALUE_TYPE_SINGLE_WORD,
-	SCIRPT_PARSER_VALUE_TYPE_STRING,
-	SCIRPT_PARSER_VALUE_TYPE_MULTI_WORD,
-	SCIRPT_PARSER_VALUE_TYPE_GPIO_WORD
+	SCRIPT_PARSER_VALUE_TYPE_INVALID = 0,
+	SCRIPT_PARSER_VALUE_TYPE_SINGLE_WORD,
+	SCRIPT_PARSER_VALUE_TYPE_STRING,
+	SCRIPT_PARSER_VALUE_TYPE_MULTI_WORD,
+	SCRIPT_PARSER_VALUE_TYPE_GPIO_WORD
 } script_parser_value_type_t;
 
 typedef struct
@@ -54,26 +53,9 @@ typedef struct
 	int data;
 } script_gpio_set_t;
 
-typedef struct
-{
-	int  main_key_count;
-	int  version[3];
-} script_head_t;
-
-typedef struct
-{
-	char main_name[32];
-	int  lenth;
-	int  offset;
-} script_main_key_t;
-
-typedef struct
-{
-	char sub_name[32];
-	int  offset;
-	int  pattern;
-} script_sub_key_t;
-
+typedef struct sunxi_script script_head_t;
+typedef struct sunxi_script_section script_main_key_t;
+typedef struct sunxi_script_property script_sub_key_t;
 
 #define   EGPIO_FAIL             (-1)
 #define   EGPIO_SUCCESS          (0)
@@ -114,24 +96,9 @@ typedef enum
 #define	PIN_PHY_GROUP_I			0x08
 #define	PIN_PHY_GROUP_J			0x09
 
-typedef struct
-{
-    char  gpio_name[32];
-    int port;
-    int port_num;
-    int mul_sel;
-    int pull;
-    int drv_level;
-    int data;
-} user_gpio_set_t;
-
-/* functions for early boot */
-extern int sw_cfg_get_int(const char *script_buf, const char *main_key, const char *sub_key);
-extern char *sw_cfg_get_str(const char *script_buf, const char *main_key, const char *sub_key, char *buf);
+typedef script_gpio_set_t user_gpio_set_t;
 
 /* script operations */
-extern int script_parser_init(char *script_buf);
-extern int script_parser_exit(void);
 extern int script_parser_fetch(char *main_name, char *sub_name, int value[], int count);
 extern int script_parser_fetch_ex(char *main_name, char *sub_name, int value[],
                script_parser_value_type_t *type, int count);
@@ -143,7 +110,8 @@ extern int script_parser_mainkey_get_gpio_cfg(char *main_name, void *gpio_cfg, i
 /* gpio operations */
 extern int gpio_init(void);
 extern int gpio_exit(void);
-extern unsigned gpio_request(user_gpio_set_t *gpio_list, unsigned group_count_max);
+extern unsigned sunxi_gpio_request_array(user_gpio_set_t *gpio_list,
+					 unsigned group_count_max);
 extern unsigned gpio_request_ex(char *main_name, const char *sub_name);
 extern int gpio_release(unsigned p_handler, int if_release_to_default_status);
 extern int gpio_get_all_pin_status(unsigned p_handler, user_gpio_set_t *gpio_status, unsigned gpio_count_max, unsigned if_get_from_hardware);

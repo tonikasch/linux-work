@@ -210,13 +210,24 @@ EDID_Version_Check(__u8 *pbuf)
 	return 0;
 }
 
+struct pclk_override {
+	struct __disp_video_timing video_timing;
+	int pclk;
+};
+
+struct pclk_override pclk_override[] = {
+	/* VIC PCLK  AVI_PR INPUTX INPUTY HT   HBP  HFP  HPSW VT   VBP VFP VPSW I  HS VS   override */
+	{ { HDMI_EDID, 146250000, 0, 1680, 1050, 2240, 456, 104, 176, 1089, 36,  3, 6,  0, 0, 1 }, 146000000 },
+	{ { 0, }, -1 }
+};
+
 static __s32
 Parse_DTD_Block(__u8 *pbuf)
 {
-	__u32 dummy, pclk, sizex, Hblanking, sizey, Vblanking, Hsync_offset,
+	__u32 i, dummy, pclk, sizex, Hblanking, sizey, Vblanking, Hsync_offset,
 		Hsync_pulsew, Vsync_offset, Vsync_pulsew, H_image_size,
 		V_image_size, H_Border, V_Border, pixels_total, frame_rate,
-		Hsync, Vsync;
+		Hsync, Vsync, HT, VT;
 	pclk = (((__u32) pbuf[1] << 8) + pbuf[0]) * 10000;
 	sizex = (((__u32) pbuf[4] << 4) & 0x0f00) + pbuf[2];
 	Hblanking = (((__u32) pbuf[4] << 8) & 0x0f00) + pbuf[3];
@@ -232,8 +243,10 @@ Parse_DTD_Block(__u8 *pbuf)
 	V_Border = pbuf[16];
 	Hsync = (pbuf[17] & 0x02) >> 1;
 	Vsync = (pbuf[17] & 0x04) >> 2;
+	HT = sizex + Hblanking;
+	VT = sizey + Vblanking;
 
-	pixels_total = (sizex + Hblanking) * (sizey + Vblanking);
+	pixels_total = HT * VT;
 
 	if ((pbuf[0] == 0) && (pbuf[1] == 0) && (pbuf[2] == 0))
 		return 0;
@@ -282,37 +295,63 @@ Parse_DTD_Block(__u8 *pbuf)
 
 	pr_info("PCLK=%d X %d %d %d %d Y %d %d %d %d fr %d %s%s\n", pclk,
 		sizex, sizex + Hsync_offset,
-		sizex + Hsync_offset + Hsync_pulsew, sizex + Hblanking,
+		sizex + Hsync_offset + Hsync_pulsew, HT,
 		sizey, sizey + Vsync_offset,
-		sizey + Vsync_offset + Vsync_pulsew, sizey + Vblanking,
+		sizey + Vsync_offset + Vsync_pulsew, VT,
 		frame_rate, Hsync ? "P" : "N", Vsync ? "P" : "N");
 
 	/* Pick the first mode with a width which is a multiple of 8 and
 	   a supported pixel-clock */
-	if (Device_Support_VIC[HDMI_EDID] == 0 && !(sizex & 7) &&
-	    disp_get_pll_freq(pclk, &dummy, &dummy) == 0) {
-		pr_info("Using above mode as preferred EDID mode\n");
-		video_timing[video_timing_edid].PCLK = pclk;
-		video_timing[video_timing_edid].AVI_PR = 0;
-		video_timing[video_timing_edid].INPUTX = sizex;
-		video_timing[video_timing_edid].INPUTY = sizey;
-		video_timing[video_timing_edid].HT = sizex + Hblanking;
-		video_timing[video_timing_edid].HBP = Hblanking - Hsync_offset;
-		video_timing[video_timing_edid].HFP = Hsync_offset;
-		video_timing[video_timing_edid].HPSW = Hsync_pulsew;
-		video_timing[video_timing_edid].VT = sizey + Vblanking;
-		video_timing[video_timing_edid].VBP = Vblanking - Vsync_offset;
-		video_timing[video_timing_edid].VFP = Vsync_offset;
-		video_timing[video_timing_edid].VPSW = Vsync_pulsew;
-		video_timing[video_timing_edid].I = (pbuf[17] & 0x80) >> 7;
-		if (video_timing[video_timing_edid].I) {
-			video_timing[video_timing_edid].INPUTY *= 2;
-			video_timing[video_timing_edid].VT *= 2;
+	if (Device_Support_VIC[HDMI_EDID] || (sizex & 7))
+		return 0;
+
+	video_timing[video_timing_edid].PCLK = pclk;
+	video_timing[video_timing_edid].AVI_PR = 0;
+	video_timing[video_timing_edid].INPUTX = sizex;
+	video_timing[video_timing_edid].INPUTY = sizey;
+	video_timing[video_timing_edid].HT = HT;
+	video_timing[video_timing_edid].HBP = Hblanking - Hsync_offset;
+	video_timing[video_timing_edid].HFP = Hsync_offset;
+	video_timing[video_timing_edid].HPSW = Hsync_pulsew;
+	video_timing[video_timing_edid].VT = VT;
+	video_timing[video_timing_edid].VBP = Vblanking - Vsync_offset;
+	video_timing[video_timing_edid].VFP = Vsync_offset;
+	video_timing[video_timing_edid].VPSW = Vsync_pulsew;
+	video_timing[video_timing_edid].I = (pbuf[17] & 0x80) >> 7;
+	video_timing[video_timing_edid].HSYNC = Hsync;
+	video_timing[video_timing_edid].VSYNC = Vsync;
+
+	for (i = 0; pclk_override[i].pclk != -1; i++) {
+		if (memcmp(&video_timing[video_timing_edid],
+			   &pclk_override[i].video_timing,
+			   sizeof(struct __disp_video_timing)) == 0) {
+			pr_info("Patching %d pclk to %d\n", pclk,
+				pclk_override[i].pclk);
+			video_timing[video_timing_edid].PCLK =
+				pclk_override[i].pclk;
+			break;
 		}
-		video_timing[video_timing_edid].HSYNC = Hsync;
-		video_timing[video_timing_edid].VSYNC = Vsync;
-		Device_Support_VIC[HDMI_EDID] = 1;
 	}
+
+	if (disp_get_pll_freq(video_timing[video_timing_edid].PCLK,
+			      &dummy, &dummy) != 0)
+		return 0;
+
+	pr_info("Using above mode as preferred EDID mode\n");
+
+	if (video_timing[video_timing_edid].I) {
+		video_timing[video_timing_edid].INPUTY *= 2;
+		video_timing[video_timing_edid].VT *= 2;
+
+		/* Should VT be VT * 2 + 1, or VT * 2 ? */
+		frame_rate = (frame_rate + 1) / 2;
+		if ((HT * (VT * 2 + 1) * frame_rate) == pclk)
+			video_timing[video_timing_edid].VT++;
+
+		pr_info("Interlaced VT %d\n",
+			video_timing[video_timing_edid].VT);
+	}
+	Device_Support_VIC[HDMI_EDID] = 1;
 
 	return 0;
 }
@@ -415,25 +454,75 @@ Parse_HDMI_VSDB(__u8 *pbuf, __u8 size)
 	return 0;
 }
 
+static __s32 ParseEDID_CEA861_extension_block(__u32 i)
+{
+	__u32 offset;
+	if (EDID_Buf[0x80 * i + 3] & 0x40) {
+		audio_info.supported_rates |=
+			SNDRV_PCM_RATE_32000 |
+			SNDRV_PCM_RATE_44100 |
+			SNDRV_PCM_RATE_48000;
+	}
+	offset = EDID_Buf[0x80 * i + 2];
+	/* deal with reserved data block */
+	if (offset > 4)	{
+		__u8 bsum = 4;
+		while (bsum < offset) {
+			__u8 tag = EDID_Buf[0x80 * i + bsum] >> 5;
+			__u8 len = EDID_Buf[0x80 * i + bsum] & 0x1f;
+			if ((len > 0) && ((bsum + len + 1) > offset)) {
+				pr_info("len or bsum size error\n");
+				return 0;
+			} else {
+				if (tag == 1) { /* ADB */
+					Parse_AudioData_Block(EDID_Buf + 0x80 * i + bsum + 1, len);
+				} else if (tag == 2) { /* VDB */
+					Parse_VideoData_Block(EDID_Buf + 0x80 * i + bsum + 1, len);
+				} else if (tag == 3) { /* vendor specific */
+					Parse_HDMI_VSDB(EDID_Buf + 0x80 * i + bsum + 1, len);
+				}
+			}
+
+			bsum += (len + 1);
+		}
+	} else {
+		pr_info("no data in block%d\n", i);
+	}
+
+	if (offset >= 4) { /* deal with 18-byte timing block */
+		while (offset < (0x80 - 18)) {
+			Parse_DTD_Block(EDID_Buf + 0x80 * i + offset);
+			offset += 18;
+		}
+	} else {
+		pr_info("no DTD in block%d\n", i);
+	}
+	return 1;
+}
+
 /*
  * collect the EDID ucdata of segment 0
- *
- * Yergh. Break this up! --libv.
  */
 __s32 ParseEDID(void)
 {
 	__u8 BlockCount;
-	__u32 i, offset;
+	__u32 i;
 
 	pr_info("ParseEDID\n");
 
-	memset(Device_Support_VIC, 0, sizeof(Device_Support_VIC));
+	if (video_mode == HDMI_EDID) {
+		/* HDMI_DEVICE_SUPPORT_VIC_SIZE - 1 so as to not overwrite
+		   the currently in use timings with a new preferred mode! */
+		memset(Device_Support_VIC, 0,
+		       HDMI_DEVICE_SUPPORT_VIC_SIZE - 1);
+	} else {
+		memset(Device_Support_VIC, 0, HDMI_DEVICE_SUPPORT_VIC_SIZE);
+	}
 	memset(EDID_Buf, 0, sizeof(EDID_Buf));
 
 	DDC_Init();
 
 	GetEDIDData(0, EDID_Buf);
-	hdmi_edid_received(EDID_Buf, 0);
 
 	if (EDID_CheckSum(0, EDID_Buf) != 0)
 		return 0;
@@ -448,64 +537,26 @@ __s32 ParseEDID(void)
 
 	Parse_DTD_Block(EDID_Buf + 0x48);
 
-	BlockCount = EDID_Buf[0x7E];
+	BlockCount = EDID_Buf[0x7E] + 1;
+	if (BlockCount > 5)
+		BlockCount = 5;
 
-	if (BlockCount > 0) {
-		if (BlockCount > 4)
-			BlockCount = 4;
+	for (i = 1; i < BlockCount; i++) {
+		GetEDIDData(i, EDID_Buf);
+		if (EDID_CheckSum(i, EDID_Buf) != 0) {
+			BlockCount = i;
+			break;
+		}
+	}
 
-		for (i = 1; i <= BlockCount; i++) {
-			GetEDIDData(i, EDID_Buf);
-			hdmi_edid_received(EDID_Buf+(0x80*i), i);
-			if (EDID_CheckSum(i, EDID_Buf) != 0)
+	hdmi_edid_received(EDID_Buf, BlockCount);
+
+	for (i = 1; i < BlockCount; i++) {
+		if (EDID_Buf[0x80 * i + 0] == 2) {
+			if (!ParseEDID_CEA861_extension_block(i))
 				return 0;
-
-			if (EDID_Buf[0x80 * i + 0] == 2) {
-				if (EDID_Buf[0x80 * i + 3] & 0x40) {
-					audio_info.supported_rates |=
-						SNDRV_PCM_RATE_32000 |
-						SNDRV_PCM_RATE_44100 |
-						SNDRV_PCM_RATE_48000;
-				}
-				offset = EDID_Buf[0x80 * i + 2];
-				/* deal with reserved data block */
-				if (offset > 4)	{
-					__u8 bsum = 4;
-					while (bsum < offset) {
-						__u8 tag = EDID_Buf[0x80 * i + bsum] >> 5;
-						__u8 len = EDID_Buf[0x80 * i + bsum] & 0x1f;
-						if ((len > 0) && ((bsum + len + 1) > offset)) {
-							pr_info("len or bsum size error\n");
-							return 0;
-						} else {
-							if (tag == 1) { /* ADB */
-								Parse_AudioData_Block(EDID_Buf + 0x80 * i + bsum + 1, len);
-							} else if (tag == 2) { /* VDB */
-								Parse_VideoData_Block(EDID_Buf + 0x80 * i + bsum + 1, len);
-							} else if (tag == 3) { /* vendor specific */
-								Parse_HDMI_VSDB(EDID_Buf + 0x80 * i + bsum + 1, len);
-							}
-						}
-
-						bsum += (len + 1);
-					}
-				} else {
-					pr_info("no data in block%d\n", i);
-				}
-
-				if (offset >= 4) { /* deal with 18-byte timing block */
-					while (offset < (0x80 - 18)) {
-						Parse_DTD_Block(EDID_Buf + 0x80 * i + offset);
-						offset += 18;
-					}
-				} else {
-					pr_info("no DTD in block%d\n", i);
-				}
-			}
-
 		}
 	}
 
 	return 0;
-
 }

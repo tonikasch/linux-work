@@ -41,7 +41,7 @@
 #include <asm/irq.h>
 
 #include <mach/dma.h>
-#include <mach/sys_config.h>
+#include <plat/sys_config.h>
 #include <mach/clock.h>
 
 #include "sun4i_wemac.h"
@@ -1792,12 +1792,13 @@ static int __devinit wemac_probe(struct platform_device *pdev)
 	if (NULL == db->mos_gpio) {
 		printk(KERN_ERR "can't request memory for mos_gpio\n");
 	} else {
-		script_parser_value_type_t t = SCIRPT_PARSER_VALUE_TYPE_INVALID;
+		script_parser_value_type_t t = SCRIPT_PARSER_VALUE_TYPE_INVALID;
 		if (SCRIPT_PARSER_OK == script_parser_fetch_ex("emac_para", "emac_power",
 					(int *)(db->mos_gpio), &t,
 					sizeof(user_gpio_set_t)/sizeof(int)) &&
-		    t == SCIRPT_PARSER_VALUE_TYPE_GPIO_WORD) {
-			db->mos_pin_handler = gpio_request(db->mos_gpio, 1);
+		    t == SCRIPT_PARSER_VALUE_TYPE_GPIO_WORD) {
+			db->mos_pin_handler =
+				sunxi_gpio_request_array(db->mos_gpio, 1);
 			if (0 == db->mos_pin_handler)
 				printk(KERN_ERR "can't request gpio_port %d, port_num %d\n",
 						db->mos_gpio->port, db->mos_gpio->port_num);

@@ -43,7 +43,7 @@ __s32 Display_Hdmi_Exit(void)
 	return DIS_SUCCESS;
 }
 
-__s32 BSP_disp_hdmi_open(__u32 sel)
+__s32 BSP_disp_hdmi_open(__u32 sel, __u32 wait_edid)
 {
 	if (!(gdisp.screen[sel].status & HDMI_ON)) {
 		__disp_tv_mode_t tv_mod = gdisp.screen[sel].hdmi_mode;
@@ -55,8 +55,7 @@ __s32 BSP_disp_hdmi_open(__u32 sel)
 
 		hdmi_clk_on();
 
-		if (gdisp.screen[sel].use_edid &&
-		    gdisp.init_para.hdmi_wait_edid() == 0) {
+		if (wait_edid && gdisp.init_para.hdmi_wait_edid() == 0) {
 			tv_mod = DISP_TV_MODE_EDID;
 			gdisp.init_para.hdmi_set_mode(tv_mod);
 			gdisp.screen[sel].hdmi_mode = tv_mod;
@@ -191,12 +190,32 @@ __s32 BSP_disp_hdmi_set_mode(__u32 sel, __disp_tv_mode_t mode)
 	return DIS_SUCCESS;
 }
 
+__u32 fb_videomode_pixclock_to_hdmi_pclk(__u32 pixclock)
+{
+	/*
+	 * The pixelclock -> picoseconds -> pixelclock conversions we do
+	 * lose precision, which *is* a problem.
+	 * We can only do pixelclocks which are a divider of 1 - 15 of
+	 * a multiple of 3 MHz. So all clocks must have been a multiple of
+	 * 100 or 250 KHz before the conversion -> round to the nearest
+	 * multiple of 50 KHz to undo the precision loss.
+	 */
+	__u32 pclk;
+
+	if (pixclock == 0)
+		return 0;
+
+	pclk = (PICOS2HZ(pixclock) + 25000) / 50000;
+	return pclk * 50000;
+}
+
 void videomode_to_video_timing(struct __disp_video_timing *video_timing,
 		const struct fb_videomode *mode)
 {
 	memset(video_timing, 0, sizeof(struct __disp_video_timing));
 	video_timing->VIC = 511;
-	video_timing->PCLK = (PICOS2KHZ(mode->pixclock) * 1000);
+	video_timing->PCLK =
+		fb_videomode_pixclock_to_hdmi_pclk(mode->pixclock);
 	video_timing->AVI_PR = 0;
 	video_timing->INPUTX = mode->xres;
 	video_timing->INPUTY = mode->yres;
@@ -241,19 +260,21 @@ __s32 BSP_disp_set_videomode(__u32 sel, const struct fb_videomode *mode)
 
 	videomode_to_video_timing(new_video_timing, mode);
 
+	gdisp.init_para.hdmi_set_mode(DISP_TV_MODE_EDID);
 	if (gdisp.init_para.hdmi_set_videomode(new_video_timing) != 0)
-		return DIS_FAIL;
+		goto failure;
 
-	if (disp_clk_cfg(sel, DISP_OUTPUT_TYPE_HDMI, hdmi_mode) != 0)
+	if (disp_clk_cfg(sel, DISP_OUTPUT_TYPE_HDMI, DISP_TV_MODE_EDID) != 0)
 		goto failure;
 
 	if (DE_BE_set_display_size(sel, new_video_timing->INPUTX,
 			new_video_timing->INPUTY) != 0)
 		goto failure;
 
-	if (TCON1_set_hdmi_mode(sel, hdmi_mode) != 0)
+	if (TCON1_set_hdmi_mode(sel, DISP_TV_MODE_EDID) != 0)
 		goto failure;
 
+	gdisp.screen[sel].hdmi_mode = DISP_TV_MODE_EDID;
 	gdisp.screen[sel].b_out_interlace = new_video_timing->I;
 
 	kfree(old_video_timing);
@@ -261,6 +282,7 @@ __s32 BSP_disp_set_videomode(__u32 sel, const struct fb_videomode *mode)
 	return DIS_SUCCESS;
 
 failure:
+	gdisp.init_para.hdmi_set_mode(hdmi_mode);
 	gdisp.init_para.hdmi_set_videomode(old_video_timing);
 	disp_clk_cfg(sel, DISP_OUTPUT_TYPE_HDMI, hdmi_mode);
 	DE_BE_set_display_size(sel, old_video_timing->INPUTX,
