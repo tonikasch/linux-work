@@ -1439,8 +1439,8 @@ static int pcs_probe(struct platform_device *pdev)
 	if (pcs->is_pinconf)
 		pcs->desc.confops = &pcs_pinconf_ops;
 	pcs->desc.owner = THIS_MODULE;
-	if (match->data)
-		pcs_pinconf_ops.is_generic = true;
+//	if (match->data)
+//		pcs_pinconf_ops.is_generic = true;
 
 	ret = pcs_allocate_pin_table(pcs);
 	if (ret < 0)
