@@ -42,7 +42,7 @@
 #include <mach/hardware.h>
 #include <mach/i2c.h>
 #ifdef CONFIG_ANDROID_RAM_CONSOLE
-#include <mach/ramconsole.h>
+#include <plat/ramconsole.h>
 #endif
 
 #if 0
@@ -234,8 +234,8 @@ static struct platform_device sunxi_device_mali_drm = {
 static struct resource sun4i_ramconsole_resources[] = {
 	{
 		.flags  = IORESOURCE_MEM,
-		.start  = SUN4I_RAMCONSOLE_START,
-		.end    = SUN4I_RAMCONSOLE_START + SUN4I_RAMCONSOLE_SIZE - 1,
+		.start  = SUNXI_RAMCONSOLE_START,
+		.end    = SUNXI_RAMCONSOLE_START + SUNXI_RAMCONSOLE_SIZE - 1,
 	},
 };
 
