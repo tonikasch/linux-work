@@ -46,6 +46,21 @@
 				allwinner,drive = <0>;
 				allwinner,pull = <0>;
 			};
+
+			usbc1_pins: usbc1@0 {
+				allwinner,pins = "PH6";
+				allwinner,function = "gpio_out";
+				allwinner,drive = <0>;
+				allwinner,pull = <0>;
+			};
+
+			usbc2_pins: usbc2@0 {
+				allwinner,pins = "PH3";
+				allwinner,function = "gpio_out";
+				allwinner,drive = <0>;
+				allwinner,pull = <0>;
+			};
+
 		};
 	};
 };

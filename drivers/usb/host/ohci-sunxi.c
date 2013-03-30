@@ -36,7 +36,7 @@ static void sunxi_stop_ohci(struct sunxi_ohci *ohci)
 //	clk_disable_unprepare(ohci->clk);
 }
 
-static int __devinit ohci_sunxi_start(struct usb_hcd *hcd)
+static int ohci_sunxi_start(struct usb_hcd *hcd)
 {
 	struct ohci_hcd *ohci = hcd_to_ohci(hcd);
 	int ret;
@@ -238,13 +238,13 @@ static int sunxi_ohci_hcd_drv_resume(struct platform_device *dev)
 	ohci->next_statechange = jiffies;
 
 	sunxi_start_ohci(ohci_p);
-	ohci_finish_controller_resume(hcd);
+//	ohci_finish_controller_resume(hcd);
 	return 0;
 }
 #endif
 
-static struct of_device_id sunxi_ohci_id_table[] __devinitdata = {
-	{ .compatible = "allwinner,sunxi-ohci", },
+static struct of_device_id sunxi_ohci_id_table[] = {
+	{ .compatible = "allwinner,sun4i-ohci", },
 	{ },
 };
 

@@ -17,15 +17,19 @@
 #include <linux/clk.h>
 #include <linux/jiffies.h>
 #include <linux/of.h>
-#include <linux/platform_device.h>
+#include <linux/of_platform.h>
+#include <linux/of_address.h>
+#include <linux/of_irq.h>
 #include <linux/pm.h>
+#include <linux/io.h>
 
 struct sunxi_ehci {
 	struct ehci_hcd ehci;
 	struct clk *clk;
+	int vbus_pin;
 };
 
-#define to_sunxi_ehci(hcd)	(struct sunxi_ehci *)hcd_to_ehci(hcd)
+//#define to_sunxi_ehci(hcd)	(struct sunxi_ehci *)hcd_to_ehci(hcd)
 
 static void sunxi_start_ehci(struct sunxi_ehci *ehci)
 {
@@ -37,19 +41,22 @@ static void sunxi_stop_ehci(struct sunxi_ehci *ehci)
 //	clk_disable_unprepare(ehci->clk);
 }
 
+//static void sunxi_set_power(struct sunxi_ehci *ehci, int on)
+//{
+//	gpio_write_one_pin_value(ehci->vbus_pin, on, NULL);
+//}
+
 static int ehci_sunxi_setup(struct usb_hcd *hcd)
 {
 	struct ehci_hcd *ehci = hcd_to_ehci(hcd);
 	int retval = 0;
 
-	/* registers start at offset 0x0 */
 	ehci->caps = hcd->regs;
 
 	retval = ehci_setup(hcd);
-	if (retval)
-		return retval;
 
-	ehci_port_power(ehci, 0);
+//	if (retval)
+//		return retval;
 
 	return retval;
 }
@@ -113,23 +120,65 @@ static u64 sunxi_ehci_dma_mask = DMA_BIT_MASK(32);
 
 static int sunxi_ehci_hcd_drv_probe(struct platform_device *pdev)
 {
+	struct device_node *dn = pdev->dev.of_node;
+	int retval = 0, irq;
 	struct usb_hcd *hcd ;
+	struct resource res;
 	struct sunxi_ehci *ehci;
+
+	if (usb_disabled())
+		return -ENODEV;
+
+	hcd = usb_create_hcd(&ehci_sunxi_hc_driver, &pdev->dev, dev_name(&pdev->dev));
+	if (!hcd) {
+		retval = -ENOMEM;
+		goto fail_create_hcd;
+	}
+
+	retval = of_address_to_resource(dn, 0, &res);
+	if (retval)
+		goto fail_get_resource;
+
+	hcd->regs = ioremap(res.start, resource_size(&res));
+	if (!hcd->regs){
+		retval = -ENOMEM;
+		goto fail_map_regs;
+	}
+
+	hcd->rsrc_start = res.start;
+	hcd->rsrc_len = resource_size(&res);
+
+	irq = irq_of_parse_and_map(dn,0);
+	if (irq < 0){
+		retval=irq;
+		goto fail_get_irq;
+	}
+
+	dev_dbg(&pdev->dev, "DT IRQ=%u\n", irq);
+
+	retval = usb_add_hcd(hcd, irq, IRQF_SHARED);
+	if (retval)
+		goto fail_add_hcd;
+
+//	ehci = (struct sunxi_ehci *)hcd_to_ehci(hcd);
+//	sunxi_start_ehci(ehci);
+
+	return retval;
+
+#if 0
 	struct resource *res;
 	struct clk *usbh_clk;
 	const struct hc_driver *driver = &ehci_sunxi_hc_driver;
 	int irq, retval;
-	char clk_name[20] = "usbh_clk";
-	static int instance = -1;
-
-	if (usb_disabled())
-		return -ENODEV;
+//	char clk_name[20] = "usbh_clk";
+//	static int instance = -1;
 
 	irq = platform_get_irq(pdev, 0);
 	if (irq < 0) {
 		retval = irq;
 		goto fail_irq_get;
 	}
+
 
 	/*
 	 * Right now device-tree probed devices don't get dma_mask set.
@@ -156,11 +205,6 @@ static int sunxi_ehci_hcd_drv_probe(struct platform_device *pdev)
 		goto fail_get_usbh_clk;
 	}
 */
-	hcd = usb_create_hcd(driver, &pdev->dev, dev_name(&pdev->dev));
-	if (!hcd) {
-		retval = -ENOMEM;
-		goto fail_create_hcd;
-	}
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!res) {
@@ -183,15 +227,8 @@ static int sunxi_ehci_hcd_drv_probe(struct platform_device *pdev)
 		goto fail_ioremap;
 	}
 
-	ehci = (struct sunxi_ehci *)hcd_to_ehci(hcd);
-	ehci->clk = usbh_clk;
+//	ehci->clk = usbh_clk;
 
-	sunxi_start_ehci(ehci);
-	retval = usb_add_hcd(hcd, irq, IRQF_SHARED);
-	if (retval)
-		goto fail_add_hcd;
-
-	return retval;
 
 fail_add_hcd:
 	sunxi_stop_ehci(ehci);
@@ -202,17 +239,25 @@ fail_request_resource:
 	usb_put_hcd(hcd);
 fail_create_hcd:
 //	clk_put(usbh_clk);
-fail_get_usbh_clk:
+//fail_get_usbh_clk:
 fail_irq_get:
 	dev_err(&pdev->dev, "init fail, %d\n", retval);
 
-	return retval ;
+#endif
+fail_add_hcd:
+fail_get_irq:
+	iounmap(hcd->regs);
+	release_mem_region(hcd->rsrc_start, hcd->rsrc_len);
+fail_map_regs:
+fail_get_resource:
+fail_create_hcd:
+	return retval;
 }
 
 static int sunxi_ehci_hcd_drv_remove(struct platform_device *pdev)
 {
 	struct usb_hcd *hcd = platform_get_drvdata(pdev);
-	struct sunxi_ehci *ehci_p = to_sunxi_ehci(hcd);
+	struct sunxi_ehci *ehci_p = (struct sunxi_ehci *)hcd_to_ehci(hcd);
 
 	if (!hcd)
 		return 0;
@@ -232,8 +277,8 @@ static int sunxi_ehci_hcd_drv_remove(struct platform_device *pdev)
 	return 0;
 }
 
-static struct of_device_id sunxi_ehci_id_table[] __devinitdata = {
-	{ .compatible = "allwinner,sunxi-ehci", },
+static struct of_device_id sunxi_ehci_id_table[] = {
+	{ .compatible = "allwinner,sun4i-ehci", },
 	{ },
 };
 

@@ -155,5 +155,34 @@
 			clock-frequency = <24000000>;
 			status = "disabled";
 		};
+
+		ehci1: ehci@0x1c14000 {
+			compatible = "allwinner,sun4i-ehci";
+			reg = <0x01c14000 0x58>;
+			interrupts = <39>;
+			status = "disabled";
+		};
+
+		ohci1: ohci@0x1c14400 {
+			compatible = "allwinner,sun4i-ohci";
+			reg = <0x01c14400 0x58>;
+			interrupts = <64>;
+			status = "disabled";
+		};
+
+		ehci2: ehci@0x1c1c000 {
+			compatible = "allwinner,sun4i-ehci";
+			reg = <0x01c1c000 0x58>;
+			interrupts = <40>;
+			status = "disabled";
+		};
+
+		ohci2: ohci@0x1c1c400 {
+			compatible = "allwinner,sun4i-ohci";
+			reg = <0x01c1c400 0x58>;
+			interrupts = <65>;
+			status = "disabled";
+		};
+
 	};
 };
