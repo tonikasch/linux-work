@@ -20,6 +20,16 @@ next/cleanup
 		  git://sources.calxeda.com/kernel/linux.git tags/clksrc-cleanup-for-3.10
 	at91/cleanup
 		  git://github.com/at91linux/linux-at91.git tags/at91-soc
+	patch
+		"irqchip: irq-gic: Fix checkpatch errors"
+	gic/cleanup
+		  git://git.kernel.org/pub/scm/linux/kernel/git/cmarinas/linux-aarch64.git gic
+		  + patch "irqchip: vic: add include of linux/irq.h"
+	patch
+		"ARM: irq: Call irqchip_init if no init_irq function is specified"
+	at91/cleanup2
+		  git://github.com/at91linux/linux-at91.git tags/at91-cleanup
+		 (minus the topmost patch "ARM: at91: make ATAGS support conditional on CONFIG_ATAGS")
 
 next/spring-cleaning
 		patches <1363299178-8241-1-git-send-email-arnd@arndb.de>
@@ -33,6 +43,8 @@ next/multiplatform
 		patches <1363299271-8283-1-git-send-email-arnd@arndb.de>
 	prima2/multiplatform
 		patches <1363779679-16880-1-git-send-email-arnd@arndb.de>
+	patch
+		"arm: vt8500: Add wm8850 config options to multi_v7_defconfig"
 
 next/dt
 	mvebu/dt
@@ -53,6 +65,14 @@ next/soc
 		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-defconfig-for-v3.10
 	renesas/soc
 		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-soc-for-v3.10
+	at91/soc
+		  git://github.com/at91linux/linux-at91.git tags/at91-soc
+	renesas/defconfig2
+		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-defconfig2-for-v3.10
+	patch
+		"ARM: bcm281xx: Add timer driver (DT portion)"
+	lpc32xx/defconfig
+		  git://git.antcom.de/linux-2.6.git lpc32xx/defconfig
 
 next/drivers
 	samsung/timer
@@ -69,6 +89,21 @@ next/drivers
 		depends on renesas/soc
 	renesas/clocksource
 		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-clocksource-for-v3.10
+
+next/soc2
+	renesas/soc2
+		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-soc2-for-v3.10
+		  depends on renesas/soc
+		  depends on renesas/intc-eternal-irq
+	renesas/pinmux2
+		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-pinmux2-for-v3.10
+		  depends on renesas/soc2
+
+next/boards2
+	renesas/boards2
+		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-boards3-for-v3.10
+		  depends on renesas/soc2
+		  depends on renesas/pinmux2
 
 next/renesas-pinctrl
 	renesas/pinctrl
