@@ -155,15 +155,43 @@ config USB_EHCI_MXC
 	  Variation of ARC USB block used in some Freescale chips.
 
 config USB_EHCI_HCD_OMAP
-	bool "EHCI support for OMAP3 and later chips"
+	tristate "EHCI support for OMAP3 and later chips"
 	depends on USB_EHCI_HCD && ARCH_OMAP
+	select NOP_USB_XCEIV
 	default y
 	---help---
 	  Enables support for the on-chip EHCI controller on
 	  OMAP3 and later chips.
 
+config USB_EHCI_HCD_ORION
+	tristate  "Support for Marvell EBU on-chip EHCI USB controller"
+	depends on USB_EHCI_HCD && PLAT_ORION
+	default y
+	---help---
+	  Enables support for the on-chip EHCI controller on Marvell's
+	  embedded ARM SoCs, including Orion, Kirkwood, Dove, Armada XP,
+	  Armada 370.  This is different from the EHCI implementation
+	  on Marvell's mobile PXA and MMP SoC, see "EHCI support for
+	  Marvell PXA/MMP USB controller" for those.
+
+config USB_EHCI_HCD_SPEAR
+        tristate "Support for ST SPEAr on-chip EHCI USB controller"
+        depends on USB_EHCI_HCD && PLAT_SPEAR
+        default y
+        ---help---
+          Enables support for the on-chip EHCI controller on
+          ST SPEAr chips.
+
+config USB_EHCI_HCD_AT91
+        tristate  "Support for Atmel on-chip EHCI USB controller"
+        depends on USB_EHCI_HCD && ARCH_AT91
+        default y
+        ---help---
+          Enables support for the on-chip EHCI controller on
+          Atmel chips.
+
 config USB_EHCI_MSM
-	bool "Support for MSM on-chip EHCI USB controller"
+	tristate "Support for Qualcomm QSD/MSM on-chip EHCI USB controller"
 	depends on USB_EHCI_HCD && ARCH_MSM
 	select USB_EHCI_ROOT_HUB_TT
 	select USB_MSM_OTG
@@ -179,6 +207,7 @@ config USB_EHCI_TEGRA
        boolean "NVIDIA Tegra HCD support"
        depends on USB_EHCI_HCD && ARCH_TEGRA
        select USB_EHCI_ROOT_HUB_TT
+       select USB_PHY
        help
          This driver enables support for the internal USB Host Controllers
          found in NVIDIA Tegra SoCs. The controllers are EHCI compliant.
@@ -199,19 +228,24 @@ config USB_EHCI_SH
 	  If you use the PCI EHCI controller, this option is not necessary.
 
 config USB_EHCI_S5P
-       boolean "S5P EHCI support"
+       tristate "EHCI support for Samsung S5P/EXYNOS SoC Series"
        depends on USB_EHCI_HCD && PLAT_S5P
        help
-	 Enable support for the S5P SOC's on-chip EHCI controller.
+	Enable support for the Samsung S5Pxxxx and Exynos3/4/5 SOC's
+	on-chip EHCI controller.
 
 config USB_EHCI_MV
-	bool "EHCI support for Marvell on-chip controller"
+	bool "EHCI support for Marvell PXA/MMP USB controller"
 	depends on USB_EHCI_HCD && (ARCH_PXA || ARCH_MMP)
 	select USB_EHCI_ROOT_HUB_TT
 	---help---
 	  Enables support for Marvell (including PXA and MMP series) on-chip
 	  USB SPH and OTG controller. SPH is a single port host, and it can
 	  only be EHCI host. OTG is controller that can switch to host mode.
+	  Note that this driver will not work on Marvell's other EHCI
+	  controller used by the EBU-type SoCs including Orion, Kirkwood,
+	  Dova, Armada 370 and Armada XP. See "Support for Marvell EBU
+	  on-chip EHCI USB controller" for those.
 
 config USB_W90X900_EHCI
 	bool "W90X900(W90P910) EHCI support"
@@ -300,7 +334,6 @@ config USB_OHCI_HCD
 	tristate "OHCI HCD support"
 	depends on USB && USB_ARCH_HAS_OHCI
 	select ISP1301_OMAP if MACH_OMAP_H2 || MACH_OMAP_H3
-	select USB_OTG_UTILS if ARCH_OMAP
 	depends on USB_ISP1301 || !ARCH_LPC32XX
 	---help---
 	  The Open Host Controller Interface (OHCI) is a standard for accessing
