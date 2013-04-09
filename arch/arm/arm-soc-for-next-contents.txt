@@ -7,9 +7,15 @@ Format is a little different from before in an attempt to make it easier to read
 		<...>
 	<...>
 
+Dependencies from other trees:
+	depends/rmk/errorchecking
+	
+
 next/fixes-non-critical
 	ux500/dt-fixes
 		  git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson.git tags/ux500-dt-fixes
+	omap/fixes-non-critical
+		  git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.10/fixes-non-critical-signed
 
 next/cleanup
 	samsung/cleanup-s3c
@@ -30,6 +36,8 @@ next/cleanup
 	at91/cleanup2
 		  git://github.com/at91linux/linux-at91.git tags/at91-cleanup
 		 (minus the topmost patch "ARM: at91: make ATAGS support conditional on CONFIG_ATAGS")
+	omap/cleanup2
+		  git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.10/cleanup-v2-signed
 
 next/spring-cleaning
 		patches <1363299178-8241-1-git-send-email-arnd@arndb.de>
@@ -45,14 +53,20 @@ next/multiplatform
 		patches <1363779679-16880-1-git-send-email-arnd@arndb.de>
 	patch
 		"arm: vt8500: Add wm8850 config options to multi_v7_defconfig"
+	bcm2835/multiplatform
+		git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-rpi.git bcm2835-for-3.10-multiplatform
 
 next/dt
 	mvebu/dt
-		git://git.infradead.org/users/jcooper/linux.git tags/mvebu_dt_for_v3.10
+		  git://git.infradead.org/users/jcooper/linux.git tags/mvebu_dt_for_v3.10
 	at91/dt
 		  git://github.com/at91linux/linux-at91.git tags/at91-dt
 	sunxi/dt
 		  git://github.com/mripard/linux.git tags/sunxi-dt-for-3.10
+	zynq/core
+		  git://git.xilinx.com/linux-xlnx.git zynq/core
+	bcm2835/dt
+		  git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-rpi.git bcm2835-for-3.10-dt
 
 next/soc
 	prima2/soc
@@ -73,6 +87,8 @@ next/soc
 		"ARM: bcm281xx: Add timer driver (DT portion)"
 	lpc32xx/defconfig
 		  git://git.antcom.de/linux-2.6.git lpc32xx/defconfig
+	bcm2835/defconfig
+		  git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-rpi.git bcm2835-for-3.10-defconfig
 
 next/drivers
 	samsung/timer
@@ -89,21 +105,43 @@ next/drivers
 		depends on renesas/soc
 	renesas/clocksource
 		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-clocksource-for-v3.10
+	renesas/intc-external-irq2
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-intc-external-irq2-for-v3.10
+	vt8500/pinctrl
+		git://server.prisktech.co.nz/git/linuxwmt.git tags/vt8500/pinctrl
+	zynq/clocksource
+		git://git.xilinx.com/linux-xlnx.git zynq/clksrc/cleanup
+		depends on clksrc/cleanup
+	omap/usb
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.10/usb-signed
+	omap/timer
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.10/timer-signed
+		depends on omap/fixes-non-critical
+		depends on depends/rmk-errorchecking
+	omap/gpmc
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.10/gpmc-signed
 
 next/soc2
 	renesas/soc2
 		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-soc2-for-v3.10
 		  depends on renesas/soc
-		  depends on renesas/intc-eternal-irq
+		  depends on renesas/intc-external-irq
 	renesas/pinmux2
 		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-pinmux2-for-v3.10
 		  depends on renesas/soc2
+	zynq/smp
+		  git://git.xilinx.com/linux-xlnx.git zynq/core-smp
+		  depends on zynq/clocksource
+		  depends on gic/cleanup
 
 next/boards2
 	renesas/boards2
 		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-boards3-for-v3.10
 		  depends on renesas/soc2
 		  depends on renesas/pinmux2
+	renesas/defconfig-bockw
+		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas tags/renesas-defconfig-bockw-for-v3.10
+		  depends on renesas/boards2
 
 next/renesas-pinctrl
 	renesas/pinctrl
