@@ -12,7 +12,8 @@ Dependencies from other trees:
 		(no branch tag so far)
 	depends/clk
 		git://git.linaro.org/people/mturquette/linux.git clk-for-3.10
-	
+	depends/clk-for-3.10
+		git://git.linaro.org/people/mturquette/linux.git clk-for-3.10 (later pull)
 
 next/fixes-non-critical
 	ux500/dt-fixes
@@ -21,6 +22,10 @@ next/fixes-non-critical
 		  git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.10/fixes-non-critical-signed
 	tegra/fixes
 		  git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.10-fixes
+	patch
+		"ARM: vexpress: Remove A9 PMU compatible values for non-A9 platforms"
+	imx/fixes
+		  git://git.linaro.org/people/shawnguo/linux-2.6.git tags/imx-noncritical-fixes-3.10
 
 next/cleanup
 	samsung/cleanup-s3c
@@ -54,6 +59,11 @@ next/cleanup
 		  git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/cleanup-samsung-for-v3.10
 	at91/cleanup3
 		  git://github.com/at91linux/linux-at91.git tags/at91-cleanup
+	imx/cleanup
+		  git://git.linaro.org/people/shawnguo/linux-2.6.git tags/imx-cleanup-3.10
+	sunxi/cleanup
+		  git://github.com/mripard/linux.git tags/sunxi-cleanup-for-3.10
+		  depends on depends/clk-for-3.10
 
 next/dt
 	mvebu/dt
@@ -69,10 +79,12 @@ next/dt
 	at91/dt3
 		  git://github.com/at91linux/linux-at91.git tags/at91-dt
 		  depends on at91/dt
-	sunxi/dt3
+	sunxi/dt2
 		  git://github.com/mripard/linux.git tags/sunxi-dt-for-3.10-2
 	tegra/dt-fix
 		  git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.10-fixes-for-mmc
+	sunxi/dt3
+		  git://github.com/mripard/linux.git tags/sunxi-dt-for-3.10-3
 
 next/soc
 	prima2/soc
@@ -191,6 +203,8 @@ next/firmware:
 	exynos/secure
 		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/secure-exynos-for-v3.10
 		depends on exynos/clk
+	bcm/smc-l2
+		  git://github.com/broadcom/bcm11351.git tags/fw-for-3.10
 
 next/renesas-pinctrl
 	renesas/pinctrl
@@ -204,6 +218,8 @@ next/boards
 		git://git.kernel.org/pub/scm/linux/kernel/git/nsekhar/linux-davinci.git tags/davinci-for-v3.10/board
 	omap/boards
 		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.10/board-signed
+	pxa/devel
+		  git://github.com/hzhuang1/linux.git armsoc/pxa
 
 next/soc2
 	renesas/soc2
@@ -224,6 +240,12 @@ next/soc2
 	renesas/soc4
 		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas tags/renesas-soc-r8a7778-for-v3.10
 		  depends on renesas/soc2
+	renesas/pinmux3
+		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas tags/renesas-pinmux-fixes-for-v3.10
+		  depends on renesas/soc2
+	renesas/soc5
+		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-soc-r8a7790-for-v3.10
+		  depends on renesas/soc2
 
 next/boards2
 	renesas/boards2
@@ -236,6 +258,10 @@ next/boards2
 	renesas/boards3
 		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas tags/renesas-boards-bockw-for-v3.10
 		  depends on renesas/soc4
+	renesas/boards4
+		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-boards-lager-for-v3.10
+		  depends on renesas/soc5
+		  depends on renesas/pinmux3
 
 next/dt2
 	mxs/dt
@@ -247,3 +273,5 @@ next/dt2
 	exynos/dt
 		  git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/dt-exynos-for-v3.10
 		  depends on exynos/mct
+	omap/dt
+		  git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.10/dt-signed-v2
