@@ -1179,6 +1179,7 @@ config PLAT_VERSATILE
 config ARM_TIMER_SP804
 	bool
 	select CLKSRC_MMIO
+	select CLKSRC_OF if OF
 	select HAVE_SCHED_CLOCK
 
 source arch/arm/mm/Kconfig
@@ -1599,6 +1600,7 @@ config HAVE_ARM_ARCH_TIMER
 config HAVE_ARM_TWD
 	bool
 	depends on SMP
+	select CLKSRC_OF if OF
 	help
 	  This options enables support for the ARM timer and watchdog unit
 
