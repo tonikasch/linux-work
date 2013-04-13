@@ -85,6 +85,8 @@ next/dt
 		  git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.10-fixes-for-mmc
 	sunxi/dt3
 		  git://github.com/mripard/linux.git tags/sunxi-dt-for-3.10-3
+	patch
+		"arm: vt8500: Add SDHC support to WM8505 DT"
 
 next/soc
 	prima2/soc
@@ -194,6 +196,11 @@ next/drivers
 		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/pmu-exynos-for-v3.10
 	exynos/timer
 		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/timer-samsung-for-v3.10
+	patch
+		"irqchip: vt8500: Convert arch-vt8500 to new irqchip infrastructure"
+	reset/devel
+		git://git.pengutronix.de/git/pza/linux.git reset/for_v3.10
+
 
 next/mailbox:
 	mailbox/subsystem
@@ -226,7 +233,7 @@ next/soc2
 		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-soc2-for-v3.10
 		  depends on renesas/soc
 		  depends on renesas/intc-external-irq
-	renesas/pinmux2
+	renesas/pinmux
 		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-pinmux2-for-v3.10
 		  depends on renesas/soc2
 		  depends on renesas/pinctrl
@@ -246,6 +253,8 @@ next/soc2
 	renesas/soc5
 		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-soc-r8a7790-for-v3.10
 		  depends on renesas/soc2
+	imx/soc
+		  git://git.linaro.org/people/shawnguo/linux-2.6.git tags/imx-soc-3.10
 
 next/boards2
 	renesas/boards2
@@ -275,3 +284,9 @@ next/dt2
 		  depends on exynos/mct
 	omap/dt
 		  git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.10/dt-signed-v2
+
+late/clksrc
+	clksrc/cleanup2
+		  git://sources.calxeda.com/kernel/linux.git tags/clksrc-cleanup-for-3.10-part2
+		  depends on samsung/mct
+		  depends on samsung/clk
