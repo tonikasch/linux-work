@@ -131,6 +131,8 @@ next/soc
 		  ARM: socfpga: Upgrade clk driver for socfpga to make use of dts clock entries
 		  ARM: socfpga: Add clock entries into device tree
 		  ARM: socfpga: Enable soft reset
+	msm/core
+		  git://git.kernel.org/pub/scm/linux/kernel/git/davidb/linux-msm.git tags/msm-core-3.10
 
 next/multiplatform
 	nomadik/multiplatform
