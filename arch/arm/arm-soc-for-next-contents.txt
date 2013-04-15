@@ -64,6 +64,8 @@ next/cleanup
 	sunxi/cleanup
 		  git://github.com/mripard/linux.git tags/sunxi-cleanup-for-3.10
 		  depends on depends/clk-for-3.10
+	msm/cleanup
+		  git://git.kernel.org/pub/scm/linux/kernel/git/davidb/linux-msm.git tags/msm-cleanup-3.10
 
 next/dt
 	mvebu/dt
