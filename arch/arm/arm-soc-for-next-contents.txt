@@ -211,6 +211,9 @@ next/drivers
 	reset/devel
 		git://git.pengutronix.de/git/pza/linux.git reset/for_v3.10
 	patch	"pinctrl: vt8500: wmt: Fix checking return value of pinctrl_register()"
+	mvebu/drivers
+		  git://git.infradead.org/users/jcooper/linux.git tags/drivers-3.10-2
+
 
 
 next/mailbox:
