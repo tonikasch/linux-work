@@ -91,6 +91,8 @@ next/dt
 		  git://github.com/mripard/linux.git tags/sunxi-dt-for-3.10-3
 	patch
 		"arm: vt8500: Add SDHC support to WM8505 DT"
+	mvebu/dt2
+		  git://git.infradead.org/users/jcooper/linux.git tags/dt-3.10-3
 
 next/soc
 	prima2/soc
@@ -135,6 +137,8 @@ next/soc
 		  ARM: socfpga: Enable soft reset
 	msm/core
 		  git://git.kernel.org/pub/scm/linux/kernel/git/davidb/linux-msm.git tags/msm-core-3.10
+	davinci/soc2
+		  git://git.kernel.org/pub/scm/linux/kernel/git/nsekhar/linux-davinci.git tags/davinci-for-v3.10/soc-2-v2
 
 next/multiplatform
 	nomadik/multiplatform
@@ -211,6 +215,9 @@ next/drivers
 	reset/devel
 		git://git.pengutronix.de/git/pza/linux.git reset/for_v3.10
 	patch	"pinctrl: vt8500: wmt: Fix checking return value of pinctrl_register()"
+	mvebu/drivers
+		  git://git.infradead.org/users/jcooper/linux.git tags/drivers-3.10-2
+
 
 
 next/mailbox:
@@ -240,6 +247,11 @@ next/boards
 		  git://github.com/hzhuang1/linux.git armsoc/pxa
 	msm/defconfig
 		  git://git.kernel.org/pub/scm/linux/kernel/git/davidb/linux-msm.git tags/msm-defconfig-3.10
+	mvebu/boards
+		  git://git.infradead.org/users/jcooper/linux.git tags/boards-3.10
+	davinci/boards2
+		  git://git.kernel.org/pub/scm/linux/kernel/git/nsekhar/linux-davinci.git tags/davinci-for-v3.10/board-2-v2
+		  depends on davinci/soc2
 
 next/soc2
 	renesas/soc2
@@ -268,6 +280,10 @@ next/soc2
 		  depends on renesas/soc2
 	imx/soc
 		  git://git.linaro.org/people/shawnguo/linux-2.6.git tags/imx-soc-3.10
+	mvebu/soc
+		  git://git.infradead.org/users/jcooper/linux.git tags/soc_for_v3.10
+		  depends on mvebu/cleanup
+		  depends on mvebu/drivers
 
 next/boards2
 	renesas/boards2
@@ -297,9 +313,16 @@ next/dt2
 		  depends on exynos/mct
 	omap/dt
 		  git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.10/dt-signed-v2
+	mvebu/dt3
+		  git://git.infradead.org/users/jcooper/linux.git tags/dt-3.10-4
+	davinci/dt2
+		  git://git.kernel.org/pub/scm/linux/kernel/git/nsekhar/linux-davinci.git tags/davinci-for-v3.10/dt-2-v2
 
 late/clksrc
 	clksrc/cleanup2
 		  git://sources.calxeda.com/kernel/linux.git tags/clksrc-cleanup-for-3.10-part2
-		  depends on samsung/mct
-		  depends on samsung/clk
+		  depends on next/drivers @ commit 228e3023
+
+late/cleanup
+	mvebu/irqchip
+		  git://git.infradead.org/users/jcooper/linux.git tags/irqchip-3.10
