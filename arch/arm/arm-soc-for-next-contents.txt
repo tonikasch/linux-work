@@ -249,6 +249,9 @@ next/boards
 		  git://git.kernel.org/pub/scm/linux/kernel/git/davidb/linux-msm.git tags/msm-defconfig-3.10
 	mvebu/boards
 		  git://git.infradead.org/users/jcooper/linux.git tags/boards-3.10
+	davinci/boards2
+		  git://git.kernel.org/pub/scm/linux/kernel/git/nsekhar/linux-davinci.git tags/davinci-for-v3.10/board-2-v2
+		  depends on davinci/soc2
 
 next/soc2
 	renesas/soc2
