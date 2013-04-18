@@ -97,6 +97,8 @@ next/dt
 		  git://git.infradead.org/users/jcooper/linux.git tags/dt-3.10-3
 	imx/dt
 		  git://git.linaro.org/people/shawnguo/linux-2.6.git tags/imx-dt-3.10
+	sunxi/dt4
+		  git://github.com/mripard/linux.git tags/sunxi-dt-for-3.10-4
 
 next/soc
 	prima2/soc
