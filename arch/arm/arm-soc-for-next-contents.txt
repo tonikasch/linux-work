@@ -33,6 +33,8 @@ next/fixes-non-critical
 	patch
 		"ARM: tegra: fix relocation truncated error when THUMB2_KERNEL enabled"
 		"ARM: tegra: fix build error when THUMB2_KERNEL enabled "
+		"ARM: tegra: solve adr range issue with THUMB2_KERNEL enabled"
+
 
 next/cleanup
 	samsung/cleanup-s3c
