@@ -148,6 +148,8 @@ next/soc
 		  git://git.kernel.org/pub/scm/linux/kernel/git/davidb/linux-msm.git tags/msm-core-3.10
 	davinci/soc2
 		  git://git.kernel.org/pub/scm/linux/kernel/git/nsekhar/linux-davinci.git tags/davinci-for-v3.10/soc-2-v2
+	patches
+		  ARM: tegra: pm: fix build error w/o PM_SLEEP
 
 next/multiplatform
 	nomadik/multiplatform
