@@ -14,6 +14,8 @@ Dependencies from other trees:
 		git://git.linaro.org/people/mturquette/linux.git clk-for-3.10
 	depends/clk-for-3.10
 		git://git.linaro.org/people/mturquette/linux.git clk-for-3.10 (later pull)
+	depends/dtc-cpp
+		git://sources.calxeda.com/kernel/linux refs/heads/for-next @ a2f682aeeecfa791de19de63509566d156d0d1a3
 
 next/fixes-non-critical
 	ux500/dt-fixes
@@ -93,6 +95,8 @@ next/dt
 		"arm: vt8500: Add SDHC support to WM8505 DT"
 	mvebu/dt2
 		  git://git.infradead.org/users/jcooper/linux.git tags/dt-3.10-3
+	imx/dt
+		  git://git.linaro.org/people/shawnguo/linux-2.6.git tags/imx-dt-3.10
 
 next/soc
 	prima2/soc
