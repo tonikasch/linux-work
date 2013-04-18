@@ -243,6 +243,8 @@ next/boards
 		  git://github.com/hzhuang1/linux.git armsoc/pxa
 	msm/defconfig
 		  git://git.kernel.org/pub/scm/linux/kernel/git/davidb/linux-msm.git tags/msm-defconfig-3.10
+	mvebu/boards
+		  git://git.infradead.org/users/jcooper/linux.git tags/boards-3.10
 
 next/soc2
 	renesas/soc2
