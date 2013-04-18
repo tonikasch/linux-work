@@ -91,6 +91,8 @@ next/dt
 		  git://github.com/mripard/linux.git tags/sunxi-dt-for-3.10-3
 	patch
 		"arm: vt8500: Add SDHC support to WM8505 DT"
+	mvebu/dt2
+		  git://git.infradead.org/users/jcooper/linux.git tags/dt-3.10-3
 
 next/soc
 	prima2/soc
