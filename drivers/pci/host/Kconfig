@@ -1,0 +1,4 @@
+menu "PCI host controller drivers"
+	depends on PCI
+
+endmenu
