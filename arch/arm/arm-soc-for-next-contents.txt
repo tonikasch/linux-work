@@ -315,3 +315,7 @@ late/clksrc
 	clksrc/cleanup2
 		  git://sources.calxeda.com/kernel/linux.git tags/clksrc-cleanup-for-3.10-part2
 		  depends on next/drivers @ commit 228e3023
+
+late/cleanup
+	mvebu/irqchip
+		  git://git.infradead.org/users/jcooper/linux.git tags/irqchip-3.10
