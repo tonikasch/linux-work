@@ -271,6 +271,10 @@ next/soc2
 		  depends on renesas/soc2
 	imx/soc
 		  git://git.linaro.org/people/shawnguo/linux-2.6.git tags/imx-soc-3.10
+	mvebu/soc
+		  git://git.infradead.org/users/jcooper/linux.git tags/soc_for_v3.10
+		  depends on mvebu/cleanup
+		  depends on mvebu/drivers
 
 next/boards2
 	renesas/boards2
