@@ -14,6 +14,8 @@ Dependencies from other trees:
 		git://git.linaro.org/people/mturquette/linux.git clk-for-3.10
 	depends/clk-for-3.10
 		git://git.linaro.org/people/mturquette/linux.git clk-for-3.10 (later pull)
+	depends/dtc-cpp
+		git://sources.calxeda.com/kernel/linux refs/heads/for-next @ a2f682aeeecfa791de19de63509566d156d0d1a3
 
 next/fixes-non-critical
 	ux500/dt-fixes
@@ -28,6 +30,11 @@ next/fixes-non-critical
 		  git://git.linaro.org/people/shawnguo/linux-2.6.git tags/imx-noncritical-fixes-3.10
 	msm/fixes
 		  git://git.kernel.org/pub/scm/linux/kernel/git/davidb/linux-msm.git tags/msm-fix-3.10
+	patch
+		"ARM: tegra: fix relocation truncated error when THUMB2_KERNEL enabled"
+		"ARM: tegra: fix build error when THUMB2_KERNEL enabled "
+		"ARM: tegra: solve adr range issue with THUMB2_KERNEL enabled"
+
 
 next/cleanup
 	samsung/cleanup-s3c
@@ -93,6 +100,10 @@ next/dt
 		"arm: vt8500: Add SDHC support to WM8505 DT"
 	mvebu/dt2
 		  git://git.infradead.org/users/jcooper/linux.git tags/dt-3.10-3
+	imx/dt
+		  git://git.linaro.org/people/shawnguo/linux-2.6.git tags/imx-dt-3.10
+	sunxi/dt4
+		  git://github.com/mripard/linux.git tags/sunxi-dt-for-3.10-4
 
 next/soc
 	prima2/soc
@@ -139,6 +150,8 @@ next/soc
 		  git://git.kernel.org/pub/scm/linux/kernel/git/davidb/linux-msm.git tags/msm-core-3.10
 	davinci/soc2
 		  git://git.kernel.org/pub/scm/linux/kernel/git/nsekhar/linux-davinci.git tags/davinci-for-v3.10/soc-2-v2
+	patches
+		  ARM: tegra: pm: fix build error w/o PM_SLEEP
 
 next/multiplatform
 	nomadik/multiplatform
