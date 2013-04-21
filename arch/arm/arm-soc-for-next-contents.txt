@@ -75,6 +75,8 @@ next/cleanup
 		  depends on depends/clk-for-3.10
 	msm/cleanup
 		  git://git.kernel.org/pub/scm/linux/kernel/git/davidb/linux-msm.git tags/msm-cleanup-3.10
+	next/spring-cleaning
+		  patches <1363299178-8241-1-git-send-email-arnd@arndb.de>
 
 next/dt
 	mvebu/dt
@@ -176,6 +178,8 @@ next/multiplatform
 		depends on tegra/soc
 	patch "[PATCHv2] ARM: Push selects for TWD/SCU into machine entries"
 		<1362007694-3419-1-git-send-email-sboyd@codeaurora.org>
+	samsung/exynos-multiplatform
+		<1365716245-99231-1-git-send-email-arnd@arndb.de>
 
 next/drivers
 	samsung/timer
@@ -339,3 +343,17 @@ late/clksrc
 late/cleanup
 	mvebu/irqchip
 		  git://git.infradead.org/users/jcooper/linux.git tags/irqchip-3.10
+	omap/dss-cleanup
+		  git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.10/dss-signed
+		  depends on omap/fixes-non-critical
+		  depends on omap/boards
+	at91/soc3
+		  git://github.com/at91linux/linux-at91.git tags/at91-soc
+		  depends on at91/soc
+	spear/dwdma
+		  patches <1359395857-1235-1-git-send-email-arnd@arndb.de>
+		  depends on spear/multiplatform
+
+late/fixes
+	patch	<201304210002.00125.arnd@arndb.de>
+		  depends on clksrc/cleanup
