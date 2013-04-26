@@ -680,7 +680,12 @@ static struct platform_driver pxa_gpio_driver = {
 	},
 	.id_table	= gpio_id_table,
 };
-module_platform_driver(pxa_gpio_driver);
+
+static int __init pxa_gpio_init(void)
+{
+	return platform_driver_register(&pxa_gpio_driver);
+}
+postcore_initcall(pxa_gpio_init);
 
 #ifdef CONFIG_PM
 static int pxa_gpio_suspend(void)
