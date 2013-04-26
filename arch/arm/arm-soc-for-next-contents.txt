@@ -180,6 +180,7 @@ next/multiplatform
 		<1362007694-3419-1-git-send-email-sboyd@codeaurora.org>
 	samsung/exynos-multiplatform
 		<1365716245-99231-1-git-send-email-arnd@arndb.de>
+		+ revert of bd51de53e1be9896d815bbea30560262216d4616.
 
 next/drivers
 	samsung/timer
