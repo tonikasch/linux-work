@@ -234,8 +234,8 @@ next/drivers
 	patch	"pinctrl: vt8500: wmt: Fix checking return value of pinctrl_register()"
 	mvebu/drivers
 		  git://git.infradead.org/users/jcooper/linux.git tags/drivers-3.10-2
-
-
+	patch
+		"clk: exynos5250: Fix parent clock for sclk_mmc{0,1,2,3}"
 
 next/mailbox:
 	mailbox/subsystem
