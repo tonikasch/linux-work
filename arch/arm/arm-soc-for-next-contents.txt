@@ -34,6 +34,8 @@ next/fixes-non-critical
 		"ARM: tegra: fix relocation truncated error when THUMB2_KERNEL enabled"
 		"ARM: tegra: fix build error when THUMB2_KERNEL enabled "
 		"ARM: tegra: solve adr range issue with THUMB2_KERNEL enabled"
+		"ARM: OMAP2+: add dependencies on ARCH_MULTI_V6/V7"
+		"ARM: u300: fix ages old copy/paste bug"
 
 
 next/cleanup
