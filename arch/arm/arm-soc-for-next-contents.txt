@@ -241,6 +241,7 @@ next/drivers
 		  git://git.infradead.org/users/jcooper/linux.git tags/drivers-3.10-2
 	patch
 		"clk: exynos5250: Fix parent clock for sclk_mmc{0,1,2,3}"
+		"ARM: dts: Disable the RTC by default on exynos5"
 
 next/mailbox:
 	mailbox/subsystem
