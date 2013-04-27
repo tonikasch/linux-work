@@ -340,6 +340,8 @@ next/dt2
 		  git://git.infradead.org/users/jcooper/linux.git tags/dt-3.10-4
 	davinci/dt2
 		  git://git.kernel.org/pub/scm/linux/kernel/git/nsekhar/linux-davinci.git tags/davinci-for-v3.10/dt-2-v2
+	patch
+		"ARM: dts: add mshc controller node for Exynos4x12 SoCs"
 
 late/clksrc
 	clksrc/cleanup2
