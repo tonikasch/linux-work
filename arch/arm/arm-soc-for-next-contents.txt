@@ -344,6 +344,9 @@ late/clksrc
 	clksrc/cleanup2
 		  git://sources.calxeda.com/kernel/linux.git tags/clksrc-cleanup-for-3.10-part2
 		  depends on next/drivers @ commit 228e3023
+	patches
+		  ARM: OMAP: remove unused variable
+		  ARM: arch_timer: Silence debug preempt warnings
 
 late/cleanup
 	mvebu/irqchip
