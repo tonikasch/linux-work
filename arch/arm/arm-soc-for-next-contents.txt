@@ -34,6 +34,8 @@ next/fixes-non-critical
 		"ARM: tegra: fix relocation truncated error when THUMB2_KERNEL enabled"
 		"ARM: tegra: fix build error when THUMB2_KERNEL enabled "
 		"ARM: tegra: solve adr range issue with THUMB2_KERNEL enabled"
+		"ARM: OMAP2+: add dependencies on ARCH_MULTI_V6/V7"
+		"ARM: u300: fix ages old copy/paste bug"
 
 
 next/cleanup
@@ -180,6 +182,9 @@ next/multiplatform
 		<1362007694-3419-1-git-send-email-sboyd@codeaurora.org>
 	samsung/exynos-multiplatform
 		<1365716245-99231-1-git-send-email-arnd@arndb.de>
+		+ revert of bd51de53e1be9896d815bbea30560262216d4616.
+	patch
+		"clocksource: nomadik-mtu: fix up clocksource/timer"
 
 next/drivers
 	samsung/timer
@@ -236,6 +241,7 @@ next/drivers
 		  git://git.infradead.org/users/jcooper/linux.git tags/drivers-3.10-2
 	patch
 		"clk: exynos5250: Fix parent clock for sclk_mmc{0,1,2,3}"
+		"ARM: dts: Disable the RTC by default on exynos5"
 
 next/mailbox:
 	mailbox/subsystem
@@ -334,11 +340,16 @@ next/dt2
 		  git://git.infradead.org/users/jcooper/linux.git tags/dt-3.10-4
 	davinci/dt2
 		  git://git.kernel.org/pub/scm/linux/kernel/git/nsekhar/linux-davinci.git tags/davinci-for-v3.10/dt-2-v2
+	patch
+		"ARM: dts: add mshc controller node for Exynos4x12 SoCs"
 
 late/clksrc
 	clksrc/cleanup2
 		  git://sources.calxeda.com/kernel/linux.git tags/clksrc-cleanup-for-3.10-part2
 		  depends on next/drivers @ commit 228e3023
+	patches
+		  ARM: OMAP: remove unused variable
+		  ARM: arch_timer: Silence debug preempt warnings
 
 late/cleanup
 	mvebu/irqchip
