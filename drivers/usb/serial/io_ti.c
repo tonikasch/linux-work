@@ -2357,7 +2357,7 @@ static int get_serial_info(struct edgeport_port *edge_port,
 
 	cwait = edge_port->port->port.closing_wait;
 	if (cwait != ASYNC_CLOSING_WAIT_NONE)
-		cwait = jiffies_to_msecs(closing_wait) / 10;
+		cwait = jiffies_to_msecs(cwait) / 10;
 
 	memset(&tmp, 0, sizeof(tmp));
 
@@ -2399,8 +2399,6 @@ static void edge_break(struct tty_struct *tty, int break_state)
 	struct edgeport_port *edge_port = usb_get_serial_port_data(port);
 	int status;
 	int bv = 0;	/* Off */
-
-	tty_wait_until_sent(tty, 0);
 
 	if (break_state == -1)
 		bv = 1;	/* On */
