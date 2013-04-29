@@ -36,7 +36,9 @@ next/fixes-non-critical
 		"ARM: tegra: solve adr range issue with THUMB2_KERNEL enabled"
 		"ARM: OMAP2+: add dependencies on ARCH_MULTI_V6/V7"
 		"ARM: u300: fix ages old copy/paste bug"
-
+		"ARM: tegra: call cpu_do_idle from C code"
+		"ARM: orion5x: include linux/cpu.h"
+		"Turn off -Wmaybe-uninitialized when building with -Os"
 
 next/cleanup
 	samsung/cleanup-s3c
@@ -242,6 +244,7 @@ next/drivers
 	patch
 		"clk: exynos5250: Fix parent clock for sclk_mmc{0,1,2,3}"
 		"ARM: dts: Disable the RTC by default on exynos5"
+		"irqchip: s3c24xx: add missing __init annotations"
 
 next/mailbox:
 	mailbox/subsystem
@@ -275,6 +278,8 @@ next/boards
 	davinci/boards2
 		  git://git.kernel.org/pub/scm/linux/kernel/git/nsekhar/linux-davinci.git tags/davinci-for-v3.10/board-2-v2
 		  depends on davinci/soc2
+	patch
+		"ARM: msm: USB_MSM_OTG needs USB_PHY"
 
 next/soc2
 	renesas/soc2
@@ -364,7 +369,18 @@ late/cleanup
 	spear/dwdma
 		  patches <1359395857-1235-1-git-send-email-arnd@arndb.de>
 		  depends on spear/multiplatform
+	at91/soc4
+		  git://github.com/at91linux/linux-at91.git tags/at91-soc
+		  depends on at91/soc3
 
 late/fixes
 	patch	<201304210002.00125.arnd@arndb.de>
 		  depends on clksrc/cleanup
+	+ patch series from Tomasz Figa for universal
+	patch
+		 "ARM: default machine descriptor for multiplatform"
+
+late/dt
+	3 patches for Snow
+	samsung/late
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/late-exynos-v3-for-v3.10

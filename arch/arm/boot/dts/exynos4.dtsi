@@ -38,6 +38,11 @@
 		i2c7 = &i2c_7;
 	};
 
+	chipid@10000000 {
+		compatible = "samsung,exynos4210-chipid";
+		reg = <0x10000000 0x100>;
+	};
+
 	pd_mfc: mfc-power-domain@10023C40 {
 		compatible = "samsung,exynos4210-pd";
 		reg = <0x10023C40 0x20>;
@@ -328,6 +333,14 @@
 		clock-names = "spi", "spi_busclk0";
 		pinctrl-names = "default";
 		pinctrl-0 = <&spi2_bus>;
+		status = "disabled";
+	};
+
+	pwm@139D0000 {
+		compatible = "samsung,exynos4210-pwm";
+		reg = <0x139D0000 0x1000>;
+		interrupts = <0 37 0>, <0 38 0>, <0 39 0>, <0 40 0>, <0 41 0>;
+		#pwm-cells = <2>;
 		status = "disabled";
 	};
 

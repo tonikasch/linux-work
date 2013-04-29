@@ -20,8 +20,7 @@
 
 #define SAMSUNG_PWM_NUM		5
 
-struct platform_device;
-struct device_node;
+extern spinlock_t samsung_pwm_lock;
 
 struct samsung_pwm_variant {
 	u8 bits;
@@ -31,11 +30,7 @@ struct samsung_pwm_variant {
 	bool has_tint_cstat;
 };
 
-struct samsung_pwm {
-	struct samsung_pwm_variant variant;
-	spinlock_t slock;
-	void __iomem *base;
-	int irq[SAMSUNG_PWM_NUM];
-};
+void samsung_pwm_clocksource_init(void __iomem *base,
+		unsigned int *irqs, struct samsung_pwm_variant *variant);
 
 #endif /* __CLOCKSOURCE_SAMSUNG_PWM_H */
