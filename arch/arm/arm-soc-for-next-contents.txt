@@ -377,6 +377,8 @@ late/fixes
 	patch	<201304210002.00125.arnd@arndb.de>
 		  depends on clksrc/cleanup
 	+ patch series from Tomasz Figa for universal
+	patch
+		 "ARM: default machine descriptor for multiplatform"
 
 late/dt
 	3 patches for Snow
