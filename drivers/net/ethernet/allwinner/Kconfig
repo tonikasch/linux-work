@@ -27,10 +27,18 @@ config SUN4I_EMAC
 	select NET_CORE
 	select MII
 	select REGULATOR_FIXED_VOLTAGE
+	select PHYLIB
         ---help---
           Support for Allwinner A10 EMAC ethernet driver.
 
           To compile this driver as a module, choose M here.  The module
           will be called sun4i-emac.
+
+config SUN4I_MDIO
+	tristate "Allwinner sun4i MDIO interface support"
+	---help---
+	  This driver supports the MDIO interface found in the network
+	  interface units of the Allwinner SoC that have an EMAC (A10,
+	  A12, A10s, etc.)
 
 endif # NET_VENDOR_ALLWINNER
