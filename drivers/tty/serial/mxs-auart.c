@@ -852,7 +852,7 @@ auart_console_write(struct console *co, const char *str, unsigned int count)
 	unsigned int old_ctrl0, old_ctrl2;
 	unsigned int to = 1000;
 
-	if (co->index >	MXS_AUART_PORTS || co->index < 0)
+	if (co->index >= MXS_AUART_PORTS || co->index < 0)
 		return;
 
 	s = auart_port[co->index];
@@ -1059,7 +1059,7 @@ static int mxs_auart_probe(struct platform_device *pdev)
 	s->port.fifosize = 16;
 	s->port.uartclk = clk_get_rate(s->clk);
 	s->port.type = PORT_IMX;
-	s->port.dev = s->dev = get_device(&pdev->dev);
+	s->port.dev = s->dev = &pdev->dev;
 
 	s->ctrl = 0;
 
@@ -1090,7 +1090,6 @@ out_free_irq:
 	auart_port[pdev->id] = NULL;
 	free_irq(s->irq, s);
 out_free_clk:
-	put_device(s->dev);
 	clk_put(s->clk);
 out_free:
 	kfree(s);
@@ -1106,7 +1105,6 @@ static int mxs_auart_remove(struct platform_device *pdev)
 
 	auart_port[pdev->id] = NULL;
 
-	put_device(s->dev);
 	clk_put(s->clk);
 	free_irq(s->irq, s);
 	kfree(s);

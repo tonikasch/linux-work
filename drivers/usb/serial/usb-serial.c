@@ -538,16 +538,8 @@ static void usb_serial_port_work(struct work_struct *work)
 {
 	struct usb_serial_port *port =
 		container_of(work, struct usb_serial_port, work);
-	struct tty_struct *tty;
 
-	tty = tty_port_tty_get(&port->port);
-	if (!tty)
-		return;
-
-	dev_dbg(tty->dev, "%s\n", __func__);
-
-	tty_wakeup(tty);
-	tty_kref_put(tty);
+	tty_port_tty_wakeup(&port->port);
 }
 
 static void usb_serial_port_poison_urbs(struct usb_serial_port *port)
