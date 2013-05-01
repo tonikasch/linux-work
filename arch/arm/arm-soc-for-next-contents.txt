@@ -187,6 +187,7 @@ next/multiplatform
 		+ revert of bd51de53e1be9896d815bbea30560262216d4616.
 	patch
 		"clocksource: nomadik-mtu: fix up clocksource/timer"
+		"mmc: sdhci-s3c: Fix operation on non-single image Samsung platforms"
 
 next/drivers
 	samsung/timer
