@@ -16,14 +16,11 @@
 #include <linux/device.h>
 #include <linux/platform_device.h>
 #include <linux/irqchip.h>
+#include <linux/clocksource.h>
 
 #include <asm/mach/arch.h>
 #include <asm/mach/time.h>
 #include <asm/hardware/cache-l2x0.h>
-
-static void timer_init(void)
-{
-}
 
 
 #include "bcm_kona_smc.h"
@@ -58,7 +55,7 @@ static const char * const bcm11351_dt_compat[] = { "bcm,bcm11351", NULL, };
 
 DT_MACHINE_START(BCM11351_DT, "Broadcom Application Processor")
 	.init_irq = irqchip_init,
-	.init_time = timer_init,
+	.init_time = clocksource_of_init,
 	.init_machine = board_init,
 	.dt_compat = bcm11351_dt_compat,
 MACHINE_END

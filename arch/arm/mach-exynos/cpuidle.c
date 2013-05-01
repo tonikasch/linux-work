@@ -46,20 +46,6 @@ static DEFINE_PER_CPU(struct cpuidle_device, exynos4_cpuidle_device);
 static struct cpuidle_driver exynos4_idle_driver = {
 	.name			= "exynos4_idle",
 	.owner			= THIS_MODULE,
-	.en_core_tk_irqen	= 1,
-	.states = {
-		[0] = ARM_CPUIDLE_WFI_STATE,
-		[1] = {
-			.enter			= exynos4_enter_lowpower,
-			.exit_latency		= 300,
-			.target_residency	= 100000,
-			.flags			= CPUIDLE_FLAG_TIME_VALID,
-			.name			= "C1",
-			.desc			= "ARM power down",
-		},
-	},
-	.state_count = 2,
-	.safe_state_index = 0,
 };
 
 /* Ext-GIC nIRQ/nFIQ is the only wakeup source in AFTR */

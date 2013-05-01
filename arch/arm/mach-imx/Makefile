@@ -29,7 +29,7 @@ obj-$(CONFIG_MXC_USE_EPIT) += epit.o
 obj-$(CONFIG_MXC_DEBUG_BOARD) += 3ds_debugboard.o
 
 ifeq ($(CONFIG_CPU_IDLE),y)
-obj-y += cpuidle.o
+obj-$(CONFIG_SOC_IMX5) += cpuidle-imx5.o
 obj-$(CONFIG_SOC_IMX6Q) += cpuidle-imx6q.o
 endif
 
