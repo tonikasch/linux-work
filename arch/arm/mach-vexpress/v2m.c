@@ -427,26 +427,9 @@ void __init v2m_dt_init_early(void)
 
 static void __init v2m_dt_timer_init(void)
 {
-	struct device_node *node = NULL;
+	vexpress_clk_of_init();
 
-	of_clk_init(NULL);
-
-	do {
-		node = of_find_compatible_node(node, NULL, "arm,sp804");
-	} while (node && vexpress_get_site_by_node(node) != VEXPRESS_SITE_MB);
-	if (node) {
-		pr_info("Using SP804 '%s' as a clock & events source\n",
-				node->full_name);
-		WARN_ON(clk_register_clkdev(of_clk_get_by_name(node,
-				"timclken1"), "v2m-timer0", "sp804"));
-		WARN_ON(clk_register_clkdev(of_clk_get_by_name(node,
-				"timclken2"), "v2m-timer1", "sp804"));
-		v2m_sp804_init(of_iomap(node, 0),
-				irq_of_parse_and_map(node, 0));
-	}
-
-	if (arch_timer_of_register() != 0)
-		twd_local_timer_of_register();
+	clocksource_of_init();
 
 	versatile_sched_clock_init(vexpress_get_24mhz_clock_base(),
 				24000000);

@@ -189,6 +189,46 @@ next/multiplatform
 		"clocksource: nomadik-mtu: fix up clocksource/timer"
 		"mmc: sdhci-s3c: Fix operation on non-single image Samsung platforms"
 
+----- Merged upstream until here -----
+
+8<----
+ARM: arm-soc driver changes
+
+This is a rather large set of patches for device drivers that for one
+reason or another the subsystem maintainer preferred to get merged
+through the arm-soc tree. There are both new drivers as well as
+existing drivers that are getting converted from platform-specific
+code into standalone drivers using the appropriate subsystem
+specific interfaces.
+
+In particular, we can now have pinctrl, clk, clksource and irqchip
+drivers in one file per driver, without the need to call into
+platform specific interface, or to get called from platform specific
+code, as long as all information about the hardware is provided
+through a device tree.
+
+Most of the drivers we touch this time are for clocksource. Since
+now most of them are part of drivers/clocksource, I expect that we
+won't have to touch these again from arm-soc and can let the
+clocksource maintainers take care of these in the future.  
+
+Another larger part of this series is specific to the exynos platform,
+which is seeing some significant effort in upstreaming and
+modernization of its device drivers this time around, which
+unfortunately is also the cause for the churn and a lot of the
+merge conflicts.
+
+There is one new subsystem that gets merged as part of this series:
+the reset controller interface, which is a very simple interface
+for taking devices on the SoC out of reset or back into reset.
+Patches to use this interface on i.MX follow later in this merge
+window, and we are going to have other platforms (at least tegra
+and sirf) get converted in 3.11. This will let us get rid of
+platform specific callbacks in a number of platform independent
+device drivers.
+
+---->8
+
 next/drivers
 	samsung/timer
 		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git next/timer-samsung
@@ -247,9 +287,37 @@ next/drivers
 		"ARM: dts: Disable the RTC by default on exynos5"
 		"irqchip: s3c24xx: add missing __init annotations"
 
-next/mailbox:
-	mailbox/subsystem
-		git://github.com/sumananna/mailbox.git dbx500-prcmu-mailbox
+8<-----
+
+ARM: arm-soc pinctrl changes for renesas
+
+This is yet another driver change, which is split out just because
+of its size. As already in 3.9, a lot of changes are going on here,
+as the shmobile platform gets converted from its own pin control
+API to the generic drivers/pinctrl subsystem.
+
+------>8
+
+next/renesas-pinctrl
+	renesas/pinctrl
+		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-pinmux-for-v3.10
+
+
+8<--------
+
+ARM: platform specific firmware interfaces
+
+Two platforms, bcm and exynos have their own firmware interfaces using
+the "secure monitor call", this adds support for those.
+
+We had originally planned to have a third set of patches in here,
+which would extend support for the existing generic "psci" call
+that is used on multiple platforms as well as Xen and KVM guests,
+but that ended up getting dropped because the patches were not
+ready in time.
+
+-------8>
+
 
 next/firmware:
 	exynos/secure
@@ -258,9 +326,19 @@ next/firmware:
 	bcm/smc-l2
 		  git://github.com/broadcom/bcm11351.git tags/fw-for-3.10
 
-next/renesas-pinctrl
-	renesas/pinctrl
-		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-pinmux-for-v3.10
+8<-----
+
+ARM: arm-soc board specific changes, part 1
+
+These changes are all for board specific files. These used to make up a
+large portion of the ARM changes in the past, but as we are generalizing
+the support and moving to device tree probing, this has gotten
+significantly smaller. The only platform actually adding new code here
+at the moment is Renesas shmobile, as they are still busy converting
+their code to device tree and have not come far enough to not need it.
+
+------>8
+
 
 next/boards
 	renesas/boards
@@ -281,6 +359,37 @@ next/boards
 		  depends on davinci/soc2
 	patch
 		"ARM: msm: USB_MSM_OTG needs USB_PHY"
+
+8<---------
+
+ARM: arm-soc platform updates for 3.10, part 2
+
+This is the second and smaller half of the SoC specific updates.
+The vast majority of these is for Renesas shmobile, since it depends
+on the earlier pinctrl updates. Remarkably, this adds support for
+three new SoCs: r8a73a4, r8a73a4 and r8a7778. The bulk of the code
+added for these is for pinctrl (using the new subsystem) and
+for clocks (not yet using the common clock subsystem). The latter
+will have to get converted in one of the upcoming releases, but
+shmobile is not ready for that yet.
+
+Other changes include:
+
+* SMP support for the Xilinx zynq platform
+* Smaller imx changes
+* LPAE support for mvebu
+* Moving the orion5x, kirkwood, dove and mvebu platforms
+  to a common "mbus" driver for their internal devices.
+
+It would be good to get feedback on the location of the "mbus"
+driver. Since this is used on multiple platforms may potentially
+get shared with other architectures (powerpc and arm64), it
+was moved to drivers/bus/. We expect other similar drivers to
+get moved to the same place in order to avoid creating more
+top-level directories under drivers/ or cluttering up the
+messy drivers/misc/ even more.
+
+--------->8
 
 next/soc2
 	renesas/soc2
@@ -313,6 +422,23 @@ next/soc2
 		  git://git.infradead.org/users/jcooper/linux.git tags/soc_for_v3.10
 		  depends on mvebu/cleanup
 		  depends on mvebu/drivers
+	patch
+		"ARM: imx: reset_controller may be disabled"
+
+8<-----
+
+ARM: arm-soc boards specific changes, part 2
+
+This contains exclusively Renesas shmobile board changes, adding one board
+file for each of the three new SoCs that were added in the previous series.
+These boards are using a mix of classic and device-tree based probing,
+as there is still a lot of infrastructure in shmobile that has not been
+converted to DT yet. Once those are resolved to the degree that no board
+specific setup code is needed, they can get folded into the respective
+SoC setup files.
+
+----->8
+
 
 next/boards2
 	renesas/boards2
@@ -329,6 +455,17 @@ next/boards2
 		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-boards-lager-for-v3.10
 		  depends on renesas/soc5
 		  depends on renesas/pinmux3
+
+8<----------
+
+ARM: arm-soc device tree changes, part 2
+
+These are mostly new device tree bindings for existing drivers, as well
+as changes to the device tree source files to add support for those
+devices, and a couple of new boards.
+
+--------8<
+
 
 next/dt2
 	mxs/dt
@@ -348,6 +485,7 @@ next/dt2
 		  git://git.kernel.org/pub/scm/linux/kernel/git/nsekhar/linux-davinci.git tags/davinci-for-v3.10/dt-2-v2
 	patch
 		"ARM: dts: add mshc controller node for Exynos4x12 SoCs"
+
 
 late/clksrc
 	clksrc/cleanup2
@@ -373,15 +511,45 @@ late/cleanup
 	at91/soc4
 		  git://github.com/at91linux/linux-at91.git tags/at91-soc
 		  depends on at91/soc3
+	patch
+		"ARM: SPEAr: conditionalize SMP code"
+
+late/multiplatform
+	samsung/exynos-multiplatform-drivers
+		"ARM: exynos: restore mach/regs-clock.h for exynos5"
+		"irqchip: exynos: look up irq using irq_find_mapping"
+		"irqchip: exynos: pass irq_base from platform"
+		"irqchip: exynos: localize irq lookup for ATAGS"
+		"irqchip: exynos: allocate combiner_data dynamically"
+		"irqchip: exynos: pass max combiner number to combiner_init"
+		"ARM: exynos: add missing properties for combiner IRQs"
+		"clocksource: exynos_mct: remove platform header dependency"
+		"clk: exynos: prepare for multiplatform"
 
 late/fixes
 	patch	<201304210002.00125.arnd@arndb.de>
 		  depends on clksrc/cleanup
 	+ patch series from Tomasz Figa for universal
-	patch
+	patches
 		 "ARM: default machine descriptor for multiplatform"
+		 "ARM: ux500: always select ABX500_CORE"
+		 "ARM: SIRF: select SMP_ON_UP only on SMP builds"
+		 "ARM: OMAP: don't select SERIAL_OMAP unconditionally"
+		 "ARM: SPEAr: conditionalize l2x0 support"
+		 "ARM: imx: build CPU suspend code only when needed"
+		 "ARM: OMAP: build SMP code only for OMAP4/5"
+		 "ARM: tegra: Tegra114 needs CPU_FREQ_TABLE"
 
 late/dt
 	3 patches for Snow
 	samsung/late
 		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/late-exynos-v3-for-v3.10
+
+
+---- deferred until 3.11 below here ----
+
+next/mailbox:
+	mailbox/subsystem
+		git://github.com/sumananna/mailbox.git dbx500-prcmu-mailbox
+
+

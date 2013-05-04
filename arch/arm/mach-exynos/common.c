@@ -486,8 +486,8 @@ void __init exynos4_init_irq(void)
 #endif
 
 	if (!of_have_populated_dt())
-		combiner_init(S5P_VA_COMBINER_BASE, NULL, max_combiner_nr(),
-		 	      COMBINER_IRQ(0, 0));
+		combiner_init(S5P_VA_COMBINER_BASE, NULL,
+			      max_combiner_nr(), COMBINER_IRQ(0, 0));
 
 	gic_arch_extn.irq_set_wake = s3c_irq_wake;
 }

@@ -77,6 +77,11 @@ config CLKSRC_METAG_GENERIC
 	help
 	  This option enables support for the Meta per-thread timers.
 
+config CLKSRC_EXYNOS_MCT
+	def_bool y if ARCH_EXYNOS
+	help
+	  Support for Multi Core Timer controller on Exynos SoCs.
+
 config CLKSRC_SAMSUNG_PWM
 	bool
 	select CLKSRC_MMIO

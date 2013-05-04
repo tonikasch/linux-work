@@ -138,6 +138,8 @@
 #include <linux/spinlock.h>
 #include <linux/slab.h>
 #include <linux/bootmem.h>
+#include <linux/of.h>
+#include <linux/of_address.h>
 #include <linux/cpu.h>
 
 #include <asm/system_misc.h>
