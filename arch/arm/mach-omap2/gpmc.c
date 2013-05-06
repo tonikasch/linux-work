@@ -804,12 +804,10 @@ static void gpmc_mem_init(void)
 		if (!gpmc_cs_mem_enabled(cs))
 			continue;
 		gpmc_cs_get_memconf(cs, &base, &size);
-		rc = gpmc_cs_insert_mem(cs, base, size);
-		if (rc < 0) {
-			while (--cs >= 0)
-				if (gpmc_cs_mem_enabled(cs))
-					gpmc_cs_delete_mem(cs);
-			return rc;
+		if (gpmc_cs_insert_mem(cs, base, size)) {
+			pr_warn("%s: disabling cs %d mapped at 0x%x-0x%x\n",
+				__func__, cs, base, base + size);
+			gpmc_cs_disable_mem(cs);
 		}
 	}
 }
@@ -1618,13 +1616,7 @@ static int gpmc_probe(struct platform_device *pdev)
 	dev_info(gpmc_dev, "GPMC revision %d.%d\n", GPMC_REVISION_MAJOR(l),
 		 GPMC_REVISION_MINOR(l));
 
-	rc = gpmc_mem_init();
-	if (rc < 0) {
-		clk_disable_unprepare(gpmc_l3_clk);
-		clk_put(gpmc_l3_clk);
-		dev_err(gpmc_dev, "failed to reserve memory\n");
-		return rc;
-	}
+	gpmc_mem_init();
 
 	if (gpmc_setup_irq() < 0)
 		dev_warn(gpmc_dev, "gpmc_setup_irq failed\n");
