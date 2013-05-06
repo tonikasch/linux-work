@@ -1,0 +1,616 @@
+for-next contents for 3.10: 
+Format is a little different from before in an attempt to make it easier to read:
+
+<next/* branch>
+	<topic branch>
+		<contents>
+		<...>
+	<...>
+
+Dependencies from other trees:
+	depends/rmk/errorchecking
+		(no branch tag so far)
+	depends/clk
+		git://git.linaro.org/people/mturquette/linux.git clk-for-3.10
+	depends/clk-for-3.10
+		git://git.linaro.org/people/mturquette/linux.git clk-for-3.10 (later pull)
+	depends/dtc-cpp
+		git://sources.calxeda.com/kernel/linux refs/heads/for-next @ a2f682aeeecfa791de19de63509566d156d0d1a3
+
+next/fixes-non-critical
+	ux500/dt-fixes
+		  git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson.git tags/ux500-dt-fixes
+	omap/fixes-non-critical
+		  git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.10/fixes-non-critical-signed
+	tegra/fixes
+		  git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.10-fixes
+	patch
+		"ARM: vexpress: Remove A9 PMU compatible values for non-A9 platforms"
+	imx/fixes
+		  git://git.linaro.org/people/shawnguo/linux-2.6.git tags/imx-noncritical-fixes-3.10
+	msm/fixes
+		  git://git.kernel.org/pub/scm/linux/kernel/git/davidb/linux-msm.git tags/msm-fix-3.10
+	patch
+		"ARM: tegra: fix relocation truncated error when THUMB2_KERNEL enabled"
+		"ARM: tegra: fix build error when THUMB2_KERNEL enabled "
+		"ARM: tegra: solve adr range issue with THUMB2_KERNEL enabled"
+		"ARM: OMAP2+: add dependencies on ARCH_MULTI_V6/V7"
+		"ARM: u300: fix ages old copy/paste bug"
+		"ARM: tegra: call cpu_do_idle from C code"
+		"ARM: orion5x: include linux/cpu.h"
+		"Turn off -Wmaybe-uninitialized when building with -Os"
+
+next/cleanup
+	samsung/cleanup-s3c
+		  git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git next/cleanup-s3c
+	samsung/cleanup-s5p
+		  git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git next/cleanup-s5p
+	clksrc/cleanup
+		  git://sources.calxeda.com/kernel/linux.git tags/clksrc-cleanup-for-3.10
+	at91/cleanup
+		  git://github.com/at91linux/linux-at91.git tags/at91-soc
+	patch
+		"irqchip: irq-gic: Fix checkpatch errors"
+	gic/cleanup
+		  git://git.kernel.org/pub/scm/linux/kernel/git/cmarinas/linux-aarch64.git gic
+		  + patch "irqchip: vic: add include of linux/irq.h"
+	patch
+		"ARM: irq: Call irqchip_init if no init_irq function is specified"
+	at91/cleanup2
+		  git://github.com/at91linux/linux-at91.git tags/at91-cleanup
+		 (minus the topmost patch "ARM: at91: make ATAGS support conditional on CONFIG_ATAGS")
+	omap/cleanup2
+		  git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.10/cleanup-v2-signed
+	omap/fixes-pm
+		  git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.10/fixes-pm-signed
+	tegra/cleanup
+		  git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.10-cleanup
+		  depends on tegra/fixes
+	mxs/cleanup
+		  git://git.linaro.org/people/shawnguo/linux-2.6.git tags/mxs-cleanup-3.10
+	samsung/cleanup
+		  git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/cleanup-samsung-for-v3.10
+	at91/cleanup3
+		  git://github.com/at91linux/linux-at91.git tags/at91-cleanup
+	imx/cleanup
+		  git://git.linaro.org/people/shawnguo/linux-2.6.git tags/imx-cleanup-3.10
+	sunxi/cleanup
+		  git://github.com/mripard/linux.git tags/sunxi-cleanup-for-3.10
+		  depends on depends/clk-for-3.10
+	msm/cleanup
+		  git://git.kernel.org/pub/scm/linux/kernel/git/davidb/linux-msm.git tags/msm-cleanup-3.10
+	next/spring-cleaning
+		  patches <1363299178-8241-1-git-send-email-arnd@arndb.de>
+
+next/dt
+	mvebu/dt
+		  git://git.infradead.org/users/jcooper/linux.git tags/mvebu_dt_for_v3.10
+	at91/dt
+		  git://github.com/at91linux/linux-at91.git tags/at91-dt
+	sunxi/dt
+		  git://github.com/mripard/linux.git tags/sunxi-dt-for-3.10
+	zynq/core
+		  git://git.xilinx.com/linux-xlnx.git zynq/core
+	bcm2835/dt
+		  git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-rpi.git bcm2835-for-3.10-dt
+	at91/dt3
+		  git://github.com/at91linux/linux-at91.git tags/at91-dt
+		  depends on at91/dt
+	sunxi/dt2
+		  git://github.com/mripard/linux.git tags/sunxi-dt-for-3.10-2
+	tegra/dt-fix
+		  git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.10-fixes-for-mmc
+	sunxi/dt3
+		  git://github.com/mripard/linux.git tags/sunxi-dt-for-3.10-3
+	patch
+		"arm: vt8500: Add SDHC support to WM8505 DT"
+	mvebu/dt2
+		  git://git.infradead.org/users/jcooper/linux.git tags/dt-3.10-3
+	imx/dt
+		  git://git.linaro.org/people/shawnguo/linux-2.6.git tags/imx-dt-3.10
+	sunxi/dt4
+		  git://github.com/mripard/linux.git tags/sunxi-dt-for-3.10-4
+
+next/soc
+	prima2/soc
+		patches <1363590279-5656-1-git-send-email-Barry.Song@csr.com>
+	ux500/defconfig
+		http://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson.git tags/ux500-defconfig-v3.10
+	ux500/core
+		http://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson.git tags/ux500-core-v3.10
+	renesas/defconfig
+		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-defconfig-for-v3.10
+	renesas/soc
+		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-soc-for-v3.10
+	at91/soc
+		  git://github.com/at91linux/linux-at91.git tags/at91-soc
+	renesas/defconfig2
+		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-defconfig2-for-v3.10
+	patch
+		"ARM: bcm281xx: Add timer driver (DT portion)"
+	lpc32xx/defconfig
+		  git://git.antcom.de/linux-2.6.git lpc32xx/defconfig
+	bcm2835/defconfig
+		  git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-rpi.git bcm2835-for-3.10-defconfig
+	davinci/soc
+		  git://git.kernel.org/pub/scm/linux/kernel/git/nsekhar/linux-davinci.git tags/davinci-for-v3.10/soc
+	davinci/dt
+		  git://git.kernel.org/pub/scm/linux/kernel/git/nsekhar/linux-davinci.git tags/davinci-for-v3.10/dt
+		  depends on davinci/soc
+	tegra/soc
+		  git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.10-soc
+		  depends on tegra/cleanup
+	mxs/soc
+		  git://git.linaro.org/people/shawnguo/linux-2.6.git tags/mxs-soc-3.10
+	omap/soc
+		  git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.10/soc-signed
+	tegra/defconfig
+		  git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.10-defconfig
+	samsung/devel
+		  git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/devel-samsung-for-v3.10
+	patches
+		  ARM: socfpga: Upgrade clk driver for socfpga to make use of dts clock entries
+		  ARM: socfpga: Add clock entries into device tree
+		  ARM: socfpga: Enable soft reset
+	msm/core
+		  git://git.kernel.org/pub/scm/linux/kernel/git/davidb/linux-msm.git tags/msm-core-3.10
+	davinci/soc2
+		  git://git.kernel.org/pub/scm/linux/kernel/git/nsekhar/linux-davinci.git tags/davinci-for-v3.10/soc-2-v2
+	patches
+		  ARM: tegra: pm: fix build error w/o PM_SLEEP
+
+next/multiplatform
+	nomadik/multiplatform
+		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-nomadik.git tags/nomadik-multiplatform
+	spear/multiplatform
+		patches <1363106816-9603-1-git-send-email-arnd@arndb.de>
+	cns3xxx/multiplatform
+		patches <1363299271-8283-1-git-send-email-arnd@arndb.de>
+	prima2/multiplatform
+		patches <1363779679-16880-1-git-send-email-arnd@arndb.de>
+	patch
+		"arm: vt8500: Add wm8850 config options to multi_v7_defconfig"
+	bcm2835/multiplatform
+		git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-rpi.git bcm2835-for-3.10-multiplatform
+	ux500/multiplatform
+		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson.git tags/ux500-multiplatform-mfd
+	mxs/multiplatform
+		git://git.linaro.org/people/shawnguo/linux-2.6.git tags/mxs-multiplatform-3.10
+		depends on mxs/cleanup
+	tegra/multiplatform
+		git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.10-multiplatform
+		depends on tegra/soc
+	patch "[PATCHv2] ARM: Push selects for TWD/SCU into machine entries"
+		<1362007694-3419-1-git-send-email-sboyd@codeaurora.org>
+	samsung/exynos-multiplatform
+		<1365716245-99231-1-git-send-email-arnd@arndb.de>
+		+ revert of bd51de53e1be9896d815bbea30560262216d4616.
+	patch
+		"clocksource: nomadik-mtu: fix up clocksource/timer"
+		"mmc: sdhci-s3c: Fix operation on non-single image Samsung platforms"
+
+8<----
+ARM: arm-soc driver changes
+
+This is a rather large set of patches for device drivers that for one
+reason or another the subsystem maintainer preferred to get merged
+through the arm-soc tree. There are both new drivers as well as
+existing drivers that are getting converted from platform-specific
+code into standalone drivers using the appropriate subsystem
+specific interfaces.
+
+In particular, we can now have pinctrl, clk, clksource and irqchip
+drivers in one file per driver, without the need to call into
+platform specific interface, or to get called from platform specific
+code, as long as all information about the hardware is provided
+through a device tree.
+
+Most of the drivers we touch this time are for clocksource. Since
+now most of them are part of drivers/clocksource, I expect that we
+won't have to touch these again from arm-soc and can let the
+clocksource maintainers take care of these in the future.  
+
+Another larger part of this series is specific to the exynos platform,
+which is seeing some significant effort in upstreaming and
+modernization of its device drivers this time around, which
+unfortunately is also the cause for the churn and a lot of the
+merge conflicts.
+
+There is one new subsystem that gets merged as part of this series:
+the reset controller interface, which is a very simple interface
+for taking devices on the SoC out of reset or back into reset.
+Patches to use this interface on i.MX follow later in this merge
+window, and we are going to have other platforms (at least tegra
+and sirf) get converted in 3.11. This will let us get rid of
+platform specific callbacks in a number of platform independent
+device drivers.
+
+---->8
+
+next/drivers
+	samsung/timer
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git next/timer-samsung
+		depends on samsung/cleanup-s3c
+	samsung/irq-s3c24xx
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git next/irq-s3c24xx
+	samsung/pinctrl-exynos
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git next/pinctrl-exynos
+	at91/lcdfb
+		git://github.com/at91linux/linux-at91.git tags/at91-driversLCD
+	renesas/intc-external-irq
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-intc-external-irq-for-v3.10
+		depends on renesas/soc
+	renesas/clocksource
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-clocksource-for-v3.10
+	renesas/intc-external-irq2
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-intc-external-irq2-for-v3.10
+	vt8500/pinctrl
+		git://server.prisktech.co.nz/git/linuxwmt.git tags/vt8500/pinctrl
+	zynq/clocksource
+		git://git.xilinx.com/linux-xlnx.git zynq/clksrc/cleanup
+		depends on clksrc/cleanup
+	omap/usb
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.10/usb-signed
+	omap/timer
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.10/timer-signed
+		depends on omap/fixes-non-critical
+		depends on depends/rmk-errorchecking
+	omap/gpmc
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.10/gpmc-signed
+	tegra/clk
+		git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.10-clk
+		depends on depends/clk
+		depends on tegra/soc
+	ux500/pinctrl
+		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson.git tags/ux500-pinctrl
+	samsung/irq-s3c24xx-2
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git next/irq-s3c24xx
+	exynos/mct
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/mct-exynos-for-v3.10
+	exynos/clk
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/clk-exynos-for-v3.10 
+	exynos/pmu
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/pmu-exynos-for-v3.10
+	exynos/timer
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/timer-samsung-for-v3.10
+	patch
+		"irqchip: vt8500: Convert arch-vt8500 to new irqchip infrastructure"
+	reset/devel
+		git://git.pengutronix.de/git/pza/linux.git reset/for_v3.10
+	patch	"pinctrl: vt8500: wmt: Fix checking return value of pinctrl_register()"
+	mvebu/drivers
+		  git://git.infradead.org/users/jcooper/linux.git tags/drivers-3.10-2
+	patch
+		"clk: exynos5250: Fix parent clock for sclk_mmc{0,1,2,3}"
+		"ARM: dts: Disable the RTC by default on exynos5"
+		"irqchip: s3c24xx: add missing __init annotations"
+
+8<-----
+
+ARM: arm-soc pinctrl changes for renesas
+
+This is yet another driver change, which is split out just because
+of its size. As already in 3.9, a lot of changes are going on here,
+as the shmobile platform gets converted from its own pin control
+API to the generic drivers/pinctrl subsystem.
+
+------>8
+
+next/renesas-pinctrl
+	renesas/pinctrl
+		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-pinmux-for-v3.10
+
+
+8<--------
+
+ARM: platform specific firmware interfaces
+
+Two platforms, bcm and exynos have their own firmware interfaces using
+the "secure monitor call", this adds support for those.
+
+We had originally planned to have a third set of patches in here,
+which would extend support for the existing generic "psci" call
+that is used on multiple platforms as well as Xen and KVM guests,
+but that ended up getting dropped because the patches were not
+ready in time.
+
+-------8>
+
+
+next/firmware:
+	exynos/secure
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/secure-exynos-for-v3.10
+		depends on exynos/clk
+	bcm/smc-l2
+		  git://github.com/broadcom/bcm11351.git tags/fw-for-3.10
+
+8<-----
+
+ARM: arm-soc board specific changes, part 1
+
+These changes are all for board specific files. These used to make up a
+large portion of the ARM changes in the past, but as we are generalizing
+the support and moving to device tree probing, this has gotten
+significantly smaller. The only platform actually adding new code here
+at the moment is Renesas shmobile, as they are still busy converting
+their code to device tree and have not come far enough to not need it.
+
+------>8
+
+
+next/boards
+	renesas/boards
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-boards-for-v3.10
+		depends on renesas/pinctrl and renesas/soc
+	davinci/boards
+		git://git.kernel.org/pub/scm/linux/kernel/git/nsekhar/linux-davinci.git tags/davinci-for-v3.10/board
+	omap/boards
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.10/board-signed
+	pxa/devel
+		  git://github.com/hzhuang1/linux.git armsoc/pxa
+	msm/defconfig
+		  git://git.kernel.org/pub/scm/linux/kernel/git/davidb/linux-msm.git tags/msm-defconfig-3.10
+	mvebu/boards
+		  git://git.infradead.org/users/jcooper/linux.git tags/boards-3.10
+	davinci/boards2
+		  git://git.kernel.org/pub/scm/linux/kernel/git/nsekhar/linux-davinci.git tags/davinci-for-v3.10/board-2-v2
+		  depends on davinci/soc2
+	patch
+		"ARM: msm: USB_MSM_OTG needs USB_PHY"
+
+
+----- Merged upstream until here -----
+
+8<-----
+
+ARM: arm-soc platform updates for 3.10, part 2
+
+
+The vast majority of these is for Renesas shmobile, since it depends
+on the earlier pinctrl updates. Remarkably, this adds support for
+three new SoCs: r8a73a4, r8a73a4 and r8a7778. The bulk of the code
+added for these is for pinctrl (using the new subsystem) and
+for clocks (not yet using the common clock subsystem). The latter
+will have to get converted in one of the upcoming releases, but
+shmobile is not ready for that yet.
+
+The series also contains Renesas shmobile board changes, adding one board
+file for each of the three new SoCs.
+These boards are using a mix of classic and device-tree based probing,
+as there is still a lot of infrastructure in shmobile that has not been
+converted to DT yet. Once those are resolved to the degree that no board
+specific setup code is needed, they can get folded into the respective
+SoC setup files.
+
+----->8
+
+/* pulled ahead of next/soc2 now to separate out the large Renesas changes
+from the small rest */
+
+next/boards2
+	renesas/boards2
+		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-boards3-for-v3.10
+		  depends on renesas/soc2
+		  depends on renesas/pinmux2
+	renesas/defconfig-bockw
+		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas tags/renesas-defconfig-bockw-for-v3.10
+		  depends on renesas/boards2
+	renesas/boards3
+		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas tags/renesas-boards-bockw-for-v3.10
+		  depends on renesas/soc4
+	renesas/boards4
+		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-boards-lager-for-v3.10
+		  depends on renesas/soc5
+		  depends on renesas/pinmux3
+
+
+8<---------
+
+ARM: arm-soc platform updates for 3.10, part 3
+
+This is the third and smallest of the SoC specific updates.
+Changes include:
+
+* SMP support for the Xilinx zynq platform
+* Smaller imx changes
+* LPAE support for mvebu
+* Moving the orion5x, kirkwood, dove and mvebu platforms
+  to a common "mbus" driver for their internal devices.
+
+It would be good to get feedback on the location of the "mbus"
+driver. Since this is used on multiple platforms may potentially
+get shared with other architectures (powerpc and arm64), it
+was moved to drivers/bus/. We expect other similar drivers to
+get moved to the same place in order to avoid creating more
+top-level directories under drivers/ or cluttering up the
+messy drivers/misc/ even more.
+
+--------->8
+
+next/soc2
+	renesas/soc2
+		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-soc2-for-v3.10
+		  depends on renesas/soc
+		  depends on renesas/intc-external-irq
+	renesas/pinmux
+		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-pinmux2-for-v3.10
+		  depends on renesas/soc2
+		  depends on renesas/pinctrl
+	zynq/smp
+		  git://git.xilinx.com/linux-xlnx.git zynq/core-smp
+		  depends on zynq/clocksource
+		  depends on gic/cleanup
+	renesas/soc3
+		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas tags/renesas-soc-r8a7779-for-v3.10
+		  depends on renesas/soc2
+	renesas/soc4
+		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas tags/renesas-soc-r8a7778-for-v3.10
+		  depends on renesas/soc2
+	renesas/pinmux3
+		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas tags/renesas-pinmux-fixes-for-v3.10
+		  depends on renesas/soc2
+	renesas/soc5
+		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-soc-r8a7790-for-v3.10
+		  depends on renesas/soc2
+	imx/soc
+		  git://git.linaro.org/people/shawnguo/linux-2.6.git tags/imx-soc-3.10
+	mvebu/soc
+		  git://git.infradead.org/users/jcooper/linux.git tags/soc_for_v3.10
+		  depends on mvebu/cleanup
+		  depends on mvebu/drivers
+	patch
+		"ARM: imx: reset_controller may be disabled"
+
+8<----------
+
+ARM: arm-soc device tree changes, part 2
+
+These are mostly new device tree bindings for existing drivers, as well
+as changes to the device tree source files to add support for those
+devices, and a couple of new boards, most notably Samsung's Exynos5
+based Chromebook.
+
+--------8<
+
+
+next/dt2
+	mxs/dt
+		  git://git.linaro.org/people/shawnguo/linux-2.6.git tags/mxs-dt-3.10
+		  depends on mxs/cleanup
+	tegra/dt
+		  git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.10-dt
+		  depends on tegra/soc
+	exynos/dt
+		  git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/dt-exynos-for-v3.10
+		  depends on exynos/mct
+	omap/dt
+		  git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.10/dt-signed-v2
+	mvebu/dt3
+		  git://git.infradead.org/users/jcooper/linux.git tags/dt-3.10-4
+	davinci/dt2
+		  git://git.kernel.org/pub/scm/linux/kernel/git/nsekhar/linux-davinci.git tags/davinci-for-v3.10/dt-2-v2
+	patch
+		"ARM: dts: add mshc controller node for Exynos4x12 SoCs"
+
+/* merge this one into next/dt2 now? */
+
+late/dt
+	3 patches for Snow
+	samsung/late
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/late-exynos-v3-for-v3.10
+
+
+8<----
+
+ARM: arm-soc: late cleanups
+
+These are cleanups and smaller changes that either depend on earlier
+feature branches or came in late during the development cycle.
+We normally try to get all cleanups early, so these are the exceptions:
+
+- A follow-up on the clocksource reworks, hopefully the last time
+  we need to merge clocksource subsystem changes through arm-soc.
+  A first set of patches was part of the original 3.10 arm-soc cleanup
+  series because of interdependencies with timer drivers now moved out
+  of arch/arm.
+
+- Migrating the SPEAr13xx platform away from using auxdata for DMA
+  channel descriptions towards using information in device tree,
+  based on the earlier SPEAr multiplatform series
+
+- A few follow-ups on the Atmel SAMA5 support and other changes
+  for Atmel at91 based on the larger at91 reworks.
+
+- Moving the armada irqchip implementation to drivers/irqchip
+
+- Several OMAP cleanups following up on the larger series already
+  merged in 3.10.
+
+----->8
+
+/* late/clksrc is not yet part of late/cleanup, but seems to fit well */
+
+late/clksrc
+	clksrc/cleanup2
+		  git://sources.calxeda.com/kernel/linux.git tags/clksrc-cleanup-for-3.10-part2
+		  depends on next/drivers @ commit 228e3023
+	patches
+		  ARM: OMAP: remove unused variable
+		  ARM: arch_timer: Silence debug preempt warnings
+
+late/cleanup
+	mvebu/irqchip
+		  git://git.infradead.org/users/jcooper/linux.git tags/irqchip-3.10
+	omap/dss-cleanup
+		  git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.10/dss-signed
+		  depends on omap/fixes-non-critical
+		  depends on omap/boards
+	at91/soc3
+		  git://github.com/at91linux/linux-at91.git tags/at91-soc
+		  depends on at91/soc
+	spear/dwdma
+		  patches <1359395857-1235-1-git-send-email-arnd@arndb.de>
+		  depends on spear/multiplatform
+	at91/soc4
+		  git://github.com/at91linux/linux-at91.git tags/at91-soc
+		  depends on at91/soc3
+	patch
+		"ARM: SPEAr: conditionalize SMP code"
+
+8<-------
+
+ARM: late Exynos multiplatform changes
+
+These continue the multiplatform support for exynos, adding support
+for building most of the essential drivers (clocksource, clk, irqchip)
+when combined with other platforms. As a result, it should become
+really easy to add full multiplatform exynos support in 3.11, although
+we don't yet enable it for 3.10.
+
+--------8<
+
+
+late/multiplatform
+	samsung/exynos-multiplatform-drivers
+		"ARM: exynos: restore mach/regs-clock.h for exynos5"
+		"irqchip: exynos: look up irq using irq_find_mapping"
+		"irqchip: exynos: pass irq_base from platform"
+		"irqchip: exynos: localize irq lookup for ATAGS"
+		"irqchip: exynos: allocate combiner_data dynamically"
+		"irqchip: exynos: pass max combiner number to combiner_init"
+		"ARM: exynos: add missing properties for combiner IRQs"
+		"clocksource: exynos_mct: remove platform header dependency"
+		"clk: exynos: prepare for multiplatform"
+
+8<-------
+
+ARM: arm-soc late bug fixes
+
+These are bug fixes that came up from testing in linux-next and that
+did not fit in any of the other branches.
+
+------->8
+
+
+late/fixes
+	patch	<201304210002.00125.arnd@arndb.de>
+		  depends on clksrc/cleanup
+	+ patch series from Tomasz Figa for universal
+	patches
+		 "ARM: default machine descriptor for multiplatform"
+		 "ARM: ux500: always select ABX500_CORE"
+		 "ARM: SIRF: select SMP_ON_UP only on SMP builds"
+		 "ARM: OMAP: don't select SERIAL_OMAP unconditionally"
+		 "ARM: SPEAr: conditionalize l2x0 support"
+		 "ARM: imx: build CPU suspend code only when needed"
+		 "ARM: OMAP: build SMP code only for OMAP4/5"
+		 "ARM: tegra: Tegra114 needs CPU_FREQ_TABLE"
+
+
+---- deferred until 3.11 below here ----
+
+next/mailbox:
+	mailbox/subsystem
+		git://github.com/sumananna/mailbox.git dbx500-prcmu-mailbox
+
+
