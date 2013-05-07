@@ -1009,7 +1009,7 @@ static struct st1232_pdata st1232_i2c0_pdata = {
 static struct i2c_board_info i2c0_devices[] = {
 	{
 		I2C_BOARD_INFO("st1232-ts", 0x55),
-		.irq = evt2irq(0x0340),
+		.irq = irq_pin(10),
 		.platform_data = &st1232_i2c0_pdata,
 	},
 	{

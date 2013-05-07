@@ -189,8 +189,6 @@ next/multiplatform
 		"clocksource: nomadik-mtu: fix up clocksource/timer"
 		"mmc: sdhci-s3c: Fix operation on non-single image Samsung platforms"
 
------ Merged upstream until here -----
-
 8<----
 ARM: arm-soc driver changes
 
@@ -360,11 +358,14 @@ next/boards
 	patch
 		"ARM: msm: USB_MSM_OTG needs USB_PHY"
 
-8<---------
+
+----- Merged upstream until here -----
+
+8<-----
 
 ARM: arm-soc platform updates for 3.10, part 2
 
-This is the second and smaller half of the SoC specific updates.
+
 The vast majority of these is for Renesas shmobile, since it depends
 on the earlier pinctrl updates. Remarkably, this adds support for
 three new SoCs: r8a73a4, r8a73a4 and r8a7778. The bulk of the code
@@ -373,7 +374,42 @@ for clocks (not yet using the common clock subsystem). The latter
 will have to get converted in one of the upcoming releases, but
 shmobile is not ready for that yet.
 
-Other changes include:
+The series also contains Renesas shmobile board changes, adding one board
+file for each of the three new SoCs.
+These boards are using a mix of classic and device-tree based probing,
+as there is still a lot of infrastructure in shmobile that has not been
+converted to DT yet. Once those are resolved to the degree that no board
+specific setup code is needed, they can get folded into the respective
+SoC setup files.
+
+----->8
+
+/* pulled ahead of next/soc2 now to separate out the large Renesas changes
+from the small rest */
+
+next/boards2
+	renesas/boards2
+		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-boards3-for-v3.10
+		  depends on renesas/soc2
+		  depends on renesas/pinmux2
+	renesas/defconfig-bockw
+		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas tags/renesas-defconfig-bockw-for-v3.10
+		  depends on renesas/boards2
+	renesas/boards3
+		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas tags/renesas-boards-bockw-for-v3.10
+		  depends on renesas/soc4
+	renesas/boards4
+		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-boards-lager-for-v3.10
+		  depends on renesas/soc5
+		  depends on renesas/pinmux3
+
+
+8<---------
+
+ARM: arm-soc platform updates for 3.10, part 3
+
+This is the third and smallest of the SoC specific updates.
+Changes include:
 
 * SMP support for the Xilinx zynq platform
 * Smaller imx changes
@@ -425,44 +461,14 @@ next/soc2
 	patch
 		"ARM: imx: reset_controller may be disabled"
 
-8<-----
-
-ARM: arm-soc boards specific changes, part 2
-
-This contains exclusively Renesas shmobile board changes, adding one board
-file for each of the three new SoCs that were added in the previous series.
-These boards are using a mix of classic and device-tree based probing,
-as there is still a lot of infrastructure in shmobile that has not been
-converted to DT yet. Once those are resolved to the degree that no board
-specific setup code is needed, they can get folded into the respective
-SoC setup files.
-
------>8
-
-
-next/boards2
-	renesas/boards2
-		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-boards3-for-v3.10
-		  depends on renesas/soc2
-		  depends on renesas/pinmux2
-	renesas/defconfig-bockw
-		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas tags/renesas-defconfig-bockw-for-v3.10
-		  depends on renesas/boards2
-	renesas/boards3
-		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas tags/renesas-boards-bockw-for-v3.10
-		  depends on renesas/soc4
-	renesas/boards4
-		  git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-boards-lager-for-v3.10
-		  depends on renesas/soc5
-		  depends on renesas/pinmux3
-
 8<----------
 
 ARM: arm-soc device tree changes, part 2
 
 These are mostly new device tree bindings for existing drivers, as well
 as changes to the device tree source files to add support for those
-devices, and a couple of new boards.
+devices, and a couple of new boards, most notably Samsung's Exynos5
+based Chromebook.
 
 --------8<
 
@@ -486,6 +492,43 @@ next/dt2
 	patch
 		"ARM: dts: add mshc controller node for Exynos4x12 SoCs"
 
+/* merge this one into next/dt2 now? */
+
+late/dt
+	3 patches for Snow
+	samsung/late
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/late-exynos-v3-for-v3.10
+
+
+8<----
+
+ARM: arm-soc: late cleanups
+
+These are cleanups and smaller changes that either depend on earlier
+feature branches or came in late during the development cycle.
+We normally try to get all cleanups early, so these are the exceptions:
+
+- A follow-up on the clocksource reworks, hopefully the last time
+  we need to merge clocksource subsystem changes through arm-soc.
+  A first set of patches was part of the original 3.10 arm-soc cleanup
+  series because of interdependencies with timer drivers now moved out
+  of arch/arm.
+
+- Migrating the SPEAr13xx platform away from using auxdata for DMA
+  channel descriptions towards using information in device tree,
+  based on the earlier SPEAr multiplatform series
+
+- A few follow-ups on the Atmel SAMA5 support and other changes
+  for Atmel at91 based on the larger at91 reworks.
+
+- Moving the armada irqchip implementation to drivers/irqchip
+
+- Several OMAP cleanups following up on the larger series already
+  merged in 3.10.
+
+----->8
+
+/* late/clksrc is not yet part of late/cleanup, but seems to fit well */
 
 late/clksrc
 	clksrc/cleanup2
@@ -514,6 +557,19 @@ late/cleanup
 	patch
 		"ARM: SPEAr: conditionalize SMP code"
 
+8<-------
+
+ARM: late Exynos multiplatform changes
+
+These continue the multiplatform support for exynos, adding support
+for building most of the essential drivers (clocksource, clk, irqchip)
+when combined with other platforms. As a result, it should become
+really easy to add full multiplatform exynos support in 3.11, although
+we don't yet enable it for 3.10.
+
+--------8<
+
+
 late/multiplatform
 	samsung/exynos-multiplatform-drivers
 		"ARM: exynos: restore mach/regs-clock.h for exynos5"
@@ -525,6 +581,16 @@ late/multiplatform
 		"ARM: exynos: add missing properties for combiner IRQs"
 		"clocksource: exynos_mct: remove platform header dependency"
 		"clk: exynos: prepare for multiplatform"
+
+8<-------
+
+ARM: arm-soc late bug fixes
+
+These are bug fixes that came up from testing in linux-next and that
+did not fit in any of the other branches.
+
+------->8
+
 
 late/fixes
 	patch	<201304210002.00125.arnd@arndb.de>
@@ -539,11 +605,6 @@ late/fixes
 		 "ARM: imx: build CPU suspend code only when needed"
 		 "ARM: OMAP: build SMP code only for OMAP4/5"
 		 "ARM: tegra: Tegra114 needs CPU_FREQ_TABLE"
-
-late/dt
-	3 patches for Snow
-	samsung/late
-		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/late-exynos-v3-for-v3.10
 
 
 ---- deferred until 3.11 below here ----

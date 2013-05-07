@@ -427,7 +427,7 @@ void __init v2m_dt_init_early(void)
 
 static void __init v2m_dt_timer_init(void)
 {
-	vexpress_clk_of_init();
+	of_clk_init(NULL);
 
 	clocksource_of_init();
 
