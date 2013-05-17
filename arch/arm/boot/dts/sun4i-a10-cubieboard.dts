@@ -38,7 +38,7 @@
 			status = "okay";
 
 			phy0: ethernet-phy@0 {
-				reg = <0>;
+				reg = <1>;
 			};
 		};
 
