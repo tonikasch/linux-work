@@ -26,6 +26,7 @@ config SUN4I_EMAC
 	select CRC32
 	select NET_CORE
 	select MII
+	select REGULATOR
 	select REGULATOR_FIXED_VOLTAGE
 	select PHYLIB
         ---help---
