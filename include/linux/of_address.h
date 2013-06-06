@@ -57,10 +57,18 @@ static inline unsigned long pci_address_to_pio(phys_addr_t addr) { return -1; }
 #define pci_address_to_pio pci_address_to_pio
 #endif
 
+<<<<<<< HEAD
 extern int of_pci_range_parser(struct of_pci_range_parser *parser,
 			struct device_node *node);
 extern struct of_pci_range *of_pci_process_ranges(struct of_pci_range_parser *parser,
 						struct of_pci_range *range);
+=======
+extern int of_pci_range_parser_init(struct of_pci_range_parser *parser,
+			struct device_node *node);
+extern struct of_pci_range *of_pci_range_parser_one(
+					struct of_pci_range_parser *parser,
+					struct of_pci_range *range);
+>>>>>>> arm-soc/for-next
 #else /* CONFIG_OF_ADDRESS */
 #ifndef of_address_to_resource
 static inline int of_address_to_resource(struct device_node *dev, int index,
@@ -88,14 +96,24 @@ static inline const __be32 *of_get_address(struct device_node *dev, int index,
 	return NULL;
 }
 
+<<<<<<< HEAD
 static inline int of_pci_range_parser(struct of_pci_range_parser *parser,
+=======
+static inline int of_pci_range_parser_init(struct of_pci_range_parser *parser,
+>>>>>>> arm-soc/for-next
 			struct device_node *node)
 {
 	return -1;
 }
 
+<<<<<<< HEAD
 static inline struct of_pci_range *of_pci_process_ranges(struct of_pci_range_parser *parser,
 						struct of_pci_range *range)
+=======
+static inline struct of_pci_range *of_pci_range_parser_one(
+					struct of_pci_range_parser *parser,
+					struct of_pci_range *range)
+>>>>>>> arm-soc/for-next
 {
 	return NULL;
 }
