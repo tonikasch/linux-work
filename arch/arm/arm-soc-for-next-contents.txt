@@ -45,12 +45,45 @@ next/soc
 		+patch "drivers/bus: arm-cci: fix combined ARMv6+v7 build"
 	zynq/clk
 		git://git.xilinx.com/linux-xlnx tags/zynq-clk-for-3.11
-
+	mvebu/pcie-kirkwood2
+		git://git.infradead.org/users/jcooper/linux.git tags/pcie_kw-3.11-2
+	renesas/pinmux-gpio
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-pinmux-for-v3.11
+	renesas/soc
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-soc-for-v3.11
+	clps711x/soc
+		patches
+			GPIO: clps711x: Rewrite driver for using generic GPIO cod
+			GPIO: clps711x: Add DT support
+			ARM: clps711x: Re-add GPIO support
+			ARM: clps711x: Remove NEED_MACH_MEMORY_H dependency
+			ARM: clps711x: Set PLL clock to zero if we work from 13 mHz sourc
+			ARM: clps711x: autcpu12: Move LCD DPOT definitions to board file
+			ARM: clps711x: autcpu12: Add support for NOR flash
+			ARM: clps711x: autcpu12: Special driver for handling memory is re
+			ARM: clps711x: autcpu12: Move remaining specific definitions to b
+			ARM: clps711x: p720t: Define PLD registers as GPIOs
+			ARM: clps711x: Move specific definitions from hardware.h to board
+			ARM: clps711x: Replace "arch_initcall" in common code with ".init
+			ARM: clps711x: Add clocksource framework
+			ARM: clps711x: Optimize interrupt handling
+			ARM: clps711x: edb7211: Add support for I2C
+			ARM: clps711x: edb7211: Control LCD backlight via PWM
+			ARM: clps711x: Add support for SYSCON driver
+			ARM: clps711x: Update defconfig
+	patches
+		ARM: socfpga: Add support to gate peripheral clocks
+		ARM: socfpga: Add syscon to be part of socfpga
 
 next/boards
 	mvebu/boards
 		  git://git.infradead.org/users/jcooper/linux.git tags/boards-3.11-2
-
+	renesas/defconfig
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-defconfig-for-v3.11
+	renesas/boards
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-boards-for-v3.11
+		depends on renesas/pinmux-gpio
+		depends on renesas/soc
 
 next/dt
 	nomadik/dt
@@ -67,10 +100,19 @@ next/dt
 		git://linux-arm.org/linux-2.6-lp dts-cpus-updates
 	patch
 		"ARM: dts: add missing cpu #address-cell values"
+	mvebu/dt4
+		git://git.infradead.org/users/jcooper/linux.git tags/dt-3.11-4
+	renesas/dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-dt-for-v3.11
+	patches
+		ARM: socfpga: dts: Add ethernet bindings for SOCFPGA
+		ARM: socfpga: dts: Add gate-clock bindings
 
 next/drivers
 	ux500/dma40
 		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson.git tags/ux500-dma40-for-arm-soc
+	timer/dw_apb_timer_of
+		git://github.com/mmind/linux-rockchip.git tags/dw_apb_timer_of
 
 next/mailbox:
 	mailbox/subsystem
