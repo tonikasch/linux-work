@@ -74,6 +74,8 @@ next/soc
 	patches
 		ARM: socfpga: Add support to gate peripheral clocks
 		ARM: socfpga: Add syscon to be part of socfpga
+	samsung/s3c24xx-arch
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/s3c24xx-arch-1
 
 next/boards
 	mvebu/boards
@@ -107,12 +109,18 @@ next/dt
 	patches
 		ARM: socfpga: dts: Add ethernet bindings for SOCFPGA
 		ARM: socfpga: dts: Add gate-clock bindings
+	samsung/s3c24xx-dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/s3c24xx-dt-1
+	samsung/exynos-dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/exynos-dt-1
 
 next/drivers
 	ux500/dma40
 		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson.git tags/ux500-dma40-for-arm-soc
 	timer/dw_apb_timer_of
 		git://github.com/mmind/linux-rockchip.git tags/dw_apb_timer_of
+	samsung/s3c24xx-drivers
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/s3c24xx-driver-1
 
 next/mailbox:
 	mailbox/subsystem
