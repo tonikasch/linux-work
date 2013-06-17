@@ -15,6 +15,12 @@ next/fixes-non-critical
 		git://git.infradead.org/users/jcooper/linux.git tags/fixes-non-3.11-1
 	sirf/fixes-non-critical
 		git://gitorious.org/sirfprima2-kernel/sirfprima2-kernel.git tags/sirf-arm-soc-v3.10-fixes
+	omap/fixes-non-critical
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.11/fixes-non-critical-signed           
+	davinci/board
+		git://git.kernel.org/pub/scm/linux/kernel/git/nsekhar/linux-davinci.git tags/davinci-for-v3.11/board
+	msm/fixes
+		git://git.kernel.org/pub/scm/linux/kernel/git/davidb/linux-msm.git tags/msm-fix-for-3.11
 
 next/cleanup
 	at91/cleanup
@@ -25,6 +31,14 @@ next/cleanup
 		git://git.infradead.org/users/jcooper/linux.git tags/cleanup-3.11-3
 	dt/pci-helpers
 		git://git.infradead.org/users/jcooper/linux.git tags/of_pci-3.11
+	omap/cleanup
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.11/cleanup-signed
+	mvebu/cleanup4
+		git://git.infradead.org/users/jcooper/linux.git tags/cleanup-3.11-4
+	msm/cleanup
+		git://git.kernel.org/pub/scm/linux/kernel/git/davidb/linux-msm.git tags/msm-fix-for-3.11
+	sunxi/core
+		git://github.com/mripard/linux.git tags/sunxi-core-for-3.11
 
 next/soc
 	mvebu/soc
@@ -76,6 +90,21 @@ next/soc
 		ARM: socfpga: Add syscon to be part of socfpga
 	samsung/s3c24xx-arch
 		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/s3c24xx-arch-1
+	omap/pm
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.11/pm-signed
+	omap/soc
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.11/gpmc-signed
+	omap/omap5
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.11/soc-signed
+	mvebu/regmap
+		git://git.infradead.org/users/jcooper/linux.git tags/regmap-3.11
+			depends on cleanup and fixes-non-critical branches
+	renesas/usb
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-phy-rcar-usb-for-v3.11
+	renesas/soc2
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-soc2-for-v3.11
+	tegra/soc
+		git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.11-soc
 
 next/boards
 	mvebu/boards
@@ -86,6 +115,18 @@ next/boards
 		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-boards-for-v3.11
 		depends on renesas/pinmux-gpio
 		depends on renesas/soc
+	ux500/core
+		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson.git tags/ux500-core-for-arm-soc
+	ux500/pinctrl
+		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson.git tags/ux500-pinctrl-for-arm-soc
+	patch
+		"ARM: ux500: board-mop500: remove unused pin modes"
+	bcm2835/defconfig
+		git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-rpi.git bcm2835-for-3.11-defconfig
+	renesas/defconfig2
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-defconfig2-for-v3.11
+	tegra/defconfig
+		git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.11-defconfig
 
 next/dt
 	nomadik/dt
@@ -113,6 +154,18 @@ next/dt
 		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/s3c24xx-dt-1
 	samsung/exynos-dt
 		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/exynos-dt-1
+	mvebu/dt5
+		git://git.infradead.org/users/jcooper/linux.git tags/dt-3.11-5
+	ux500/dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson.git tags/ux500-dt-for-arm-soc
+	bcm2835/dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-rpi.git bcm2835-for-3.11-dt
+	tegra/dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.11-dt
+	sunxi/dt
+		git://github.com/mripard/linux.git tags/sunxi-dt-for-3.11
+	renesas/dt
+		git://github.com/at91linux/linux-at91.git tags/at91-dt
 
 next/drivers
 	ux500/dma40
@@ -121,9 +174,14 @@ next/drivers
 		git://github.com/mmind/linux-rockchip.git tags/dw_apb_timer_of
 	samsung/s3c24xx-drivers
 		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/s3c24xx-driver-1
-
-next/mailbox:
-	mailbox/subsystem
-		git://github.com/sumananna/mailbox.git dbx500-prcmu-mailbox
-
-
+	omap/gpmc
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.11/gpmc-signed
+	ux500/clksrc
+		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson.git tags/ux500-clksrc-for-arm-soc
+	ux500/dma540_2
+		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson.git tags/ux500-dma40-for-arm-soc-2
+	renesas/rcar-gpio
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-gpio-rcar-for-v3.11
+		depends on renesas/pinmux-gpio
+	at91/drivers
+		git://github.com/at91linux/linux-at91.git tags/at91-drivers
