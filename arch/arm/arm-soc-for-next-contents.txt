@@ -122,6 +122,8 @@ next/soc
 		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-integrator.git tags/integrator-pci-for-arm-soc
 	u300/multiplatform
 		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson.git tags/u300-multiplatform
+	imx/soc
+		git://git.linaro.org/people/shawnguo/linux-2.6.git tags/imx-soc-3.11
 
 next/boards
 	mvebu/boards
@@ -185,6 +187,10 @@ next/dt
 		git://github.com/at91linux/linux-at91.git tags/at91-dt
 	zynq/dt
 		git://git.xilinx.com/linux-xlnx.git tags/zynq-dt-for-3.11
+	mxs/dt
+		git://git.linaro.org/people/shawnguo/linux-2.6.git tags/mxs-dt-3.11
+	imx/dt
+		git://git.linaro.org/people/shawnguo/linux-2.6.git tags/imx-dt-3.11
 
 next/drivers
 	ux500/dma40
