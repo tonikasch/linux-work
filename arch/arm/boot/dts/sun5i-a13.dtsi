@@ -200,14 +200,14 @@
 				allwinner,pins = "PB15", "PB16";
 				allwinner,function = "i2c1";
 				allwinner,drive = <0>;
-				allwinner,pull = <1>;
+				allwinner,pull = <0>;
 			};
 
 			i2c2_pins_a: i2c2@0 {
 				allwinner,pins = "PB17", "PB18";
 				allwinner,function = "i2c2";
 				allwinner,drive = <0>;
-				allwinner,pull = <1>;
+				allwinner,pull = <0>;
 			};
 		};
 

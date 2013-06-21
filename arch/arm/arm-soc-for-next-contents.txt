@@ -30,6 +30,10 @@ next/fixes-non-critical
 		[SCSI] nsp32: use mdelay instead of large udelay constants
 		hwrng: bcm2835: fix MODULE_LICENSE tag
 		ARM: sirf: use CONFIG_SIRF rather than CONFIG_PRIMA2 where necessary
+	at91/fixes
+		git://github.com/at91linux/linux-at91.git tags/at91-fixes
+	exynos/fixes
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/non-critical-fixes-1
 
 next/cleanup
 	at91/cleanup
@@ -50,6 +54,18 @@ next/cleanup
 		git://github.com/mripard/linux.git tags/sunxi-core-for-3.11
 	zynq/cleanup
 		git://git.xilinx.com/linux-xlnx.git tags/zynq-cleanup-for-3.11
+	at91/cleanup2
+		git://github.com/at91linux/linux-at91.git tags/at91-cleanup
+	picoxcell/cleanup
+		git://github.com/jamieiles/linux-2.6-ji.git picoxcell-next
+	omap/pm-serial-cleanup
+		git://git.kernel.org/pub/scm/linux/kernel/git/khilman/linux-omap-pm into omap-for-v3.11/pm-serial
+	omap/pm-voltdomain-cleanup
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.11/pm-voltdomain-signed
+	omap/dma-cleanup
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.11/dma-signed
+	samsung/cleanup
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/samsung-cleanup-1
 
 next/soc
 	mvebu/soc
@@ -124,6 +140,16 @@ next/soc
 		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson.git tags/u300-multiplatform
 	imx/soc
 		git://git.linaro.org/people/shawnguo/linux-2.6.git tags/imx-soc-3.11
+	davinci/soc
+		git://git.kernel.org/pub/scm/linux/kernel/git/nsekhar/linux-davinci.git tags/davinci-for-v3.11/soc-v2
+i	sunxi/defconfig
+		git://github.com/mripard/linux.git tags/sunxi-defconfig-for-3.11
+	sunxi/core2
+		git://github.com/mripard/linux.git tags/sunxi-core-for-3.11-2
+	omap/soc2
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.11/soc-part2-signed
+	samsung/exynos-arch
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/exynos-arch-2
 
 next/boards
 	mvebu/boards
@@ -146,6 +172,12 @@ next/boards
 		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-defconfig2-for-v3.11
 	tegra/defconfig
 		git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.11-defconfig
+	omap/boards
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.11/mailbox-signed
+	samsung/exynos-remove-nondt
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/remove-nondt-exynos-3
+	samsung/defconfig
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/samsung-defconfig-1
 
 next/dt
 	nomadik/dt
@@ -191,6 +223,16 @@ next/dt
 		git://git.linaro.org/people/shawnguo/linux-2.6.git tags/mxs-dt-3.11
 	imx/dt
 		git://git.linaro.org/people/shawnguo/linux-2.6.git tags/imx-dt-3.11
+	sunxi/dt2
+		git://github.com/mripard/linux.git tags/sunxi-dt-for-3.11-2
+	nomadik/dt2
+		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-nomadik.git tags/nomadik-dt-2
+	samsung/exynos-dt2
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/exynos-dt-2
+	samsung/s3c24xx-dt2
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/s3c24xx-dt-2
+	omap/dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/bcousson/linux-omap-dt.git for_3.11/dts
 
 next/drivers
 	ux500/dma40
@@ -212,3 +254,11 @@ next/drivers
 		git://github.com/at91linux/linux-at91.git tags/at91-drivers
 	patch
 		gpio: rcar: fix gpio_rcar_of_table
+	omap/gpmc2
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.11/gpmc-part2-signed
+	drivers/mailbox
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.11/mailbox-signed
+	samsung/common-clk-audio
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/common-clk-audio
+	samsung/s3c24xx-pinctrl2
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/s3c24xx-pinctrl-2

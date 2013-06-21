@@ -162,10 +162,14 @@ dtb-$(CONFIG_ARCH_OMAP2PLUS) += omap2420-h4.dtb \
 	omap4-panda-es.dtb \
 	omap4-var-som.dtb \
 	omap4-sdp.dtb \
-	omap5-evm.dtb \
+	omap4-sdp-es23plus.dtb \
+	omap5-uevm.dtb \
 	am335x-evm.dtb \
 	am335x-evmsk.dtb \
-	am335x-bone.dtb
+	am335x-bone.dtb \
+	am3517-evm.dtb \
+	am3517_mt_ventoux.dtb \
+	am43x-epos-evm.dtb
 dtb-$(CONFIG_ARCH_ORION5X) += orion5x-lacie-ethernet-disk-mini-v2.dtb
 dtb-$(CONFIG_ARCH_PRIMA2) += prima2-evb.dtb
 dtb-$(CONFIG_ARCH_U8500) += snowball.dtb \
@@ -197,6 +201,7 @@ dtb-$(CONFIG_ARCH_SUNXI) += \
 	sun4i-a10-cubieboard.dtb \
 	sun4i-a10-mini-xplus.dtb \
 	sun4i-a10-hackberry.dtb \
+	sun5i-a10s-olinuxino-micro.dtb \
 	sun5i-a13-olinuxino.dtb
 dtb-$(CONFIG_ARCH_TEGRA) += tegra20-harmony.dtb \
 	tegra20-iris-512.dtb \
