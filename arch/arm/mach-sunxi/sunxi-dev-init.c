@@ -41,34 +41,37 @@
 
 #define SW_PA_PORTC_IO_BASE               0x01c20800
 /* Do something NO documentation */
-#define SW_VA_USB0_CSR			0xf1c13404
+#define SW_USB0_CSR			0x01c13404
 
 static u32 USBC_Phy_Write(u32 usbc_no, u32 addr, u32 data, u32 len)
 {
 	u32 temp = 0, dtmp = 0;
 	u32 j = 0;
+	void __iomem *csr;
+
+	csr = ioremap_nocache(SW_USB0_CSR, 4);
 
 	dtmp = data;
 	for (j = 0; j < len; j++) {
 		/* set  the bit address to be write */
-		temp = readl(SW_VA_USB0_CSR);
+		temp = readl(csr);
 		temp &= ~(0xff << 8);
 		temp |= ((addr + j) << 8);
-		writel(temp, SW_VA_USB0_CSR);
+		writel(temp, csr);
 
-		temp = readb(SW_VA_USB0_CSR);
+		temp = readb(csr);
 		temp &= ~(0x1 << 7);
 		temp |= (dtmp & 0x1) << 7;
 		temp &= ~(0x1 << (usbc_no << 1));
-		writeb(temp, SW_VA_USB0_CSR);
+		writeb(temp, csr);
 
-		temp = readb(SW_VA_USB0_CSR);
+		temp = readb(csr);
 		temp |= (0x1 << (usbc_no << 1));
-		writeb(temp, SW_VA_USB0_CSR);
+		writeb(temp, csr);
 
-		temp = readb(SW_VA_USB0_CSR);
+		temp = readb(csr);
 		temp &= ~(0x1 << (usbc_no << 1));
-		writeb(temp, SW_VA_USB0_CSR);
+		writeb(temp, csr);
 		dtmp >>= 1;
 	}
 
@@ -137,14 +140,15 @@ static void __init sunxi_init_usb(void)
 	mdelay(5);
 
 	/* GPIO PH3 & PH6 select for output */
-	writel(0x100010000,(void __iomem *)0xf1c208fc);
+//	writel(0x100010000,(void __iomem *)0xf1c208fc);
 	/* GPIO PH3 & PH6 set high */
-	writel(0x1001000,(void __iomem *)0xf1c2090c);
+//	writel(0x1001000,(void __iomem *)0xf1c2090c);
 }
 
-static void __init sunxi_dev_init(void)
+static int __init sunxi_dev_init(void)
 {
 	sunxi_init_usb();
+	return 0;
 }
 
 module_init(sunxi_dev_init);
