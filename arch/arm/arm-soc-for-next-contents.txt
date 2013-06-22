@@ -16,7 +16,7 @@ next/fixes-non-critical
 	sirf/fixes-non-critical
 		git://gitorious.org/sirfprima2-kernel/sirfprima2-kernel.git tags/sirf-arm-soc-v3.10-fixes
 	omap/fixes-non-critical
-		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.11/fixes-non-critical-signed           
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.11/fixes-non-critical-signed
 	davinci/board
 		git://git.kernel.org/pub/scm/linux/kernel/git/nsekhar/linux-davinci.git tags/davinci-for-v3.11/board
 	msm/fixes
@@ -66,6 +66,8 @@ next/cleanup
 		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.11/dma-signed
 	samsung/cleanup
 		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/samsung-cleanup-1
+	bcm/cleanup
+		git://github.com/broadcom/bcm11351.git armsoc/for-3.11/cleanups
 
 next/soc
 	mvebu/soc
@@ -152,6 +154,8 @@ i	sunxi/defconfig
 		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/exynos-arch-2
 	rockchip/soc
 		git://git.kernel.org/pub/scm/linux/kernel/git/mmind/linux-rockchip.git tags/v3.11-rockchip-basics
+	renesas/soc-cleanup
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-cleanup-boot-for-v3.11
 
 next/boards
 	mvebu/boards
@@ -180,6 +184,12 @@ next/boards
 		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/remove-nondt-exynos-3
 	samsung/defconfig
 		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/samsung-defconfig-1
+	renesas/boards
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-boards2-for-v3.11
+	zynq/defconfig
+		git://git.xilinx.com/linux-xlnx.git tags/zynq-defconfig-for-3.11
+	mvebu/regmap2
+		git://git.infradead.org/users/jcooper/linux.git tags/regmap-3.11-2
 
 next/dt
 	nomadik/dt
@@ -235,6 +245,12 @@ next/dt
 		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/s3c24xx-dt-2
 	omap/dt
 		git://git.kernel.org/pub/scm/linux/kernel/git/bcousson/linux-omap-dt.git for_3.11/dts
+	bcm/dt
+		git://github.com/broadcom/bcm11351.git armsoc/for-3.11/dt
+	renesas/dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-dt2-for-v3.11
+	mvebu/dt6
+		git://git.infradead.org/users/jcooper/linux.git tags/dt-3.11-6
 
 next/drivers
 	ux500/dma40
@@ -264,3 +280,30 @@ next/drivers
 		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/common-clk-audio
 	samsung/s3c24xx-pinctrl2
 		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/s3c24xx-pinctrl-2
+	ux500/cleanup patches
+		ARM: ux500: Provide a AB8500 GPIO Device Tree node
+		ARM: ux500: Correct the EN_3v3 regulator's on/off GPIO
+		ARM: ux500: Remove mop500_snowball_ethernet_clock_enable()
+	renesas/pinmux2
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-pinmux2-for-v3.11
+	renesas/gpio-rcar2
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-gpio-rcar2-for-v3.11
+
+next/late
+	renesas/cleanup
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-cleanup-for-v3.11
+	samsung/exynos5420
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/soc-exynos5420-1
+
+testing/soc
+	nspire/soc patches 
+		arm: Add Initial TI-Nspire support
+		arm: Add device trees for TI-Nspire hardware
+	stixxxx/soc patches
+		ARM:stixxxx: Add STiH415 SOC support
+		ARM:stixxxx: Add STiH416 SOC support
+		ARM:stixxxx: Add DEBUG_LL console support
+		ARM:multi_v7_defconfig: rerun savedefconfig
+		ARM:stixxxx: Add stixxxx options to  multi_v7_defconfig
+		ARM:stih41x: Add B2000 board support
+		ARM:stih41x: Add B2020 board support
