@@ -23,6 +23,8 @@
 #include <linux/of_address.h>
 #include <linux/of_irq.h>
 
+#include <asm/sched_clock.h>
+
 #define TIMER_IRQ_EN_REG	0x00
 #define TIMER_IRQ_EN(val)		BIT(val)
 #define TIMER_IRQ_ST_REG	0x04
@@ -34,6 +36,11 @@
 #define TIMER_CNTVAL_REG(val)	(0x10 * val + 0x18)
 
 #define TIMER_SCAL		16
+#define TIMER_CNT64_CTL_REG	0xa0
+#define TIMER_CNT64_CTL_CLR		BIT(0)
+#define TIMER_CNT64_CTL_RL		BIT(1)
+#define TIMER_CNT64_LOW_REG	0xa4
+#define TIMER_CNT64_HIGH_REG	0xa8
 
 static void __iomem *timer_base;
 
@@ -96,6 +103,20 @@ static struct irqaction sun4i_timer_irq = {
 	.dev_id = &sun4i_clockevent,
 };
 
+static u32 sun4i_timer_sched_read(void)
+{
+	u32 reg = readl(timer_base + TIMER_CNT64_CTL_REG);
+	writel(reg | TIMER_CNT64_CTL_RL, timer_base + TIMER_CNT64_CTL_REG);
+	while (readl(timer_base + TIMER_CNT64_CTL_REG) & TIMER_CNT64_CTL_REG);
+
+	return readl(timer_base + TIMER_CNT64_LOW_REG);
+}
+
+static cycle_t sun4i_timer_clksrc_read(struct clocksource *c)
+{
+	return sun4i_timer_sched_read();
+}
+
 static void __init sun4i_timer_init(struct device_node *node)
 {
 	unsigned long rate = 0;
@@ -116,6 +137,12 @@ static void __init sun4i_timer_init(struct device_node *node)
 		panic("Can't get timer clock");
 
 	rate = clk_get_rate(clk);
+
+	writel(TIMER_CNT64_CTL_CLR, timer_base + TIMER_CNT64_CTL_REG);
+	setup_sched_clock(sun4i_timer_sched_read, 32, clk_get_rate(clk));
+	clocksource_mmio_init(timer_base + TIMER_CNT64_LOW_REG, node->name,
+			      clk_get_rate(clk), 300, 32,
+			      sun4i_timer_clksrc_read);
 
 	writel(rate / (TIMER_SCAL * HZ),
 	       timer_base + TIMER_INTVAL_REG(0));
