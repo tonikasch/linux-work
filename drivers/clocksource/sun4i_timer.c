@@ -46,6 +46,7 @@
 #define TIMER_CNT64_HIGH_REG	0xa8
 
 static void __iomem *timer_base;
+static u32 ticks_per_jiffy;
 
 static void sun4i_clkevt_time_stop(void)
 {
@@ -68,7 +69,8 @@ static void sun4i_clkevt_time_start(bool periodic)
 	else
 		val |= TIMER_CTL_ONESHOT;
 
-	writel(val | TIMER_CTL_ENABLE, timer_base + TIMER_CTL_REG(0));
+	writel(val | TIMER_CTL_ENABLE | TIMER_CTL_AUTORELOAD,
+	       timer_base + TIMER_CTL_REG(0));
 }
 
 static void sun4i_clkevt_mode(enum clock_event_mode mode,
@@ -77,6 +79,7 @@ static void sun4i_clkevt_mode(enum clock_event_mode mode,
 	switch (mode) {
 	case CLOCK_EVT_MODE_PERIODIC:
 		sun4i_clkevt_time_stop();
+		sun4i_clkevt_time_setup(ticks_per_jiffy);
 		sun4i_clkevt_time_start(true);
 		break;
 	case CLOCK_EVT_MODE_ONESHOT:
@@ -166,10 +169,9 @@ static void __init sun4i_timer_init(struct device_node *node)
 			      clk_get_rate(clk), 300, 32,
 			      sun4i_timer_clksrc_read);
 
-	writel(clk_get_rate(clk) / HZ,
-	       timer_base + TIMER_INTVAL_REG(0));
+	ticks_per_jiffy = DIV_ROUND_UP(clk_get_rate(clk), HZ);
 
-	writel(TIMER_CTL_CLK_SRC(TIMER_CTL_CLK_SRC_OSC24M) | TIMER_CTL_AUTORELOAD,
+	writel(TIMER_CTL_CLK_SRC(TIMER_CTL_CLK_SRC_OSC24M),
 	       timer_base + TIMER_CTL_REG(0));
 
 	ret = setup_irq(irq, &sun4i_timer_irq);
