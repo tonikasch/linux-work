@@ -36,7 +36,6 @@
 #define TIMER_INTVAL_REG(val)	(0x10 * val + 0x14)
 #define TIMER_CNTVAL_REG(val)	(0x10 * val + 0x18)
 
-#define TIMER_SCAL		16
 #define TIMER_CNT64_CTL_REG	0xa0
 #define TIMER_CNT64_CTL_CLR		BIT(0)
 #define TIMER_CNT64_CTL_RL		BIT(1)
@@ -141,7 +140,6 @@ static cycle_t sun4i_timer_clksrc_read(struct clocksource *c)
 
 static void __init sun4i_timer_init(struct device_node *node)
 {
-	unsigned long rate = 0;
 	struct clk *clk;
 	int ret, irq;
 	u32 val;
@@ -159,15 +157,13 @@ static void __init sun4i_timer_init(struct device_node *node)
 		panic("Can't get timer clock");
 	clk_prepare_enable(clk);
 
-	rate = clk_get_rate(clk);
-
 	writel(TIMER_CNT64_CTL_CLR, timer_base + TIMER_CNT64_CTL_REG);
 	setup_sched_clock(sun4i_timer_sched_read, 32, clk_get_rate(clk));
 	clocksource_mmio_init(timer_base + TIMER_CNT64_LOW_REG, node->name,
 			      clk_get_rate(clk), 300, 32,
 			      sun4i_timer_clksrc_read);
 
-	writel(rate / (TIMER_SCAL * HZ),
+	writel(clk_get_rate(clk) / HZ,
 	       timer_base + TIMER_INTVAL_REG(0));
 
 	/* set clock source to HOSC, 16 pre-division */
@@ -191,8 +187,8 @@ static void __init sun4i_timer_init(struct device_node *node)
 
 	sun4i_clockevent.cpumask = cpumask_of(0);
 
-	clockevents_config_and_register(&sun4i_clockevent, rate / TIMER_SCAL,
-					0x1, 0xff);
+	clockevents_config_and_register(&sun4i_clockevent, clk_get_rate(clk),
+					0x1, 0xffffffff);
 }
 CLOCKSOURCE_OF_DECLARE(sun4i, "allwinner,sun4i-timer",
 		       sun4i_timer_init);
