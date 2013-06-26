@@ -1,18 +1,17 @@
 /*
- * Copyright (C) 2013 Freescale Semiconductor, Inc.
+ *  arch/arm/mach-sti/smp.h
+ *
+ * Copyright (C) 2013 STMicroelectronics (R&D) Limited.
+ *		http://www.st.com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
  */
 
-#ifndef __ARCH_MXS_PM_H
-#define __ARCH_MXS_PM_H
+#ifndef __MACH_STI_SMP_H
+#define __MACH_STI_SMP_H
 
-#ifdef CONFIG_PM
-void mxs_pm_init(void);
-#else
-#define mxs_pm_init NULL
-#endif
+extern struct smp_operations	sti_smp_ops;
 
 #endif
