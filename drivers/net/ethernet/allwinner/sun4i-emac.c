@@ -258,7 +258,7 @@ static const struct ethtool_ops emac_ethtool_ops = {
 	.get_link	= ethtool_op_get_link,
 };
 
-unsigned int emac_setup(struct net_device *ndev)
+static unsigned int emac_setup(struct net_device *ndev)
 {
 	struct emac_board_info *db = netdev_priv(ndev);
 	unsigned int reg_val;
@@ -310,7 +310,7 @@ unsigned int emac_setup(struct net_device *ndev)
 	return 0;
 }
 
-unsigned int emac_powerup(struct net_device *ndev)
+static unsigned int emac_powerup(struct net_device *ndev)
 {
 	struct emac_board_info *db = netdev_priv(ndev);
 	unsigned int reg_val;
@@ -821,7 +821,7 @@ static int emac_probe(struct platform_device *pdev)
 	db->membase = of_iomap(np, 0);
 	if (!db->membase) {
 		dev_err(&pdev->dev, "failed to remap registers\n");
-		return -ENOMEM;
+		ret = -ENOMEM;
 		goto out;
 	}
 
@@ -869,10 +869,6 @@ static int emac_probe(struct platform_device *pdev)
 	ndev->watchdog_timeo = msecs_to_jiffies(watchdog);
 	ndev->ethtool_ops = &emac_ethtool_ops;
 
-#ifdef CONFIG_NET_POLL_CONTROLLER
-	ndev->poll_controller = &emac_poll_controller;
-#endif
-
 	platform_set_drvdata(pdev, ndev);
 
 	/* Carrier starts down, phylib will bring it up */
@@ -901,8 +897,6 @@ out:
 static int emac_remove(struct platform_device *pdev)
 {
 	struct net_device *ndev = platform_get_drvdata(pdev);
-
-	platform_set_drvdata(pdev, NULL);
 
 	unregister_netdev(ndev);
 	free_netdev(ndev);

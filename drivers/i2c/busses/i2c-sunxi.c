@@ -10,6 +10,7 @@
  * warranty of any kind, whether express or implied.
  */
 
+#include <linux/bitops.h>
 #include <linux/clk.h>
 #include <linux/completion.h>
 #include <linux/err.h>
@@ -17,8 +18,7 @@
 #include <linux/interrupt.h>
 #include <linux/io.h>
 #include <linux/module.h>
-#include <linux/of_address.h>
-#include <linux/of_irq.h>
+#include <linux/of.h>
 #include <linux/platform_device.h>
 
 #define SUNXI_I2C_ADDR_REG		(0x00)
@@ -62,7 +62,7 @@ struct sunxi_i2c_dev {
 	struct clk		*clk;
 	struct device		*dev;
 	struct completion	completion;
-	unsigned int		irq;
+	int			irq;
 	void __iomem		*membase;
 
 	struct i2c_msg		*msg_cur;
@@ -71,7 +71,7 @@ struct sunxi_i2c_dev {
 	unsigned int		msg_err;
 };
 
-static void sunxi_i2c_write(struct sunxi_i2c_dev *i2c_dev, u16 reg, u8 value)
+static void sunxi_i2c_write(struct sunxi_i2c_dev *i2c_dev, u16 reg, u32 value)
 {
 	writel(value, i2c_dev->membase + reg);
 }
@@ -117,11 +117,13 @@ static irqreturn_t sunxi_i2c_handler(int irq, void *data)
 	/*
 	 * Address + Write bit have been transmitted, ACK has not been
 	 * received.
+	 * Intentional fall through.
 	 */
 	case SUNXI_I2C_STA_MASTER_WADDR_NAK:
 	/*
 	 * Data byte has been transmitted, ACK has not been
-	 * received
+	 * received.
+	 * Intentional fall through.
 	 */
 	case SUNXI_I2C_STA_MASTER_DATA_SENT_NAK:
 		if (!(i2c_dev->msg_cur->flags & I2C_M_IGNORE_NAK)) {
@@ -131,7 +133,8 @@ static irqreturn_t sunxi_i2c_handler(int irq, void *data)
 
 	/*
 	 * Address + Write bit have been transmitted, ACK has been
-	 * received
+	 * received.
+	 * Intentional fall through.
 	 */
 	case SUNXI_I2C_STA_MASTER_WADDR_ACK:
 	/* Data byte has been transmitted, ACK has been received */
@@ -153,7 +156,8 @@ static irqreturn_t sunxi_i2c_handler(int irq, void *data)
 
 	/*
 	 * Address + Read bit have been transmitted, ACK has not been
-	 * received
+	 * received.
+	 * Intentional fall through.
 	 */
 	case SUNXI_I2C_STA_MASTER_RADDR_NAK:
 		if (!(i2c_dev->msg_cur->flags & I2C_M_IGNORE_NAK)) {
@@ -163,7 +167,7 @@ static irqreturn_t sunxi_i2c_handler(int irq, void *data)
 
 	/*
 	 * Address + Read bit have been transmitted, ACK has been
-	 * received
+	 * received.
 	 */
 	case SUNXI_I2C_STA_MASTER_RADDR_ACK:
 		/*
@@ -180,7 +184,8 @@ static irqreturn_t sunxi_i2c_handler(int irq, void *data)
 
 	/*
 	 * Data byte has been received, ACK has not been
-	 * transmitted
+	 * transmitted.
+	 * Intentional fall through.
 	 */
 	case SUNXI_I2C_STA_MASTER_DATA_RECV_NAK:
 		if (i2c_dev->msg_buf_remaining == 1) {
@@ -302,6 +307,7 @@ static int sunxi_i2c_probe(struct platform_device *pdev)
 	struct sunxi_i2c_dev *i2c_dev;
 	struct device_node *np;
 	u32 freq, div_m, div_n;
+	struct resource *res;
 	int ret;
 
 	np = pdev->dev.of_node;
@@ -316,18 +322,18 @@ static int sunxi_i2c_probe(struct platform_device *pdev)
 
 	init_completion(&i2c_dev->completion);
 
-	i2c_dev->membase = of_iomap(np, 0);
-	if (!i2c_dev->membase)
-		return -EADDRNOTAVAIL;
-
-	sunxi_i2c_write(i2c_dev, SUNXI_I2C_SRST_REG, SUNXI_I2C_SRST_RESET);
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	i2c_dev->membase = devm_ioremap_resource(&pdev->dev, res);
+	if (IS_ERR(i2c_dev->membase))
+		return PTR_ERR(i2c_dev->membase);
 
 	i2c_dev->clk = devm_clk_get(&pdev->dev, NULL);
-	if (IS_ERR(i2c_dev->clk)) {
-		ret = PTR_ERR(i2c_dev->clk);
-		goto out_iounmap;
-	}
+	if (IS_ERR(i2c_dev->clk))
+		return PTR_ERR(i2c_dev->clk);
+
 	clk_prepare_enable(i2c_dev->clk);
+
+	sunxi_i2c_write(i2c_dev, SUNXI_I2C_SRST_REG, SUNXI_I2C_SRST_RESET);
 
 	ret = of_property_read_u32(np, "clock-frequency", &freq);
 	if (ret < 0) {
@@ -367,10 +373,10 @@ static int sunxi_i2c_probe(struct platform_device *pdev)
 	sunxi_i2c_write(i2c_dev, SUNXI_I2C_CCR_REG,
 			SUNXI_I2C_CCR_DIV_N(div_n) | SUNXI_I2C_CCR_DIV_M(div_m));
 
-	i2c_dev->irq = irq_of_parse_and_map(np, 0);
-	if (!i2c_dev->irq) {
+	i2c_dev->irq = platform_get_irq(pdev, 0);
+	if (i2c_dev->irq < 0) {
 		dev_err(&pdev->dev, "No IRQ resource\n");
-		ret = -ENODEV;
+		ret = i2c_dev->irq;
 		goto out_clk_dis;
 	}
 
@@ -402,8 +408,6 @@ static int sunxi_i2c_probe(struct platform_device *pdev)
 
 out_clk_dis:
 	clk_disable_unprepare(i2c_dev->clk);
-out_iounmap:
-	iounmap(i2c_dev->membase);
 	return ret;
 }
 
@@ -414,7 +418,6 @@ static int sunxi_i2c_remove(struct platform_device *pdev)
 
 	i2c_del_adapter(&i2c_dev->adapter);
 	clk_disable_unprepare(i2c_dev->clk);
-	iounmap(i2c_dev->membase);
 
 	return 0;
 }

@@ -13,7 +13,7 @@ config NET_VENDOR_ALLWINNER
 
 	 Note that the answer to this question doesn't directly
 	 affect the kernel: saying N will just cause the configurator
-	 to skip all the questions about Davicom cards. If you say Y,
+	 to skip all the questions about Allwinner cards. If you say Y,
 	 you will be asked for your specific card in the following
 	 questions.
 
@@ -26,20 +26,11 @@ config SUN4I_EMAC
 	select CRC32
 	select NET_CORE
 	select MII
-	select REGULATOR
-	select REGULATOR_FIXED_VOLTAGE
 	select PHYLIB
         ---help---
           Support for Allwinner A10 EMAC ethernet driver.
 
           To compile this driver as a module, choose M here.  The module
           will be called sun4i-emac.
-
-config SUN4I_MDIO
-	tristate "Allwinner sun4i MDIO interface support"
-	---help---
-	  This driver supports the MDIO interface found in the network
-	  interface units of the Allwinner SoC that have an EMAC (A10,
-	  A12, A10s, etc.)
 
 endif # NET_VENDOR_ALLWINNER
