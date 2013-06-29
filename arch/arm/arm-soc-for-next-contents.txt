@@ -38,6 +38,8 @@ next/fixes-non-critical
 		ARM: mxs: don't select HAVE_PWM
 		ARM: mxs: stub out mxs_pm_init for !CONFIG_PM
 		cpuidle: calxeda: select ARM_CPU_SUSPEND
+	at91/fixes2
+		git://github.com/at91linux/linux-at91.git tags/at91-fixes
 
 next/cleanup
 	at91/cleanup
@@ -165,6 +167,8 @@ i	sunxi/defconfig
 		ARM: dts: Add pcie controller node for Samsung EXYNOS5440 SoC
 		ARM: EXYNOS: Enable PCIe support for Exynos5440
 		pci: Add PCIe driver for Samsung Exynos
+		ARM: integrator: let pciv3 use mem/premem from device tree
+		ARM: integrator: set local side PCI addresses right
 
 next/boards
 	mvebu/boards
@@ -327,8 +331,15 @@ next/late
 		ARM: sti: Add DEBUG_LL console support
 		ARM: stih41x: Add B2000 board support
 		ARM: stih41x: Add B2020 board support
-	ptches
+	rensas/sh-sci
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-sh-sci-for-v3.11
+	patches
 		ARM: ux500: bail out on alien cpus
+	davinci/dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/nsekhar/linux-davinci davinci-for-v3.11/dt
+	msm/clock
+		git://git.kernel.org/pub/scm/linux/kernel/git/davidb/linux-msm.git tags/msm-clock-for-3.11b
+		based on msm/fixes to avoid conflict
 
 PATCH DIRECTLY ON for-next:
 	ARM: Make multi_v7_defconfig usable on hardware
