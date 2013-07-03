@@ -427,7 +427,6 @@ static void qh_lines (
 {
 	u32			scratch;
 	u32			hw_curr;
-	struct list_head	*entry;
 	struct fusbh200_qtd		*td;
 	unsigned		temp;
 	unsigned		size = *sizep;
@@ -464,8 +463,7 @@ static void qh_lines (
 	next += temp;
 
 	/* hc may be modifying the list as we read it ... */
-	list_for_each (entry, &qh->qtd_list) {
-		td = list_entry (entry, struct fusbh200_qtd, qtd_list);
+	list_for_each_entry(td, &qh->qtd_list, qtd_list) {
 		scratch = hc32_to_cpup(fusbh200, &td->hw_token);
 		mark = ' ';
 		if (hw_curr == td->qtd_dma)
@@ -5784,13 +5782,13 @@ static void fusbh200_init(struct fusbh200_hcd *fusbh200)
 }
 
 /**
- * fusbh200_hcd_fusbh200_probe - initialize faraday FUSBH200 HCDs
+ * fusbh200_hcd_probe - initialize faraday FUSBH200 HCDs
  *
  * Allocates basic resources for this USB host controller, and
  * then invokes the start() method for the HCD associated with it
  * through the hotplug entry's driver_data.
  */
-static int fusbh200_hcd_fusbh200_probe(struct platform_device *pdev)
+static int fusbh200_hcd_probe(struct platform_device *pdev)
 {
 	struct device			*dev = &pdev->dev;
 	struct usb_hcd 			*hcd;
@@ -5864,7 +5862,7 @@ static int fusbh200_hcd_fusbh200_probe(struct platform_device *pdev)
 
 	retval = fusbh200_setup(hcd);
 	if (retval)
-		return retval;
+		goto fail_add_hcd;
 
 	fusbh200_init(fusbh200);
 
@@ -5888,14 +5886,14 @@ fail_create_hcd:
 }
 
 /**
- * fusbh200_hcd_fusbh200_remove - shutdown processing for EHCI HCDs
+ * fusbh200_hcd_remove - shutdown processing for EHCI HCDs
  * @dev: USB Host Controller being removed
  *
  * Reverses the effect of fotg2xx_usb_hcd_probe(), first invoking
  * the HCD's stop() method.  It is always called from a thread
  * context, normally "rmmod", "apmd", or something similar.
  */
-static int fusbh200_hcd_fusbh200_remove(struct platform_device *pdev)
+static int fusbh200_hcd_remove(struct platform_device *pdev)
 {
 	struct device *dev	= &pdev->dev;
 	struct usb_hcd *hcd	= dev_get_drvdata(dev);
@@ -5915,8 +5913,8 @@ static struct platform_driver fusbh200_hcd_fusbh200_driver = {
 	.driver = {
 		.name   = "fusbh200",
 	},
-	.probe  = fusbh200_hcd_fusbh200_probe,
-	.remove = fusbh200_hcd_fusbh200_remove,
+	.probe  = fusbh200_hcd_probe,
+	.remove = fusbh200_hcd_remove,
 };
 
 static int __init fusbh200_hcd_init(void)

@@ -1006,12 +1006,11 @@ static int xuartps_probe(struct platform_device *pdev)
 		port->dev = &pdev->dev;
 		port->uartclk = clk_get_rate(xuartps_data->refclk);
 		port->private_data = xuartps_data;
-		dev_set_drvdata(&pdev->dev, port);
+		platform_set_drvdata(pdev, port);
 		rc = uart_add_one_port(&xuartps_uart_driver, port);
 		if (rc) {
 			dev_err(&pdev->dev,
 				"uart_add_one_port() failed; err=%i\n", rc);
-			dev_set_drvdata(&pdev->dev, NULL);
 			goto err_out_clk_disable;
 		}
 		return 0;
@@ -1039,13 +1038,12 @@ err_out_free:
  **/
 static int xuartps_remove(struct platform_device *pdev)
 {
-	struct uart_port *port = dev_get_drvdata(&pdev->dev);
+	struct uart_port *port = platform_get_drvdata(pdev);
 	struct xuartps *xuartps_data = port->private_data;
 	int rc;
 
 	/* Remove the xuartps port from the serial core */
 	rc = uart_remove_one_port(&xuartps_uart_driver, port);
-	dev_set_drvdata(&pdev->dev, NULL);
 	port->mapbase = 0;
 	clk_disable_unprepare(xuartps_data->refclk);
 	clk_disable_unprepare(xuartps_data->aperclk);
@@ -1053,34 +1051,6 @@ static int xuartps_remove(struct platform_device *pdev)
 	clk_put(xuartps_data->aperclk);
 	kfree(xuartps_data);
 	return rc;
-}
-
-/**
- * xuartps_suspend - suspend event
- * @pdev: Pointer to the platform device structure
- * @state: State of the device
- *
- * Returns 0
- **/
-static int xuartps_suspend(struct platform_device *pdev, pm_message_t state)
-{
-	/* Call the API provided in serial_core.c file which handles
-	 * the suspend.
-	 */
-	uart_suspend_port(&xuartps_uart_driver, &xuartps_port[pdev->id]);
-	return 0;
-}
-
-/**
- * xuartps_resume - Resume after a previous suspend
- * @pdev: Pointer to the platform device structure
- *
- * Returns 0
- **/
-static int xuartps_resume(struct platform_device *pdev)
-{
-	uart_resume_port(&xuartps_uart_driver, &xuartps_port[pdev->id]);
-	return 0;
 }
 
 /* Match table for of_platform binding */
@@ -1093,8 +1063,6 @@ MODULE_DEVICE_TABLE(of, xuartps_of_match);
 static struct platform_driver xuartps_platform_driver = {
 	.probe   = xuartps_probe,		/* Probe method */
 	.remove  = xuartps_remove,		/* Detach method */
-	.suspend = xuartps_suspend,		/* Suspend */
-	.resume  = xuartps_resume,		/* Resume after a suspend */
 	.driver  = {
 		.owner = THIS_MODULE,
 		.name = XUARTPS_NAME,		/* Driver name */

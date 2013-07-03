@@ -1000,9 +1000,6 @@ static struct omap_clk am33xx_clks[] = {
 	CLK(NULL,	"clkout2_div_ck",	&clkout2_div_ck),
 	CLK(NULL,	"timer_32k_ck",		&clkdiv32k_ick),
 	CLK(NULL,	"timer_sys_ck",		&sys_clkin_ck),
-	CLK("48300200.ehrpwm",	"tbclk",	&ehrpwm0_tbclk),
-	CLK("48302200.ehrpwm",	"tbclk",	&ehrpwm1_tbclk),
-	CLK("48304200.ehrpwm",	"tbclk",	&ehrpwm2_tbclk),
 	CLK(NULL,	"dbg_sysclk_ck",	&dbg_sysclk_ck),
 	CLK(NULL,	"dbg_clka_ck",		&dbg_clka_ck),
 	CLK(NULL,	"stm_pmd_clock_mux_ck",	&stm_pmd_clock_mux_ck),
@@ -1010,6 +1007,9 @@ static struct omap_clk am33xx_clks[] = {
 	CLK(NULL,	"stm_clk_div_ck",	&stm_clk_div_ck),
 	CLK(NULL,	"trace_clk_div_ck",	&trace_clk_div_ck),
 	CLK(NULL,	"clkout2_ck",		&clkout2_ck),
+	CLK("48300200.ehrpwm",	"tbclk",	&ehrpwm0_tbclk),
+	CLK("48302200.ehrpwm",	"tbclk",	&ehrpwm1_tbclk),
+	CLK("48304200.ehrpwm",	"tbclk",	&ehrpwm2_tbclk),
 };
 
 

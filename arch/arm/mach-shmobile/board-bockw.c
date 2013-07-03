@@ -76,6 +76,7 @@ static struct resource smsc911x_resources[] = {
 	DEFINE_RES_IRQ(irq_pin(0)), /* IRQ 0 */
 };
 
+/* USB */
 static struct rcar_phy_platform_data usb_phy_platform_data __initdata;
 
 /* SDHI */
@@ -159,8 +160,7 @@ static const struct pinctrl_map bockw_pinctrl_map[] = {
 				  "scif0_data_a", "scif0"),
 	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.0", "pfc-r8a7778",
 				  "scif0_ctrl", "scif0"),
-
-	/* EHCI */
+	/* USB */
 	PIN_MAP_MUX_GROUP_DEFAULT("ehci-platform", "pfc-r8a7778",
 				  "usb0", "usb0"),
 	PIN_MAP_MUX_GROUP_DEFAULT("ehci-platform", "pfc-r8a7778",
@@ -182,7 +182,6 @@ static void __init bockw_init(void)
 	r8a7778_init_irq_extpin(1);
 	r8a7778_add_standard_devices();
 	r8a7778_add_usb_phy_device(&usb_phy_platform_data);
-
 	r8a7778_add_ether_device(&ether_platform_data);
 	r8a7778_add_i2c_device(0);
 	r8a7778_add_hspi_device(0);

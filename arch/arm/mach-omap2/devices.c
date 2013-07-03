@@ -20,9 +20,8 @@
 #include <linux/of.h>
 #include <linux/pinctrl/machine.h>
 #include <linux/platform_data/omap4-keypad.h>
-#include <linux/platform_data/mailbox-omap.h>
-#include <linux/usb/omap_control_usb.h>
 #include <linux/wl12xx.h>
+#include <linux/platform_data/mailbox-omap.h>
 
 #include <asm/mach-types.h>
 #include <asm/mach/map.h>
