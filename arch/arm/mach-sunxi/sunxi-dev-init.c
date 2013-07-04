@@ -151,4 +151,4 @@ static int __init sunxi_dev_init(void)
 	return 0;
 }
 
-module_init(sunxi_dev_init);
+late_initcall(sunxi_dev_init);
