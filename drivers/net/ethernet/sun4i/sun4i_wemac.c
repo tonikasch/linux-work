@@ -37,12 +37,14 @@
 #include <linux/ctype.h>
 #include <linux/delay.h>
 #include <linux/io.h>
+#include <linux/workqueue.h>
 
 #include <asm/cacheflush.h>
 #include <asm/irq.h>
 
 #include <plat/dma.h>
 #include <plat/sys_config.h>
+#include <plat/system.h>
 #include <mach/clock.h>
 
 #include "sun4i_wemac.h"
@@ -54,9 +56,13 @@
 #define DRV_VERSION	"1.01"
 #define DMA_CPU_TRRESHOLD 2000
 #define TOLOWER(x) ((x) | 0x20)
+/* bit_flags */
+#define EMAC_TX_TIMEOUT_PENDING		0
+
 /*
  * Transmit timeout, default 5 seconds.
  */
+static int emac_used;
 static int watchdog = 5000;
 static unsigned char mac_addr[6] = {0x00};
 static char *mac_addr_param = ":";
@@ -105,6 +111,7 @@ typedef struct wemac_board_info {
 	unsigned int	flags;
 	unsigned int	in_suspend:1;
 	int		debug_level;
+	unsigned long	bit_flags;
 
 	void (*inblk)(void __iomem *port, void *data, int length);
 	void (*outblk)(void __iomem *port, void *data, int length);
@@ -127,6 +134,7 @@ typedef struct wemac_board_info {
 	struct mutex	 addr_lock;	/* phy and eeprom access lock */
 
 	struct delayed_work phy_poll;
+	struct work_struct  tx_timeout_work;
 	struct net_device  *ndev;
 
 	spinlock_t	lock;
@@ -426,10 +434,10 @@ static u32 wemac_get_link(struct net_device *dev)
 	wemac_board_info_t *dm = to_wemac_board(dev);
 	u32 ret;
 
-	if (dm->flags & WEMAC_PLATF_EXT_PHY)
+/*	if (dm->flags & WEMAC_PLATF_EXT_PHY) */
 		ret = mii_link_ok(&dm->mii);
-	else
-		ret = wemac_phy_read(dev, 0, 1)  & 0x04 ? 1 : 0;
+/*	else
+		ret = wemac_phy_read(dev, 0, 1)  & 0x04 ? 1 : 0; */
 
 	return ret;
 }
@@ -529,36 +537,55 @@ unsigned int phy_link_check(struct net_device *dev)
 	}
 }
 
+static void emac_gpio_pin_function(wemac_board_info_t *db, int cfg0, int pin,
+	int func, int set)
+{
+	unsigned int orig, val, mask;
+
+	orig = val = readl(db->gpio_vbase + cfg0 + (pin / 8) * 4);
+
+	mask =    7 << ((pin & 7) * 4);
+	func = func << ((pin & 7) * 4);
+
+	if (set) {
+		val &= ~mask;
+		val |= func;
+	} else {
+		/* Only clear if the current function is emac */
+		if ((val & mask) == func)
+			val &= ~mask; /* Set as input gpio pin */
+	}
+	if (val != orig)
+		writel(val, db->gpio_vbase + cfg0 + (pin / 8) * 4);
+}
+
 void emac_sys_setup(wemac_board_info_t *db)
 {
 	struct clk *tmpClk;
 	unsigned int reg_val;
+	int i;
 
 	/*  map SRAM to EMAC  */
 	reg_val = readl(db->sram_vbase + SRAMC_CFG_REG);
 	reg_val |= 0x5<<2;
 	writel(reg_val, db->sram_vbase + SRAMC_CFG_REG);
 
-#ifdef EMAC_MAP1
+	/* Set function for PA, if emac_used == 1 configure PA for emac, else
+	   make sure it is *not* set for emac */
+	for (i = 0; i <= 17; i++)
+		emac_gpio_pin_function(db, PA_CFG0_REG, i, 2, emac_used == 1);
 
-	/*  PA0~PA7  */
-	reg_val = readl(db->gpio_vbase + PA_CFG0_REG);
-	reg_val &= 0xAAAAAAAA;
-	reg_val |= 0x22222222;
-	writel(reg_val, db->gpio_vbase + PA_CFG0_REG);
-
-	/*  PA8~PA15  */
-	reg_val = readl(db->gpio_vbase + PA_CFG1_REG);
-	reg_val &= 0xAAAAAAAA;
-	reg_val |= 0x22222222;
-	writel(reg_val, db->gpio_vbase + PA_CFG1_REG);
-
-	/*  PA16~PA17  */
-	reg_val = readl(db->gpio_vbase + PA_CFG2_REG);
-	reg_val &= 0xffffffAA;
-	reg_val |= 0x00000022;
-	writel(reg_val, db->gpio_vbase + PA_CFG2_REG);
-#endif
+	/* On sun5i PD can be used instead, in this case emac_used == 2 */
+	if (sunxi_is_sun5i()) {
+		emac_gpio_pin_function(db, PD_CFG0_REG, 6, 3, emac_used == 2);
+		emac_gpio_pin_function(db, PD_CFG0_REG, 7, 3, emac_used == 2);
+		for (i = 10; i <= 15; i++)
+			emac_gpio_pin_function(db, PD_CFG0_REG, i, 3,
+					       emac_used == 2);
+		for (i = 18; i <= 27; i++)
+			emac_gpio_pin_function(db, PD_CFG0_REG, i, 3,
+					       emac_used == 2);
+	}
 
 	/*  set up clock gating  */
 	tmpClk = clk_get(NULL, "ahb_emac");
@@ -830,11 +857,19 @@ unsigned int emac_setup(struct net_device *ndev)
 	return 1;
 }
 
+static void wemac_set_mac_addr(wemac_board_info_t *db, unsigned char *buf)
+{
+	writel(buf[0] << 16 | buf[1] << 8 | buf[2],
+	       db->emac_vbase + EMAC_MAC_A1_REG);
+	writel(buf[3] << 16 | buf[4] << 8 | buf[5],
+	       db->emac_vbase + EMAC_MAC_A0_REG);
+}
+
 unsigned int wemac_powerup(struct net_device *ndev)
 {
 	wemac_board_info_t *db = netdev_priv(ndev);
 	char emac_mac[13] = {'\0'};
-	int i;
+	int i, got_mac = 0;
 	unsigned int reg_val;
 
 	/* initial EMAC */
@@ -875,21 +910,46 @@ unsigned int wemac_powerup(struct net_device *ndev)
 
 		for (i = 0; i < 6; i++, p++)
 			mac_addr[i] = simple_strtoul(p, &p, 16);
-	} else if (SCRIPT_PARSER_OK != script_parser_fetch("dynamic", "MAC", (int *)emac_mac, 3)) {
-		printk(KERN_WARNING "emac MAC isn't valid!\n");
-	} else {
-		emac_mac[12] = '\0';
+
+		pr_info("%s Using MAC from kernel cmdline: "
+			"%02x:%02x:%02x:%02x:%02x:%02x", CARDNAME,
+			mac_addr[0], mac_addr[1], mac_addr[2],
+			mac_addr[3], mac_addr[4], mac_addr[5]);
+		got_mac = 1;
+	}
+
+	i = script_parser_fetch("dynamic", "MAC", (int *)emac_mac, 3);
+	emac_mac[12] = '\0';
+	if (!got_mac &&	i == SCRIPT_PARSER_OK &&
+			strcmp(emac_mac, "000000000000") != 0) {
 		for (i = 0; i < 6; i++) {
 			char emac_tmp[3] = ":::";
 			memcpy(emac_tmp, (char *)(emac_mac+i*2), 2);
 			emac_tmp[2] = ':';
 			mac_addr[i] = simple_strtoul(emac_tmp, NULL, 16);
 		}
+		pr_info("%s Using MAC from FEX: %02x:%02x:%02x:%02x:%02x:%02x",
+			CARDNAME, mac_addr[0], mac_addr[1], mac_addr[2],
+			mac_addr[3], mac_addr[4], mac_addr[5]);
+		got_mac = 1;
 	}
-	writel(mac_addr[0]<<16 | mac_addr[1]<<8 | mac_addr[2],
-			db->emac_vbase + EMAC_MAC_A1_REG);
-	writel(mac_addr[3]<<16 | mac_addr[4]<<8 | mac_addr[5],
-			db->emac_vbase + EMAC_MAC_A0_REG);
+
+	if (!got_mac) {
+		mac_addr[0] = 0x02; /* Non OUI / registered MAC address */
+		reg_val = readl(SW_VA_SID_IO_BASE);
+		mac_addr[1] = (reg_val >>  0) & 0xff;
+		reg_val = readl(SW_VA_SID_IO_BASE + 0x0c);
+		mac_addr[2] = (reg_val >> 24) & 0xff;
+		mac_addr[3] = (reg_val >> 16) & 0xff;
+		mac_addr[4] = (reg_val >>  8) & 0xff;
+		mac_addr[5] = (reg_val >>  0) & 0xff;
+		pr_info("%s Using MAC from SID: 02:%02x:%02x:%02x:%02x:%02x",
+			CARDNAME, mac_addr[1], mac_addr[2], mac_addr[3],
+			mac_addr[4], mac_addr[5]);
+		got_mac = 1;
+	}
+
+	wemac_set_mac_addr(db, mac_addr);
 
 	mdelay(1);
 
@@ -1035,11 +1095,7 @@ static void read_random_macaddr(unsigned char *mac, struct net_device *ndev)
 	buf[0] |= 0x02;		/*  the 47bit must set 1  */
 
 	/*  we write the random number into chip  */
-	writel(buf[0]<<16 | buf[1]<<8 | buf[2],
-			db->emac_vbase + EMAC_MAC_A1_REG);
-	writel(buf[3]<<16 | buf[4]<<8 | buf[5],
-			db->emac_vbase + EMAC_MAC_A0_REG);
-
+	wemac_set_mac_addr(db, buf);
 }
 
 static int wemac_set_mac_address(struct net_device *dev, void *p)
@@ -1057,11 +1113,7 @@ static int wemac_set_mac_address(struct net_device *dev, void *p)
 	}
 
 	memcpy(dev->dev_addr, addr->sa_data, ETH_ALEN);
-
-	writel(dev->dev_addr[0]<<16 | dev->dev_addr[1]<<8 | dev->dev_addr[2],
-			db->emac_vbase + EMAC_MAC_A1_REG);
-	writel(dev->dev_addr[3]<<16 | dev->dev_addr[4]<<8 | dev->dev_addr[5],
-			db->emac_vbase + EMAC_MAC_A0_REG);
+	wemac_set_mac_addr(db, dev->dev_addr);
 
 	return 0;
 }
@@ -1079,6 +1131,9 @@ wemac_init_wemac(struct net_device *dev)
 	if (db->mos_pin_handler) {
 		db->mos_gpio->data = 1;
 		gpio_set_one_pin_status(db->mos_pin_handler, db->mos_gpio, "emac_power", 1);
+		/* Give the phy some time to "boot", this is necessary to avoid
+		   ending up with 10 Mbit half-duplex on 100 Mbit networks */
+		msleep(20);
 	}
 
 	/* PHY POWER UP */
@@ -1126,23 +1181,29 @@ wemac_init_wemac(struct net_device *dev)
 static void wemac_timeout(struct net_device *dev)
 {
 	wemac_board_info_t *db = netdev_priv(dev);
-	unsigned long flags;
+
+	/* init_wemac uses phy_r/w which can sleep, so use a work_queue */
+	if (!test_and_set_bit(EMAC_TX_TIMEOUT_PENDING, &db->bit_flags)) {
+		netif_stop_queue(dev);
+		schedule_work(&db->tx_timeout_work);
+	}
+}
+
+/* The real tx timeout handle work is done here, where we can sleep */
+static void wemac_timeout_work(struct work_struct *work)
+{
+	wemac_board_info_t *db =
+		container_of(work, wemac_board_info_t, tx_timeout_work);
 
 	if (netif_msg_timer(db))
-		dev_err(db->dev, "tx time out.\n");
+		dev_err(db->dev, "tx time out, resetting emac\n");
 
-	/* Save previous register address */
-	spin_lock_irqsave(&db->lock, flags);
-
-	netif_stop_queue(dev);
 	wemac_reset(db);
-	wemac_init_wemac(dev);
+	wemac_init_wemac(db->ndev);
 	/* We can accept TX packets again */
-	dev->trans_start = jiffies;
-	netif_wake_queue(dev);
-
-	/* Restore previous register address */
-	spin_unlock_irqrestore(&db->lock, flags);
+	db->ndev->trans_start = jiffies;
+	netif_wake_queue(db->ndev);
+	clear_bit(EMAC_TX_TIMEOUT_PENDING, &db->bit_flags);
 }
 
 #define PINGPANG_BUF 1
@@ -1722,6 +1783,7 @@ static int __devinit wemac_probe(struct platform_device *pdev)
 	mutex_init(&db->addr_lock);
 
 	INIT_DELAYED_WORK(&db->phy_poll, wemac_poll_work);
+	INIT_WORK(&db->tx_timeout_work, wemac_timeout_work);
 
 	db->emac_base_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	db->sram_base_res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
@@ -2038,8 +2100,6 @@ static struct platform_driver wemac_driver = {
 
 static int __init wemac_init(void)
 {
-	int emac_used = 0;
-
 	if (SCRIPT_PARSER_OK != script_parser_fetch("emac_para", "emac_used", &emac_used, 1))
 		printk(KERN_WARNING "emac_init fetch emac using configuration failed\n");
 
@@ -2048,7 +2108,18 @@ static int __init wemac_init(void)
 		return 0;
 	}
 
+	if (emac_used != 1 && emac_used != 2) {
+		pr_err("Error invalid value for emac_used: %d\n", emac_used);
+		return -ENODEV;
+	}
+
+	if (emac_used == 2 && !sunxi_is_sun5i()) {
+		pr_err("Error emac_used = 2 is only supported on sun5i\n");
+		return -ENODEV;
+	}
+
 	printk(KERN_INFO "%s Ethernet Driver, V%s in file:%s\n", CARDNAME, DRV_VERSION, __FILE__);
+	pr_info("%s Using mii phy on Port%c\n", CARDNAME, 'A' + emac_used - 1);
 
 	platform_device_register(&wemac_device);
 	return platform_driver_register(&wemac_driver);

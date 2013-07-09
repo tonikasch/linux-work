@@ -99,38 +99,4 @@ struct sunxi_gpio_chip {
 	writel(reg_val, raddr); \
 })
 
-/* SUN4I platform defines ----------------------------- */
-#ifdef CONFIG_ARCH_SUN4I
-#define GPIO_IRQ_NO SW_INT_IRQNO_PIO
-#define EINT_NUM 32
-
-/* Pins that can be used as interrupt source  */
-/* PH0 - PH21, PI10 - PI19 (all in mux6 mode) */
-/* A-0 B-1 C-2 D-3 E-4 F-5 G-6 H-7 I-8 S-9    */
-static struct gpio_eint_data gpio_eint_list[] = {
-		{7,  0, 6, -1}, {7,  1, 6, -1}, {7,  2, 6, -1}, {7,  3, 6, -1},
-		{7,  4, 6, -1}, {7,  5, 6, -1}, {7,  6, 6, -1}, {7,  7, 6, -1},
-		{7,  8, 6, -1}, {7,  9, 6, -1}, {7, 10, 6, -1}, {7, 11, 6, -1},
-		{7, 12, 6, -1}, {7, 13, 6, -1}, {7, 14, 6, -1}, {7, 15, 6, -1},
-		{7, 16, 6, -1}, {7, 17, 6, -1}, {7, 18, 6, -1}, {7, 19, 6, -1},
-		{7, 20, 6, -1}, {7, 21, 6, -1},
-		{8, 10, 6, -1}, {8, 11, 6, -1}, {8, 12, 6, -1}, {8, 13, 6, -1},
-		{8, 14, 6, -1}, {8, 15, 6, -1}, {8, 16, 6, -1}, {8, 17, 6, -1},
-		{8, 18, 6, -1}, {8, 19, 6, -1},
-
-		{-1, -1, -1, -1},
-};
-
-#else
-/* SUNxI platform defines ----------------------------- */
-#define GPIO_IRQ_NO -1
-#define EINT_NUM -1
-
-/* Empty list for other platforms - no eint support yet */
-static struct gpio_eint_data gpio_eint_list[] = {
-		{-1, -1, -1, -1},
-};
-
-#endif
-
 #endif /* __GPIO_SUNXI_H__ */

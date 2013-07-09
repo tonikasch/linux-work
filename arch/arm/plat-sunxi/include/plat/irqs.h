@@ -21,9 +21,12 @@
  * MA 02111-1307 USA
  */
 
-#ifndef __SW_IRQS_H
-#define __SW_IRQS_H
+#ifndef __PLAT_IRQS_H
+#define __PLAT_IRQS_H
 
+#ifndef __MACH_IRQS_H__
+#error plat/irqs.h may only be included from arch/irqs.h
+#endif
 
 #include <mach/platform.h>
 
@@ -77,9 +80,9 @@
 #define SW_INT_IRQNO_MEMSTICK           36
 #define SW_INT_IRQNO_NAND               37
 
-#define SW_INTC_IRQNO_USB0              38
-#define SW_INTC_IRQNO_USB1              39
-#define SW_INTC_IRQNO_USB2              40
+#define SW_INT_IRQNO_USB0		38
+#define SW_INT_IRQNO_USB1		39
+#define SW_INT_IRQNO_USB2		40
 #define SW_INTC_IRQNO_SCR               41
 #define SW_INTC_IRQNO_CSI0              42
 #define SW_INTC_IRQNO_CSI1              43
@@ -126,6 +129,10 @@
 #define SW_INT_IRQNO_SYNC_TIMER0	82
 #define SW_INT_IRQNO_SYNC_TIMER1	83
 #endif
+
+/* sun7i only */
+#define SW_INT_IRQNO_TWI3		88
+#define SW_INT_IRQNO_TWI4		89
 
 #define SW_INT_END		                  95
 

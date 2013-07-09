@@ -75,8 +75,7 @@ obj-$(CONFIG_USB)		+= usb/
 obj-$(CONFIG_PCI)		+= usb/
 obj-$(CONFIG_USB_GADGET)	+= usb/
 obj-$(CONFIG_USB_SW_SUN3I_USB) += usb/sun3i_usb/
-obj-$(CONFIG_USB_SW_SUN4I_USB) += usb/sun4i_usb/
-obj-$(CONFIG_USB_SW_SUN5I_USB) += usb/sun5i_usb/
+obj-$(CONFIG_USB_SW_SUNXI_USB) += usb/sunxi_usb/
 obj-$(CONFIG_SERIO)		+= input/serio/
 obj-$(CONFIG_GAMEPORT)		+= input/gameport/
 obj-$(CONFIG_INPUT)		+= input/
@@ -126,7 +125,7 @@ obj-$(CONFIG_STAGING)		+= staging/
 obj-y				+= platform/
 obj-y				+= ieee802154/
 #common clk code
-#obj-y				+= clk/
+obj-y				+= clk/
 
 obj-$(CONFIG_HWSPINLOCK)	+= hwspinlock/
 obj-$(CONFIG_NFC)		+= nfc/
