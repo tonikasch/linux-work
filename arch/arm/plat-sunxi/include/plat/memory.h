@@ -30,29 +30,4 @@
 /* default ATAG_MEM size */
 #define MEM_SIZE	(512*1024*1024)
 
-#ifdef CONFIG_ARCH_SUN5I
-
-#define SW_VE_MEM_BASE                    (PLAT_PHYS_OFFSET + SZ_64M)
-#define SW_VE_MEM_SIZE                    (SZ_64M)
-#define SW_FB_MEM_BASE                    (SW_VE_MEM_BASE + SW_VE_MEM_SIZE)
-#define SW_FB_MEM_SIZE                    (SZ_16M)
-#define SW_GPU_MEM_BASE                   (SW_FB_MEM_BASE + SW_FB_MEM_SIZE)
-#define SW_GPU_MEM_SIZE                   (SZ_64M)
-#define SW_BANK1_SIZE                     (SZ_64M + SW_VE_MEM_SIZE + SW_FB_MEM_SIZE)
-#define SW_BANK2_OFFSET                   (SW_BANK1_SIZE + SW_GPU_MEM_SIZE)
-
-#if 0
-#error "fixme"
-#define SW_VE_MEM_BASE                    (PLAT_PHYS_OFFSET + SZ_64M)
-#define SW_VE_MEM_SIZE                    (SZ_64M + SZ_16M)
-#define SW_FB_MEM_BASE                    (SW_VE_MEM + SW_MEM_VE_SIZE)
-#define SW_FB_MEM_SIZE                    (SZ_32M)
-#define SW_GPU_MEM_BASE                   (SW_FB_MEM_BASE + SW_FB_MEM_SIZE)
-#define SW_GPU_MEM_SIZE                   (SZ_64M)
-#define SW_G2D_MEM_BASE
-#define SW_G2D_MEM_SIZE                   0x1000000
-#endif
-
-#endif
-
 #endif

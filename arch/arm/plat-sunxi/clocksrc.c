@@ -24,6 +24,7 @@
 #include <mach/clock.h>
 #include <mach/hardware.h>
 #include <mach/platform.h>
+#include <plat/system.h>
 #include <linux/export.h>
 #include <linux/init.h>
 #include <linux/clocksource.h>
@@ -45,16 +46,17 @@
     #define CLKSRC_ERR(...)
 #endif
 
-#ifdef CONFIG_HIGH_RES_TIMERS
+static DEFINE_SPINLOCK(clksrc_lock);
+static spinlock_t tmr_spin_lock[2];
+static const int tmr_div[2] = { SYS_TIMER_SCAL, 1 };
+
 static irqreturn_t aw_clkevt_irq(int irq, void *handle);
-static spinlock_t timer1_spin_lock;
 static void aw_set_clkevt_mode(enum clock_event_mode mode, struct clock_event_device *dev);
 static int aw_set_next_clkevt(unsigned long delta, struct clock_event_device *dev);
-#endif
 
 static struct clocksource aw_clocksrc =
 {
-    .name = "aw 64bits couter",
+    .name = "aw_64bits_counter",
     .list = {NULL, NULL},
     .rating = 300,                  /* perfect clock source             */
     .read = aw_clksrc_read,         /* read clock counter               */
@@ -67,10 +69,28 @@ static struct clocksource aw_clocksrc =
     .flags = CLOCK_SOURCE_IS_CONTINUOUS,
 };
 
+static struct clock_event_device timer0_clockevent = {
+	.name = "timer0",
+	.shift = 32,
+	.rating = 100,
+	.features = CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_ONESHOT,
+	.set_mode = aw_set_clkevt_mode,
+	.set_next_event = aw_set_next_clkevt,
+	.irq = SW_INT_IRQNO_TIMER0,
+};
+
+static struct irqaction sw_timer_irq = {
+	.name = "timer0",
+	.flags = IRQF_DISABLED | IRQF_TIMER | IRQF_IRQPOLL,
+	.handler = aw_clkevt_irq,
+	.dev_id = &timer0_clockevent,
+	.irq = SW_INT_IRQNO_TIMER0,
+};
+
 #ifdef CONFIG_HIGH_RES_TIMERS
 static struct clock_event_device aw_clock_event =
 {
-    .name = "aw clock event device",
+    .name = "aw_clock_event",
     .features = CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_ONESHOT,
     .max_delta_ns = 100000000000ULL,
     .min_delta_ns = (1000000000 + AW_HPET_CLOCK_EVENT_HZ - 1) / AW_HPET_CLOCK_EVENT_HZ,
@@ -88,7 +108,7 @@ static struct irqaction aw_clkevt_irqact =
 {
     .handler = aw_clkevt_irq,
     .flags = IRQF_TIMER | IRQF_DISABLED,
-    .name = "aw clock event irq",
+    .name = "aw_clock_event",
     .dev_id = &aw_clock_event,
     .irq = SW_INT_IRQNO_TIMER1,
 };
@@ -114,8 +134,7 @@ cycle_t aw_clksrc_read(struct clocksource *cs)
     unsigned long   flags;
     __u32           lower, upper;
 
-    /* disable interrupt response */
-    raw_local_irq_save(flags);
+	spin_lock_irqsave(&clksrc_lock, flags);
 
     /* latch 64bit counter and wait ready for read */
     TMR_REG_CNT64_CTL |= (1<<1);
@@ -125,12 +144,29 @@ cycle_t aw_clksrc_read(struct clocksource *cs)
     lower = TMR_REG_CNT64_LO;
     upper = TMR_REG_CNT64_HI;
 
-    /* restore interrupt response */
-    raw_local_irq_restore(flags);
+	spin_unlock_irqrestore(&clksrc_lock, flags);
 
     return (((__u64)upper)<<32) | lower;
 }
 EXPORT_SYMBOL(aw_clksrc_read);
+
+u32 aw_sched_clock_read(void)
+{
+	u32 lower;
+	unsigned long flags;
+
+	spin_lock_irqsave(&clksrc_lock, flags);
+
+	/* latch 64bit counter and wait ready for read */
+	TMR_REG_CNT64_CTL |= (1 << 1);
+	while (TMR_REG_CNT64_CTL & (1 << 1)) {}
+
+	/* read the low 32bits counter */
+	lower = TMR_REG_CNT64_LO;
+	spin_unlock_irqrestore(&clksrc_lock, flags);
+
+	return lower;
+}
 
 /*
 *********************************************************************************************************
@@ -147,45 +183,40 @@ EXPORT_SYMBOL(aw_clksrc_read);
 *
 *********************************************************************************************************
 */
-#ifdef CONFIG_HIGH_RES_TIMERS
 static void aw_set_clkevt_mode(enum clock_event_mode mode, struct clock_event_device *dev)
 {
-    CLKSRC_DBG("aw_set_clkevt_mode:%u\n", mode);
-    switch (mode)
-    {
-        case CLOCK_EVT_MODE_PERIODIC:
-        {
-            /* set timer work with continueous mode */
-            TMR_REG_TMR1_CTL &= ~(1<<0);
-            /* wait hardware synchronization, 2 cycles of the hardware work clock at least  */
-            __delay(50);
-            TMR_REG_TMR1_CTL &= ~(1<<7);
-            TMR_REG_TMR1_CTL |= (1<<0);
-            break;
-        }
+	int nr = dev->irq - SW_INT_IRQNO_TIMER0;
+	unsigned long flags;
 
-        case CLOCK_EVT_MODE_ONESHOT:
-        {
-            /* set timer work with onshot mode */
-            TMR_REG_TMR1_CTL &= ~(1<<0);
-            /* wait hardware synchronization, 2 cycles of the hardware work clock at least  */
-            __delay(50);
-            TMR_REG_TMR1_CTL |= (1<<7);
-            TMR_REG_TMR1_CTL |= (1<<0);
-            break;
-        }
+	CLKSRC_DBG("aw_set_clkevt_mode(%d): %u\n", nr, mode);
 
-        default:
-        {
-            /* disable clock event device */
-            TMR_REG_TMR1_CTL &= ~(1<<0);
-            /* wait hardware synchronization, 2 cycles of the hardware work clock at least  */
-            __delay(50);
-            break;
-        }
-    }
+	spin_lock_irqsave(&tmr_spin_lock[nr], flags);
+
+	switch (mode) {
+	case CLOCK_EVT_MODE_PERIODIC:
+		/* set timer work with continueous mode */
+		TMR_REG_TMR_CTL(nr) &= ~(1<<0);
+		/* wait hardware synchronization, 2 clock cycles at least */
+		__delay(50 * tmr_div[nr]);
+		TMR_REG_TMR_CTL(nr) &= ~(1<<7);
+		TMR_REG_TMR_CTL(nr) |= (1<<0);
+		break;
+	case CLOCK_EVT_MODE_ONESHOT:
+		/* set timer work with onshot mode */
+		TMR_REG_TMR_CTL(nr) &= ~(1<<0);
+		/* wait hardware synchronization, 2 clock cycles at least */
+		__delay(50 * tmr_div[nr]);
+		TMR_REG_TMR_CTL(nr) |= (1<<7);
+		TMR_REG_TMR_CTL(nr) |= (1<<0);
+		break;
+	default:
+		/* disable clock event device */
+		TMR_REG_TMR_CTL(nr) &= ~(1<<0);
+		/* wait hardware synchronization, 2 clock cycles at least */
+		__delay(50 * tmr_div[nr]);
+	}
+	spin_unlock_irqrestore(&tmr_spin_lock[nr], flags);
 }
-#endif
 
 
 /*
@@ -205,29 +236,29 @@ static void aw_set_clkevt_mode(enum clock_event_mode mode, struct clock_event_de
 *
 *********************************************************************************************************
 */
-#ifdef CONFIG_HIGH_RES_TIMERS
 static int aw_set_next_clkevt(unsigned long delta, struct clock_event_device *dev)
 {
+	int nr = dev->irq - SW_INT_IRQNO_TIMER0;
 	unsigned long flags;
-    CLKSRC_DBG("aw_set_next_clkevt: %u\n", (unsigned int)delta);
 
-	spin_lock_irqsave(&timer1_spin_lock, flags);
-    /* disable timer and clear pending first    */
-    TMR_REG_TMR1_CTL &= ~(1<<0);
-    /* wait hardware synchronization, 2 cycles of the hardware work clock at least  */
-    udelay(1);
+	CLKSRC_DBG("aw_set_next_clkevt(%d): %u\n", nr, (unsigned int)delta);
 
-    /* set timer intervalue         */
-    TMR_REG_TMR1_INTV = delta;
-    /* reload the timer intervalue  */
-    TMR_REG_TMR1_CTL |= (1<<1);
+	spin_lock_irqsave(&tmr_spin_lock[nr], flags);
+	/* disable timer and clear pending first */
+	TMR_REG_TMR_CTL(nr) &= ~(1<<0);
+	/* wait hardware synchronization, 2 cycles of the hardware work clock at least  */
+	udelay(1);
 
-    /* enable timer */
-    TMR_REG_TMR1_CTL |= (1<<0);
-    spin_unlock_irqrestore(&timer1_spin_lock, flags);
-    return 0;
+	/* set timer intervalue */
+	TMR_REG_TMR_INTV(nr) = delta;
+	/* reload the timer intervalue  */
+	TMR_REG_TMR_CTL(nr) |= (1<<1);
+
+	/* enable timer */
+	TMR_REG_TMR_CTL(nr) |= (1<<0);
+	spin_unlock_irqrestore(&tmr_spin_lock[nr], flags);
+	return 0;
 }
-#endif
 
 /*
 *********************************************************************************************************
@@ -246,25 +277,25 @@ static int aw_set_next_clkevt(unsigned long delta, struct clock_event_device *de
 *
 *********************************************************************************************************
 */
-#ifdef CONFIG_HIGH_RES_TIMERS
 static irqreturn_t aw_clkevt_irq(int irq, void *handle)
 {
-    if(TMR_REG_IRQ_STAT & (1<<1))
-    {
-        CLKSRC_DBG("aw_clkevt_irq!\n");
-        /* clear pending */
-        TMR_REG_IRQ_STAT = (1<<1);
+	int nr = irq - SW_INT_IRQNO_TIMER0;
+	struct clock_event_device *clk_dev = handle;
 
-        /* clock event interrupt handled */
-	if(likely(aw_clock_event.event_handler != NULL))
-		aw_clock_event.event_handler(&aw_clock_event);
+	if (TMR_REG_IRQ_STAT & (1 << nr)) {
+		CLKSRC_DBG("aw_clkevt_irq!\n");
 
-        return IRQ_HANDLED;
-    }
+		/* clear pending */
+		TMR_REG_IRQ_STAT = (1 << nr);
 
-    return IRQ_NONE;
+		/* clock event interrupt handled */
+		if (likely(clk_dev->event_handler != NULL))
+			clk_dev->event_handler(clk_dev);
+
+		return IRQ_HANDLED;
+	}
+	return IRQ_NONE;
 }
-#endif
 
 
 /*
@@ -283,29 +314,41 @@ static irqreturn_t aw_clkevt_irq(int irq, void *handle)
 *
 *********************************************************************************************************
 */
-static int __init aw_clksrc_init(void)
+int __init aw_clksrc_init(void)
 {
-    CLKSRC_DBG("all-winners clock source init!\n");
-    /* we use 64bits counter as HPET(High Precision Event Timer) */
-    TMR_REG_CNT64_CTL  = 0;
-    __delay(50);
-    /* config clock source for 64bits counter */
-    #if(AW_HPET_CLK_SRC == TMR_CLK_SRC_24MHOSC)
-        TMR_REG_CNT64_CTL |= (0<<2);
-    #else
-        TMR_REG_CNT64_CTL |= (1<<2);
-    #endif
-    __delay(50);
-    /* clear 64bits counter */
-    TMR_REG_CNT64_CTL |= (1<<0);
-    __delay(50);
-    CLKSRC_DBG("register all-winners clock source!\n");
-    /* calculate the mult by shift  */
-    aw_clocksrc.mult = clocksource_hz2mult(AW_HPET_CLOCK_SOURCE_HZ, aw_clocksrc.shift);
-    /* register clock source */
-    clocksource_register(&aw_clocksrc);
+	CLKSRC_DBG("all-winners clock source init!\n");
 
-    return 0;
+	/*
+	 * The sun7i has separate 64 bits counters per osc, see clocksrc.h, so
+	 * there is no need to set the clock source for the counter on sun7i.
+	 * Moreover these counters share some logic with the arch_timer.c
+	 * counters and mucking with them makes arch_timer.c unhappy.
+	 */
+	if (!sunxi_is_sun7i()) {
+		TMR_REG_CNT64_CTL = 0;
+		__delay(50);
+
+		/* config clock source for 64bits counter */
+#if(AW_HPET_CLK_SRC == TMR_CLK_SRC_24MHOSC)
+		TMR_REG_CNT64_CTL |= (0 << 2);
+#else	
+		TMR_REG_CNT64_CTL |= (1 << 2);
+#endif
+		__delay(50);
+
+		/* clear 64bits counter */
+		TMR_REG_CNT64_CTL |= (1 << 0);
+		while (TMR_REG_CNT64_CTL & (1 << 0)) {}
+	}
+
+	CLKSRC_DBG("register all-winners clock source!\n");
+	/* calculate the mult by shift  */
+	aw_clocksrc.mult = clocksource_hz2mult(AW_HPET_CLOCK_SOURCE_HZ,
+					       aw_clocksrc.shift);
+	/* register clock source */
+	clocksource_register(&aw_clocksrc);
+
+	return 0;
 }
 
 /*
@@ -324,43 +367,73 @@ static int __init aw_clksrc_init(void)
 *
 *********************************************************************************************************
 */
-#ifdef CONFIG_HIGH_RES_TIMERS
-static int __init aw_clkevt_init(void)
+static void register_clk_dev(struct clock_event_device *clk_dev, int freq)
 {
-    /* register clock event irq     */
-    CLKSRC_DBG("set up all-winners clock event irq!\n");
-    /* clear timer1 setting */
-    TMR_REG_TMR1_CTL = 0;
-    /* initialise timer inter value to 1 tick */
-    TMR_REG_TMR1_INTV = AW_HPET_CLOCK_EVENT_HZ/HZ;
-
-    /* config clock source for timer1 */
-    #if(AW_HPET_CLK_EVT == TMR_CLK_SRC_24MHOSC)
-        TMR_REG_TMR1_CTL |= (1<<2);
-    #else
-        TMR_REG_TMR1_CTL |= (0<<2);
-    #endif
-    /* reload inter value */
-    TMR_REG_TMR1_CTL |= (1<<1);
-    /* install timer irq */
-    setup_irq(SW_INT_IRQNO_TIMER1, &aw_clkevt_irqact);
-    /* enable timer1 irq            */
-    TMR_REG_IRQ_EN |= (1<<1);
-
-    /* register clock event device  */
-    CLKSRC_DBG("register all-winners clock event device!\n");
-	aw_clock_event.mult = div_sc(AW_HPET_CLOCK_EVENT_HZ, NSEC_PER_SEC, aw_clock_event.shift);
-	aw_clock_event.max_delta_ns = clockevent_delta2ns((0x80000000), &aw_clock_event);
-	/* time value timer must larger than 50 cycles at least, suggested by david 2011-5-25 11:41 */
-	aw_clock_event.min_delta_ns = clockevent_delta2ns(1, &aw_clock_event) + 100000;
-	aw_clock_event.cpumask = cpumask_of(0);
-    clockevents_register_device(&aw_clock_event);
-
-    return 0;
+	clk_dev->mult = div_sc(freq, NSEC_PER_SEC, clk_dev->shift);
+	/* time value timer must larger than 50 cycles at least,
+	   suggested by david 2011-5-25 11:41 */
+	clk_dev->min_delta_ns = clockevent_delta2ns(0x1, clk_dev) + 100000;
+	clk_dev->max_delta_ns = clockevent_delta2ns(0x80000000, clk_dev);
+	clk_dev->cpumask = cpu_all_mask;
+	clockevents_register_device(clk_dev);
 }
+
+int __init aw_clkevt_init(void)
+{
+	u32 val = 0;
+
+	/* disable & clear all timers */
+	TMR_REG_IRQ_EN = 0x00;
+	TMR_REG_IRQ_STAT = 0x1ff;
+
+	/* init timer0 */
+	CLKSRC_DBG("set up timer0\n");
+	spin_lock_init(&tmr_spin_lock[0]);
+	/* clear timer0 setting */
+	TMR_REG_TMR_CTL(0) = 0;
+	/* initialise timer0 interval value */
+	TMR_REG_TMR_INTV(0) = TMR_INTER_VAL;
+	/* set clock source to HOSC, 16 pre-division, auto-reload */
+	val = 0 << 7; /* continuous mode */
+	val |= 0b100 << 4; /* pre-scale: 16 */
+	val |= 0b01 << 2; /* src: osc24M */
+	val |= 1 << 1; /* auto-reload interval value */
+	TMR_REG_TMR_CTL(0) = val;
+
+	/* install timer0 irq */
+	setup_irq(SW_INT_IRQNO_TIMER0, &sw_timer_irq);
+	/* enable timer0 irq */
+	TMR_REG_IRQ_EN |= (1 << 0);
+
+	/* register timer0 */
+	CLKSRC_DBG("register timer0\n");
+	register_clk_dev(&timer0_clockevent, SYS_TIMER_CLKSRC/SYS_TIMER_SCAL);
+
+#ifdef CONFIG_HIGH_RES_TIMERS
+	CLKSRC_DBG("set up timer1 / aw clock event device (high res timer)\n");
+	spin_lock_init(&tmr_spin_lock[1]);
+	/* clear timer1 setting */
+	TMR_REG_TMR_CTL(1) = 0;
+	/* initialise timer1 interval value to 1 tick */
+	TMR_REG_TMR_INTV(1) = AW_HPET_CLOCK_EVENT_HZ/HZ;
+
+	/* config clock source for timer1 */
+#if(AW_HPET_CLK_EVT == TMR_CLK_SRC_24MHOSC)
+	TMR_REG_TMR_CTL(1) |= (1<<2);
+#else
+	TMR_REG_TMR_CTL(1) |= (0<<2);
+#endif
+	/* reload inter value */
+	TMR_REG_TMR_CTL(1) |= (1<<1);
+	/* install timer irq */
+	setup_irq(SW_INT_IRQNO_TIMER1, &aw_clkevt_irqact);
+	/* enable timer1 irq */
+	TMR_REG_IRQ_EN |= (1<<1);
+
+	/* register clock event device  */
+	CLKSRC_DBG("register all-winners clock event device!\n");
+	register_clk_dev(&aw_clock_event, AW_HPET_CLOCK_EVENT_HZ);
 #endif
 
-arch_initcall(aw_clksrc_init);
-#ifdef CONFIG_HIGH_RES_TIMERS
-arch_initcall(aw_clkevt_init);
-#endif
+	return 0;
+}

@@ -431,7 +431,7 @@ static __s32 pin_init(sw_hcd_io_t *sw_hcd_io)
 					sw_hcd_io->drv_vbus_gpio_set.mul_sel);
 			axp_gpio_set_value(
 					sw_hcd_io->drv_vbus_gpio_set.port_num,
-					sw_hcd_io->drv_vbus_gpio_set.data);
+					!sw_hcd_io->drv_vbus_gpio_set.data);
 
 			return 100 + sw_hcd_io->drv_vbus_gpio_set.port_num;
 		} else {
@@ -448,7 +448,8 @@ static __s32 pin_init(sw_hcd_io_t *sw_hcd_io)
 	}
 
 	/* set config, ouput */
-	gpio_set_one_pin_io_status(sw_hcd_io->Drv_vbus_Handle, 1, NULL);
+	gpio_set_one_pin_io_status(sw_hcd_io->Drv_vbus_Handle,
+				   !sw_hcd_io->drv_vbus_gpio_set.data, NULL);
 
 	/* reserved is pull down */
 	gpio_set_one_pin_pull(sw_hcd_io->Drv_vbus_Handle, 2, NULL);
@@ -1578,6 +1579,7 @@ fail:
 	return status;
 }
 
+#ifdef CONFIG_USB_SW_SUNXI_USB0_OTG
 /*
 *******************************************************************************
 *                     sw_usb_host0_enable
@@ -1829,6 +1831,7 @@ static int sw_hcd_remove_otg(struct platform_device *pdev)
 
 	return 0;
 }
+#endif
 
 /*
 *******************************************************************************
@@ -1875,7 +1878,11 @@ static int sw_hcd_probe_host_only(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
-	if(!g_sw_hcd_io.host_init_state){
+	if (g_sw_hcd_io.host_init_state) {
+		USBC_Host_StartSession(g_sw_hcd_io.usb_bsp_hdle);
+		USBC_ForceVbusValid(g_sw_hcd_io.usb_bsp_hdle,
+				    USBC_VBUS_TYPE_HIGH);
+	} else {
 		sw_usb_disable_hcd0();
 	}
 

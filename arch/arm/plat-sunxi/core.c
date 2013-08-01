@@ -38,6 +38,8 @@
 #include <linux/export.h>
 #include <linux/clkdev.h>
 
+#include <asm/arch_timer.h>
+#include <asm/sched_clock.h>
 #include <asm/setup.h>
 #include <asm/sizes.h>
 #include <asm/mach-types.h>
@@ -53,14 +55,21 @@
 #include <asm/mach/irq.h>
 #include <asm/mach/time.h>
 #include <asm/hardware/arm_timer.h>
+#include <asm/hardware/gic.h>
 #include <asm/hardware/icst.h>
 #include <asm/hardware/vic.h>
 
 #include <plat/core.h>
+#include <plat/hardware.h>
 #include <plat/memory.h>
 #include <plat/platform.h>
 #include <plat/system.h>
 #include <plat/sys_config.h>
+
+#include "clocksrc.h"
+
+int arch_timer_common_register(void);
+void sw_pdev_init(void);
 
 /*
  * Only reserve certain important memory blocks if there are actually
@@ -125,16 +134,31 @@ void __init sunxi_mali_core_fixup(struct tag *tags, char **cmdline,
  *
  */
 
+/* sun4i / sun5i io-map */
 static struct map_desc sw_io_desc[] __initdata = {
 	{ SW_VA_SRAM_BASE, __phys_to_pfn(SW_PA_SRAM_BASE),  (SZ_128K + SZ_64K), MT_MEMORY_ITCM  },
 	{ SW_VA_IO_BASE,   __phys_to_pfn(SW_PA_IO_BASE),    (SZ_1M + SZ_2M),    MT_DEVICE       },
 	{ SW_VA_BROM_BASE, __phys_to_pfn(SW_PA_BROM_BASE),  (SZ_64K),           MT_MEMORY_ITCM  },
 };
-
-void __init sw_core_map_io(void)
+static void __init sw_core_map_io(void)
 {
 	iotable_init(sw_io_desc, ARRAY_SIZE(sw_io_desc));
 
+	sunxi_pr_chip_id();
+}
+
+/* sun7i io-map */
+static struct map_desc sun7i_io_desc[] __initdata = {
+	{IO_ADDRESS(SW_PA_IO_BASE), __phys_to_pfn(SW_PA_IO_BASE),  SW_IO_SIZE, MT_DEVICE_NONSHARED},
+	{IO_ADDRESS(SW_PA_SRAM_A1_BASE), __phys_to_pfn(SW_PA_SRAM_A1_BASE),  SW_SRAM_A1_SIZE, MT_MEMORY_ITCM},
+	{IO_ADDRESS(SW_PA_SRAM_A2_BASE), __phys_to_pfn(SW_PA_SRAM_A2_BASE),  SW_SRAM_A2_SIZE, MT_MEMORY_ITCM},
+	{IO_ADDRESS(SW_PA_SRAM_A3_BASE), __phys_to_pfn(SW_PA_SRAM_A3_BASE),  SW_SRAM_A3_SIZE + SW_SRAM_A4_SIZE, MT_MEMORY_ITCM},
+	//{IO_ADDRESS(SW_PA_SRAM_A4_BASE), __phys_to_pfn(SW_PA_SRAM_A4_BASE),  SW_SRAM_A4_SIZE, MT_MEMORY_ITCM}, /* not page align, cause sun7i_map_io err,2013-1-10 */
+	{IO_ADDRESS(SW_PA_BROM_START), __phys_to_pfn(SW_PA_BROM_START), SW_BROM_SIZE, MT_DEVICE_NONSHARED},
+};
+static void __init sun7i_map_io(void)
+{
+	iotable_init(sun7i_io_desc, ARRAY_SIZE(sun7i_io_desc));
 	sunxi_pr_chip_id();
 }
 
@@ -267,6 +291,8 @@ static void __init sw_core_reserve(void)
 	}
 	reserve_mem(&fb_start, &fb_size, "LCD ");
 #endif
+	/* Ensure this is set before any arch_init funcs call script_foo */
+	sunxi_script_init((void *)__va(SYS_CONFIG_MEMBASE));
 }
 
 void sw_irq_ack(struct irq_data *irqd)
@@ -368,6 +394,21 @@ void __init sw_core_init_irq(void)
 	}
 }
 
+static void __init gic_init_irq(void)
+{
+/*
+ * HdG: note to anyone trying to make it possible to build a single sunxi image
+ * for all of sun4i/sun5i/sun7i, selecting CONFIG_ARM_GIC automatically selects
+ * CONFIG_MULTI_IRQ_HANDLER, at which point we need to provide a handle_irq
+ * function for the sun4i and sun5i machine definitions, vic_handle_irq is
+ * probably a good start for this / maybe we can even use all of the common
+ * vic handling code?
+ */
+#ifdef CONFIG_ARM_GIC
+	gic_init(0, 29, (void *)IO_ADDRESS(AW_GIC_DIST_BASE),
+		 (void *)IO_ADDRESS(AW_GIC_CPU_BASE));
+#endif
+}
 
 
 /*
@@ -384,123 +425,23 @@ static void sun4i_restart(char mode, const char *cmd)
 	while(1);
 }
 
-static void timer_set_mode(enum clock_event_mode mode, struct clock_event_device *clk)
-{
-	volatile u32 ctrl;
-
-	switch (mode) {
-	case CLOCK_EVT_MODE_PERIODIC:
-		pr_info("timer0: Periodic Mode\n");
-		writel(TMR_INTER_VAL, SW_TIMER0_INTVAL_REG); /* interval (999+1) */
-		ctrl = readl(SW_TIMER0_CTL_REG);
-		ctrl &= ~(1<<7);    /* Continuous mode */
-		ctrl |= 1;  /* Enable this timer */
-		break;
-
-	case CLOCK_EVT_MODE_ONESHOT:
-		pr_info("timer0: Oneshot Mode\n");
-		ctrl = readl(SW_TIMER0_CTL_REG);
-		ctrl |= (1<<7);     /* Single mode */
-		break;
-	case CLOCK_EVT_MODE_UNUSED:
-	case CLOCK_EVT_MODE_SHUTDOWN:
-	default:
-		ctrl = readl(SW_TIMER0_CTL_REG);
-		ctrl &= ~(1<<0);    /* Disable timer0 */
-		break;
-	}
-
-	writel(ctrl, SW_TIMER0_CTL_REG);
-}
-
-/* Useless when periodic mode */
-static int timer_set_next_event(unsigned long evt, struct clock_event_device *unused)
-{
-	volatile u32 ctrl;
-
-	/* clear any pending before continue */
-	ctrl = readl(SW_TIMER0_CTL_REG);
-	writel(evt, SW_TIMER0_CNTVAL_REG);
-	ctrl |= (1<<1);
-	writel(ctrl, SW_TIMER0_CTL_REG);
-	writel(ctrl | 0x1, SW_TIMER0_CTL_REG);
-
-	return 0;
-}
-
-static struct clock_event_device timer0_clockevent = {
-	.name = "timer0",
-	.shift = 32,
-	.rating = 100,
-	.features = CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_ONESHOT,
-	.set_mode = timer_set_mode,
-	.set_next_event = timer_set_next_event,
-};
-
-
-static irqreturn_t sw_timer_interrupt(int irq, void *dev_id)
-{
-	struct clock_event_device *evt = (struct clock_event_device *)dev_id;
-
-	writel(0x1, SW_TIMER_INT_STA_REG);
-
-	/*
- 	 * timer_set_next_event will be called only in ONESHOT mode
- 	 */
-	evt->event_handler(evt);
-
-	return IRQ_HANDLED;
-}
-
-static struct irqaction sw_timer_irq = {
-	.name = "timer0",
-	.flags = IRQF_DISABLED | IRQF_TIMER | IRQF_IRQPOLL,
-	.handler = sw_timer_interrupt,
-	.dev_id = &timer0_clockevent,
-	.irq = SW_INT_IRQNO_TIMER0,
-};
-
-
 static void __init sw_timer_init(void)
 {
-	int ret;
-	volatile u32  val = 0;
-
-	writel(TMR_INTER_VAL, SW_TIMER0_INTVAL_REG);
-	/* set clock sourch to HOSC, 16 pre-division */
-	val = readl(SW_TIMER0_CTL_REG);
-	val &= ~(0x07<<4);
-	val &= ~(0x03<<2);
-	val |= (4<<4) | (1<<2);
-	writel(val, SW_TIMER0_CTL_REG);
-	/* set mode to auto reload */
-	val = readl(SW_TIMER0_CTL_REG);
-	val |= (1<<1);
-	writel(val, SW_TIMER0_CTL_REG);
-
-	ret = setup_irq(SW_INT_IRQNO_TIMER0, &sw_timer_irq);
-	if (ret) {
-		pr_warning("failed to setup irq %d\n", SW_INT_IRQNO_TIMER0);
-	}
-
-	/* Enable time0 interrupt */
-	val = readl(SW_TIMER_INT_CTL_REG);
-	val |= (1<<0);
-	writel(val, SW_TIMER_INT_CTL_REG);
-
-	timer0_clockevent.mult = div_sc(SYS_TIMER_CLKSRC/SYS_TIMER_SCAL, NSEC_PER_SEC, timer0_clockevent.shift);
-	timer0_clockevent.max_delta_ns = clockevent_delta2ns(0xff, &timer0_clockevent);
-	timer0_clockevent.min_delta_ns = clockevent_delta2ns(0x1, &timer0_clockevent);
-	timer0_clockevent.cpumask = cpumask_of(0);
-	timer0_clockevent.irq = sw_timer_irq.irq;
-	clockevents_register_device(&timer0_clockevent);
+	aw_clkevt_init();
+	aw_clksrc_init();
+#ifdef CONFIG_ARM_ARCH_TIMER
+	if (sunxi_is_sun7i()) {
+		arch_timer_common_register();
+		arch_timer_sched_clock_init();
+	} else
+#endif
+	setup_sched_clock(aw_sched_clock_read, 32, AW_HPET_CLOCK_SOURCE_HZ);
 }
 
 struct sys_timer sw_sys_timer = {
 	.init = sw_timer_init,
 };
 
-extern void __init sw_pdev_init(void);
 void __init sw_core_init(void)
 {
 	sw_pdev_init();
@@ -532,4 +473,24 @@ MACHINE_START(SUN5I, "sun5i")
 	.init_machine   = sw_core_init,
 	.reserve        = sw_core_reserve,
 	.restart	= sun4i_restart,
+MACHINE_END
+
+MACHINE_START(SUN7I, "sun7i")
+	.atag_offset	= 0x100,
+	.timer          = &sw_sys_timer,
+#ifdef CONFIG_SUNXI_MALI_RESERVED_MEM
+	.fixup          = sunxi_mali_core_fixup,
+#endif
+	.map_io         = sun7i_map_io,
+	.init_early     = NULL,
+	.init_irq	= gic_init_irq,
+	.init_machine   = sw_core_init,
+	.reserve        = sw_core_reserve,
+	.restart	= sun4i_restart,
+#ifdef CONFIG_MULTI_IRQ_HANDLER
+	.handle_irq	= gic_handle_irq,
+#endif
+#ifdef CONFIG_ZONE_DMA
+	.dma_zone_size	= SZ_256M,
+#endif
 MACHINE_END

@@ -247,18 +247,6 @@
 #define SW_BROM_SIZE                      0x00008000 /* 32k */
 
 /**
- * Timer registers addr
- *
- */
-
-#define SW_TIMER_INT_CTL_REG              (SW_VA_TIMERC_IO_BASE + 0x00)
-#define SW_TIMER_INT_STA_REG              (SW_VA_TIMERC_IO_BASE + 0x04)
-#define SW_TIMER0_CTL_REG                 (SW_VA_TIMERC_IO_BASE + 0x10)
-#define SW_TIMER0_INTVAL_REG              (SW_VA_TIMERC_IO_BASE + 0x14)
-#define SW_TIMER0_CNTVAL_REG              (SW_VA_TIMERC_IO_BASE + 0x18)
-
-
-/**
  * Interrupt controller registers
  *
  */
@@ -314,11 +302,6 @@
 #define PA_VIC_BASE                       0x01c20400
 #define VA_VIC_BASE                       IO_ADDRESS(PA_VIC_BASE)
 #define PIO_BASE                          SW_PA_PORTC_IO_BASE
-
-#ifdef CONFIG_ARCH_SUN4I
-#define SW_G2D_MEM_BASE                   0x58000000
-#define SW_G2D_MEM_MAX                    0x1000000
-#endif
 
 /**
 *@name DRAM controller register address
