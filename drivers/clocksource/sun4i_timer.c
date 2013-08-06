@@ -20,6 +20,7 @@
 #include <linux/interrupt.h>
 #include <linux/irq.h>
 #include <linux/irqreturn.h>
+#include <linux/sched_clock.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
 #include <linux/of_irq.h>
@@ -31,46 +32,54 @@
 #define TIMER_IRQ_ST_REG	0x04
 #define TIMER_CTL_REG(val)	(0x10 * val + 0x10)
 #define TIMER_CTL_ENABLE		BIT(0)
-#define TIMER_CTL_AUTORELOAD		BIT(1)
+#define TIMER_CTL_RELOAD		BIT(1)
 #define TIMER_CTL_CLK_SRC(val)		(((val) & 0x3) << 2)
 #define TIMER_CTL_CLK_SRC_OSC24M		(1)
 #define TIMER_CTL_CLK_PRES(val)		(((val) & 0x7) << 4)
 #define TIMER_CTL_ONESHOT		BIT(7)
-#define TIMER_INTVAL_REG(val)	(0x10 * val + 0x14)
-#define TIMER_CNTVAL_REG(val)	(0x10 * val + 0x18)
-
-#define TIMER_CNT64_CTL_REG	0xa0
-#define TIMER_CNT64_CTL_CLR		BIT(0)
-#define TIMER_CNT64_CTL_RL		BIT(1)
-#define TIMER_CNT64_LOW_REG	0xa4
-#define TIMER_CNT64_HIGH_REG	0xa8
+#define TIMER_INTVAL_REG(val)	(0x10 * (val) + 0x14)
+#define TIMER_CNTVAL_REG(val)	(0x10 * (val) + 0x18)
 
 static void __iomem *timer_base;
 static u32 ticks_per_jiffy;
 
-static void sun4i_clkevt_time_stop(void)
+/*
+ * When we disable a timer, we need to wait at least for 2 cycles of
+ * the timer source clock. We will use for that the clocksource timer
+ * that is already setup and runs at the same frequency than the other
+ * timers, and we never will be disabled.
+ */
+static void sun4i_clkevt_sync(void)
 {
-	u32 val = readl(timer_base + TIMER_CTL_REG(0));
-	writel(val & ~TIMER_CTL_ENABLE, timer_base + TIMER_CTL_REG(0));
-	udelay(1);
+	u32 old = readl(timer_base + TIMER_CNTVAL_REG(1));
+
+	while ((old - readl(timer_base + TIMER_CNTVAL_REG(1))) < 3)
+		cpu_relax();
 }
 
-static void sun4i_clkevt_time_setup(unsigned long delay)
+static void sun4i_clkevt_time_stop(u8 timer)
 {
-	writel(delay, timer_base + TIMER_INTVAL_REG(0));
+	u32 val = readl(timer_base + TIMER_CTL_REG(timer));
+	writel(val & ~TIMER_CTL_ENABLE, timer_base + TIMER_CTL_REG(timer));
+	sun4i_clkevt_sync();
 }
 
-static void sun4i_clkevt_time_start(bool periodic)
+static void sun4i_clkevt_time_setup(u8 timer, unsigned long delay)
 {
-	u32 val = readl(timer_base + TIMER_CTL_REG(0));
+	writel(delay, timer_base + TIMER_INTVAL_REG(timer));
+}
+
+static void sun4i_clkevt_time_start(u8 timer, bool periodic)
+{
+	u32 val = readl(timer_base + TIMER_CTL_REG(timer));
 
 	if (periodic)
 		val &= ~TIMER_CTL_ONESHOT;
 	else
 		val |= TIMER_CTL_ONESHOT;
 
-	writel(val | TIMER_CTL_ENABLE | TIMER_CTL_AUTORELOAD,
-	       timer_base + TIMER_CTL_REG(0));
+	writel(val | TIMER_CTL_ENABLE | TIMER_CTL_RELOAD,
+	       timer_base + TIMER_CTL_REG(timer));
 }
 
 static void sun4i_clkevt_mode(enum clock_event_mode mode,
@@ -78,18 +87,18 @@ static void sun4i_clkevt_mode(enum clock_event_mode mode,
 {
 	switch (mode) {
 	case CLOCK_EVT_MODE_PERIODIC:
-		sun4i_clkevt_time_stop();
-		sun4i_clkevt_time_setup(ticks_per_jiffy);
-		sun4i_clkevt_time_start(true);
+		sun4i_clkevt_time_stop(0);
+		sun4i_clkevt_time_setup(0, ticks_per_jiffy);
+		sun4i_clkevt_time_start(0, true);
 		break;
 	case CLOCK_EVT_MODE_ONESHOT:
-		sun4i_clkevt_time_stop();
-		sun4i_clkevt_time_start(false);
+		sun4i_clkevt_time_stop(0);
+		sun4i_clkevt_time_start(0, false);
 		break;
 	case CLOCK_EVT_MODE_UNUSED:
 	case CLOCK_EVT_MODE_SHUTDOWN:
 	default:
-		sun4i_clkevt_time_stop();
+		sun4i_clkevt_time_stop(0);
 		break;
 	}
 }
@@ -97,9 +106,9 @@ static void sun4i_clkevt_mode(enum clock_event_mode mode,
 static int sun4i_clkevt_next_event(unsigned long evt,
 				   struct clock_event_device *unused)
 {
-	sun4i_clkevt_time_stop();
-	sun4i_clkevt_time_setup(evt);
-	sun4i_clkevt_time_start(false);
+	sun4i_clkevt_time_stop(0);
+	sun4i_clkevt_time_setup(0, evt);
+	sun4i_clkevt_time_start(0, false);
 
 	return 0;
 }
@@ -132,16 +141,7 @@ static struct irqaction sun4i_timer_irq = {
 
 static u32 sun4i_timer_sched_read(void)
 {
-	u32 reg = readl(timer_base + TIMER_CNT64_CTL_REG);
-	writel(reg | TIMER_CNT64_CTL_RL, timer_base + TIMER_CNT64_CTL_REG);
-	while (readl(timer_base + TIMER_CNT64_CTL_REG) & TIMER_CNT64_CTL_REG);
-
-	return readl(timer_base + TIMER_CNT64_LOW_REG);
-}
-
-static cycle_t sun4i_timer_clksrc_read(struct clocksource *c)
-{
-	return sun4i_timer_sched_read();
+	return ~readl(timer_base + TIMER_CNTVAL_REG(1));
 }
 
 static void __init sun4i_timer_init(struct device_node *node)
@@ -163,13 +163,18 @@ static void __init sun4i_timer_init(struct device_node *node)
 		panic("Can't get timer clock");
 	clk_prepare_enable(clk);
 
-	writel(TIMER_CNT64_CTL_CLR, timer_base + TIMER_CNT64_CTL_REG);
-	setup_sched_clock(sun4i_timer_sched_read, 32, clk_get_rate(clk));
-	clocksource_mmio_init(timer_base + TIMER_CNT64_LOW_REG, node->name,
-			      clk_get_rate(clk), 300, 32,
-			      sun4i_timer_clksrc_read);
+	rate = clk_get_rate(clk);
 
-	ticks_per_jiffy = DIV_ROUND_UP(clk_get_rate(clk), HZ);
+	writel(~0, timer_base + TIMER_INTVAL_REG(1));
+	writel(TIMER_CTL_ENABLE | TIMER_CTL_RELOAD |
+	       TIMER_CTL_CLK_SRC(TIMER_CTL_CLK_SRC_OSC24M),
+	       timer_base + TIMER_CTL_REG(1));
+
+	setup_sched_clock(sun4i_timer_sched_read, 32, rate);
+	clocksource_mmio_init(timer_base + TIMER_CNTVAL_REG(1), node->name,
+			      rate, 300, 32, clocksource_mmio_readl_down);
+
+	ticks_per_jiffy = DIV_ROUND_UP(rate, HZ);
 
 	writel(TIMER_CTL_CLK_SRC(TIMER_CTL_CLK_SRC_OSC24M),
 	       timer_base + TIMER_CTL_REG(0));
@@ -184,8 +189,8 @@ static void __init sun4i_timer_init(struct device_node *node)
 
 	sun4i_clockevent.cpumask = cpumask_of(0);
 
-	clockevents_config_and_register(&sun4i_clockevent, clk_get_rate(clk),
-					0x1, 0xffffffff);
+	clockevents_config_and_register(&sun4i_clockevent, rate, 0x1,
+					0xffffffff);
 }
 CLOCKSOURCE_OF_DECLARE(sun4i, "allwinner,sun4i-timer",
 		       sun4i_timer_init);

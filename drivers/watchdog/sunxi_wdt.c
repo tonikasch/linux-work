@@ -21,7 +21,6 @@
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/of.h>
-#include <linux/of_address.h>
 #include <linux/platform_device.h>
 #include <linux/types.h>
 #include <linux/watchdog.h>
@@ -42,7 +41,7 @@
 #define DRV_VERSION		"1.0"
 
 static bool nowayout = WATCHDOG_NOWAYOUT;
-static int heartbeat = WDT_MAX_TIMEOUT;
+static unsigned int timeout = WDT_MAX_TIMEOUT;
 
 struct sunxi_wdt_dev {
 	struct watchdog_device wdt_dev;
@@ -87,9 +86,6 @@ static int sunxi_wdt_set_timeout(struct watchdog_device *wdt_dev,
 	struct sunxi_wdt_dev *sunxi_wdt = watchdog_get_drvdata(wdt_dev);
 	void __iomem *wdt_base = sunxi_wdt->wdt_base;
 	u32 reg;
-
-	if (timeout > WDT_MAX_TIMEOUT)
-		return -EINVAL;
 
 	if (wdt_timeout_map[timeout] == 0)
 		timeout++;
@@ -174,16 +170,18 @@ static int __init sunxi_wdt_probe(struct platform_device *pdev)
 	sunxi_wdt->wdt_dev.min_timeout = WDT_MIN_TIMEOUT;
 	sunxi_wdt->wdt_dev.parent = &pdev->dev;
 
-	watchdog_init_timeout(&sunxi_wdt->wdt_dev, heartbeat, &pdev->dev);
+	watchdog_init_timeout(&sunxi_wdt->wdt_dev, timeout, &pdev->dev);
 	watchdog_set_nowayout(&sunxi_wdt->wdt_dev, nowayout);
 
 	watchdog_set_drvdata(&sunxi_wdt->wdt_dev, sunxi_wdt);
+
+	sunxi_wdt_stop(&sunxi_wdt->wdt_dev);
 
 	err = watchdog_register_device(&sunxi_wdt->wdt_dev);
 	if (unlikely(err))
 		return err;
 
-	dev_info(&pdev->dev, "Watchdog enabled (heartbeat=%d sec, nowayout=%d)",
+	dev_info(&pdev->dev, "Watchdog enabled (timeout=%d sec, nowayout=%d)",
 			sunxi_wdt->wdt_dev.timeout, nowayout);
 
 	return 0;
@@ -199,6 +197,13 @@ static int __exit sunxi_wdt_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static void sunxi_wdt_shutdown(struct platform_device *pdev)
+{
+	struct sunxi_wdt_dev *sunxi_wdt = platform_get_drvdata(pdev);
+
+	sunxi_wdt_stop(&sunxi_wdt->wdt_dev);
+}
+
 static const struct of_device_id sunxi_wdt_dt_ids[] = {
 	{ .compatible = "allwinner,sun4i-wdt" },
 	{ /* sentinel */ }
@@ -208,6 +213,7 @@ MODULE_DEVICE_TABLE(of, sunxi_wdt_dt_ids);
 static struct platform_driver sunxi_wdt_driver = {
 	.probe		= sunxi_wdt_probe,
 	.remove		= sunxi_wdt_remove,
+	.shutdown	= sunxi_wdt_shutdown,
 	.driver		= {
 		.owner		= THIS_MODULE,
 		.name		= DRV_NAME,
@@ -217,8 +223,8 @@ static struct platform_driver sunxi_wdt_driver = {
 
 module_platform_driver(sunxi_wdt_driver);
 
-module_param(heartbeat, int, 0);
-MODULE_PARM_DESC(heartbeat, "Watchdog heartbeat in seconds");
+module_param(timeout, uint, 0);
+MODULE_PARM_DESC(timeout, "Watchdog heartbeat in seconds");
 
 module_param(nowayout, bool, 0);
 MODULE_PARM_DESC(nowayout, "Watchdog cannot be stopped once started "
