@@ -36,6 +36,7 @@ olof/vexpress -- unstable branch for vexpress mcpm/spc patches
 	vexpress/mcpm
 		git://git.linaro.org/people/nico/linux mcpm+tc2
 	patches
+		Documentation: devicetree: arm: rename SPC device tree bindings to SCC
 		ARM: vexpress: move spc driver back under mach-vexpress
 		ARM: vexpress: make spc code TC2-only
 		ARM: vexpress: don't print virtual address in dmesg

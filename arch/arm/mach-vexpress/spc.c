@@ -192,7 +192,7 @@ static int __init ve_spc_probe(void)
 	int ret;
 	struct device_node *dn;
 
-	dn = of_find_compatible_node(NULL, "arm,vexpress-spc,v2p-ca15_a7");
+	dn = of_find_compatible_node(NULL, NULL,
 
 	if (!dn)
 		return -ENODEV;
