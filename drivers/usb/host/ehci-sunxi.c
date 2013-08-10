@@ -43,85 +43,22 @@
 static struct sw_hci_hcd *g_sw_ehci[3];
 static u32 ehci_first_probe[3] = { 1, 1, 1 };
 
-extern int usb_disabled(void);
-
-void print_ehci_info(struct sw_hci_hcd *sw_ehci)
-{
-	pr_info("----------print_ehci_info---------\n");
-	pr_info("hci_name             = %s\n", sw_ehci->hci_name);
-	pr_info("irq_no               = %d\n", sw_ehci->irq_no);
-	pr_info("usbc_no              = %d\n", sw_ehci->usbc_no);
-
-	pr_info("usb_vbase            = 0x%p\n", sw_ehci->usb_vbase);
-	pr_info("sram_vbase           = 0x%p\n", sw_ehci->sram_vbase);
-	pr_info("clock_vbase          = 0x%p\n", sw_ehci->clock_vbase);
-	pr_info("sdram_vbase          = 0x%p\n", sw_ehci->sdram_vbase);
-
-	pr_info("clock: AHB(0x%x), USB(0x%x)\n",
-		(u32) USBC_Readl(sw_ehci->clock_vbase + 0x60),
-		(u32) USBC_Readl(sw_ehci->clock_vbase + 0xcc));
-
-	pr_info("USB: 0x%x\n",
-		(u32) USBC_Readl(sw_ehci->usb_vbase + SW_USB_PMU_IRQ_ENABLE));
-	pr_info("DRAM: USB1(0x%x), USB2(0x%x)\n",
-	       (u32) USBC_Readl(sw_ehci->sdram_vbase + SW_SDRAM_REG_HPCR_USB1),
-	       (u32) USBC_Readl(sw_ehci->sdram_vbase + SW_SDRAM_REG_HPCR_USB2));
-
-	pr_info("----------------------------------\n");
-}
-
-static void sw_hcd_board_set_vbus(struct sw_hci_hcd *sw_ehci, int is_on)
-{
-	sw_ehci->set_power(sw_ehci, is_on);
-
-	return;
-}
-
-static int open_ehci_clock(struct sw_hci_hcd *sw_ehci)
-{
-	return sw_ehci->open_clock(sw_ehci, 0);
-}
-
-static int close_ehci_clock(struct sw_hci_hcd *sw_ehci)
-{
-	return sw_ehci->close_clock(sw_ehci, 0);
-}
-
-static void sw_ehci_port_configure(struct sw_hci_hcd *sw_ehci, u32 enable)
-{
-	sw_ehci->port_configure(sw_ehci, enable);
-
-	return;
-}
-
-static int sw_get_io_resource(struct platform_device *pdev,
-			      struct sw_hci_hcd *sw_ehci)
-{
-	return 0;
-}
-
-static int sw_release_io_resource(struct platform_device *pdev,
-				  struct sw_hci_hcd *sw_ehci)
-{
-	return 0;
-}
-
 static void sw_start_ehci(struct sw_hci_hcd *sw_ehci)
 {
-	open_ehci_clock(sw_ehci);
+	sw_ehci->open_clock(sw_ehci, 0);
 	sw_ehci->usb_passby(sw_ehci, 1);
-	sw_ehci_port_configure(sw_ehci, 1);
-	sw_hcd_board_set_vbus(sw_ehci, 1);
+	sw_ehci->port_configure(sw_ehci, 1 /*enable*/);
+	sw_ehci->set_power(sw_ehci, 1);
 
 	return;
 }
 
 static void sw_stop_ehci(struct sw_hci_hcd *sw_ehci)
 {
-	sw_hcd_board_set_vbus(sw_ehci, 0);
-	sw_ehci_port_configure(sw_ehci, 0);
+	sw_ehci->set_power(sw_ehci, 0);
+	sw_ehci->port_configure(sw_ehci, 0 /*disable*/);
 	sw_ehci->usb_passby(sw_ehci, 0);
-	close_ehci_clock(sw_ehci);
+	sw_ehci->close_clock(sw_ehci, 0);
 
 	return;
 }
@@ -129,8 +66,14 @@ static void sw_stop_ehci(struct sw_hci_hcd *sw_ehci)
 static int sw_ehci_setup(struct usb_hcd *hcd)
 {
 	struct ehci_hcd *ehci = hcd_to_ehci(hcd);
-	int ret = ehci_init(hcd);
+	int ret;
 
+	ret = ehci_setup(hcd);
+	if (ret)
+		return ret;
+
+	/* TODO: is following ok for sunxi? Only very few ehci drivers seem to
+	 * disable watchdog. */
 	ehci->need_io_watchdog = 0;
 
 	return ret;
@@ -149,9 +92,6 @@ static const struct hc_driver sw_ehci_hc_driver = {
 
 	/*
 	 * basic lifecycle operations
-	 *
-	 * FIXME -- ehci_init() doesn't do enough here.
-	 * See ehci-ppc-soc for a complete implementation.
 	 */
 	.reset = sw_ehci_setup,
 	.start = ehci_run,
@@ -212,7 +152,7 @@ static int sw_ehci_hcd_remove(struct platform_device *pdev)
 
 	usb_remove_hcd(hcd);
 
-	sw_release_io_resource(pdev, sw_ehci);
+	iounmap(hcd->regs);
 
 	usb_put_hcd(hcd);
 
@@ -259,14 +199,12 @@ static int sw_ehci_hcd_probe(struct platform_device *pdev)
 	struct usb_hcd *hcd = NULL;
 	struct ehci_hcd *ehci = NULL;
 	struct sw_hci_hcd *sw_ehci = NULL;
+	struct resource *res;
+	int irq;
 	int ret = 0;
 
 	if (pdev == NULL)
 		return -EINVAL;
-
-	/* if usb is disabled, can not probe */
-	if (usb_disabled())
-		return -ENODEV;
 
 	sw_ehci = pdev->dev.platform_data;
 	if (!sw_ehci)
@@ -280,9 +218,12 @@ static int sw_ehci_hcd_probe(struct platform_device *pdev)
 		SW_EHCI_NAME, sw_ehci->usbc_no, pdev->name, pdev->id, sw_ehci);
 
 	/* get io resource */
-	sw_get_io_resource(pdev, sw_ehci);
-	sw_ehci->ehci_base = sw_ehci->usb_vbase + SW_USB_EHCI_BASE_OFFSET;
-	sw_ehci->ehci_reg_length = SW_USB_EHCI_LEN;
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	if (!res) {
+		pr_err("%s: failed to get io memory\n", __func__);
+		ret = -ENOMEM;
+		goto err_get_iomem;
+	}
 
 	/* creat a usb_hcd for the ehci controller */
 	hcd = usb_create_hcd(&sw_ehci_hc_driver, &pdev->dev, SW_EHCI_NAME);
@@ -292,23 +233,31 @@ static int sw_ehci_hcd_probe(struct platform_device *pdev)
 		goto err_create_hcd;
 	}
 
-	hcd->rsrc_start = (u32) sw_ehci->ehci_base;
-	hcd->rsrc_len = sw_ehci->ehci_reg_length;
-	hcd->regs = sw_ehci->ehci_base;
+	hcd->rsrc_start = res->start;
+	hcd->rsrc_len = resource_size(res);
+	hcd->regs = ioremap(res->start, resource_size(res));
+	if (!hcd->regs) {
+		pr_err("%s: failed to ioremap\n", __func__);
+		ret = -ENOMEM;
+		goto err_ioremap;
+	}
+
 	sw_ehci->hcd = hcd;
 
-	/* echi start to work */
+	irq = platform_get_irq(pdev, 0);
+	if (!irq) {
+		pr_err("%s: failed to get irq\n", __func__);
+		ret =  -ENODEV;
+		goto err_get_irq;
+	}
+
+	/* ehci start to work */
 	sw_start_ehci(sw_ehci);
 
 	ehci = hcd_to_ehci(hcd);
 	ehci->caps = hcd->regs;
-	ehci->regs =
-	    hcd->regs + HC_LENGTH(ehci, readl(&ehci->caps->hc_capbase));
 
-	/* cache this readonly data, minimize chip reads */
-	ehci->hcs_params = readl(&ehci->caps->hcs_params);
-
-	ret = usb_add_hcd(hcd, sw_ehci->irq_no, IRQF_DISABLED | IRQF_SHARED);
+	ret = usb_add_hcd(hcd, irq, IRQF_DISABLED | IRQF_SHARED);
 	if (ret != 0) {
 		pr_err("%s: failed to add hcd, rc=%d\n", __func__, ret);
 		goto err_add_hcd;
@@ -316,13 +265,13 @@ static int sw_ehci_hcd_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, hcd);
 
-	pr_debug("[%s]: probe, clock: 0x60(0x%x), 0xcc(0x%x);"
+	pr_debug("[%s]: probe, clock: SW_VA_CCM_AHBMOD_OFFSET(0x%x), SW_VA_CCM_USBCLK_OFFSET(0x%x);"
 	     " usb: 0x800(0x%x), dram:(0x%x, 0x%x)\n",
-	     sw_ehci->hci_name, (u32) USBC_Readl(sw_ehci->clock_vbase + 0x60),
-	     (u32) USBC_Readl(sw_ehci->clock_vbase + 0xcc),
+	     sw_ehci->hci_name, (u32) USBC_Readl(SW_VA_CCM_IO_BASE + SW_VA_CCM_AHBMOD_OFFSET),
+	     (u32) USBC_Readl(SW_VA_CCM_IO_BASE + SW_VA_CCM_USBCLK_OFFSET),
 	     (u32) USBC_Readl(sw_ehci->usb_vbase + 0x800),
-	     (u32) USBC_Readl(sw_ehci->sdram_vbase + SW_SDRAM_REG_HPCR_USB1),
-	     (u32) USBC_Readl(sw_ehci->sdram_vbase + SW_SDRAM_REG_HPCR_USB2));
+	     (u32) USBC_Readl(SW_VA_DRAM_IO_BASE + SW_SDRAM_REG_HPCR_USB1),
+	     (u32) USBC_Readl(SW_VA_DRAM_IO_BASE + SW_SDRAM_REG_HPCR_USB2));
 
 	sw_ehci->probe = 1;
 
@@ -337,7 +286,11 @@ static int sw_ehci_hcd_probe(struct platform_device *pdev)
 	return 0;
 
 err_add_hcd:
+err_get_irq:
+	iounmap(hcd->regs);
+err_ioremap:
 	usb_put_hcd(hcd);
+err_get_iomem:
 err_create_hcd:
 	sw_ehci->hcd = NULL;
 	g_sw_ehci[sw_ehci->usbc_no] = NULL;

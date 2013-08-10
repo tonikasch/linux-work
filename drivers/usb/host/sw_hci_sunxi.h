@@ -27,15 +27,6 @@
 #ifndef __SW_HCI_SUNXI_H__
 #define __SW_HCI_SUNXI_H__
 
-#include <linux/delay.h>
-#include <linux/types.h>
-
-#include <linux/io.h>
-#include <linux/irq.h>
-
-#include <linux/usb.h>
-#include <linux/usb/hcd.h>
-
 #include <mach/irqs.h>
 
 #define  DMSG_PRINT(stuff...)	printk(stuff)
@@ -90,24 +81,17 @@
 #define  USBC_REG_clear_bit_l(bp, reg) \
 	(USBC_Writel((USBC_Readl(reg) & (~(1 << (bp)))), (reg)))
 
-#define SW_SRAM_BASE		0x01c00000
-#define SW_SRAM_BASE_LEN	0x100
-#define SW_GPIO_BASE		0x01c20800
-#define SW_GPIO_BASE_LEN	0x100
+#define SW_VA_CCM_USBCLK_OFFSET			0xcc
+#define SW_VA_CCM_AHBMOD_OFFSET			0x60
 
 #define SW_USB1_BASE		0x01c14000
 #define SW_USB2_BASE		0x01c1c000
 
 #define SW_USB_EHCI_BASE_OFFSET	0x00
 #define SW_USB_OHCI_BASE_OFFSET	0x400
-#define SW_USB_EHCI_LEN		0x58
-#define SW_USB_OHCI_LEN		0x58
+#define SW_USB_EHCI_LEN			0x100
+#define SW_USB_OHCI_LEN			0x100
 #define SW_USB_PMU_IRQ_ENABLE	0x800
-
-#define SW_CCMU_BASE				0x01c20000
-#define SW_CCMU_BASE_LEN			0x100
-#define SW_CCMU_REG_AHB_GATING_REG0		0x60
-#define SW_CCMU_REG_USB_CLK_REG			0xCC
 
 /* ABH Gating Reg0 */
 #define SW_CCMU_BP_AHB_GATING_USBC2		2
@@ -122,14 +106,6 @@
 #define SW_CCMU_BP_USB_CLK_USBPHY1_RST		1
 #define SW_CCMU_BP_USB_CLK_USBPHY0_RST		0
 
-#define SW_INT_SRC_EHCI0	SW_INT_IRQNO_USB1
-#define SW_INT_SRC_OHCI0	SW_INT_IRQNO_USB3
-#define SW_INT_SRC_EHCI1	SW_INT_IRQNO_USB2
-#define SW_INT_SRC_OHCI1	SW_INT_IRQNO_USB4
-
-#define SW_SDRAM_BASE		0x01c01000
-#define SW_SDRAM_BASE_LEN	0x100
-
 #define SW_SDRAM_REG_HPCR_USB1	(0x250 + ((1 << 2) * 4))
 #define SW_SDRAM_REG_HPCR_USB2	(0x250 + ((1 << 2) * 5))
 
@@ -143,41 +119,9 @@
 
 struct sw_hci_hcd {
 	__u32 usbc_no; /* usb controller number */
-	__u32 irq_no; /* interrupt number */
 	char hci_name[32]; /* hci name */
 
-	struct resource *usb_base_res; /* USB resources */
-	struct resource *usb_base_req; /* USB resources */
 	void __iomem *usb_vbase; /* USB base address */
-
-	void __iomem *ehci_base;
-	__u32 ehci_reg_length;
-	void __iomem *ohci_base;
-	__u32 ohci_reg_length;
-
-	struct resource *sram_base_res;	/* SRAM resources */
-	struct resource *sram_base_req;	/* SRAM resources */
-	void __iomem *sram_vbase; /* SRAM base address */
-	__u32 sram_reg_start;
-	__u32 sram_reg_length;
-
-	struct resource *clock_base_res; /* clock resources */
-	struct resource *clock_base_req; /* clock resources */
-	void __iomem *clock_vbase; /* clock base address */
-	__u32 clock_reg_start;
-	__u32 clock_reg_length;
-
-	struct resource *gpio_base_res;	/* gpio resources */
-	struct resource *gpio_base_req;	/* gpio resources */
-	void __iomem *gpio_vbase; /* gpio base address */
-	__u32 gpio_reg_start;
-	__u32 gpio_reg_length;
-
-	struct resource *sdram_base_res; /* sdram resources */
-	struct resource *sdram_base_req; /* sdram resources */
-	void __iomem *sdram_vbase; /* sdram base address */
-	__u32 sdram_reg_start;
-	__u32 sdram_reg_length;
 
 	struct platform_device *pdev;
 	struct usb_hcd *hcd;

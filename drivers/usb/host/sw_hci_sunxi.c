@@ -35,7 +35,6 @@
 #include <linux/errno.h>
 #include <linux/init.h>
 #include <linux/timer.h>
-#include <linux/list.h>
 #include <linux/interrupt.h>
 #include <linux/platform_device.h>
 #include <linux/clk.h>
@@ -45,14 +44,15 @@
 #include <linux/dma-mapping.h>
 #include <linux/io.h>
 
+#include <linux/usb.h>
+#include <linux/usb/hcd.h>
+
 #include <asm/byteorder.h>
 #include <asm/irq.h>
 #include <asm/system.h>
 #include <asm/unaligned.h>
-#include <mach/irqs.h>
 
 #include <mach/clock.h>
-#include <mach/platform.h>
 #include <plat/system.h>
 #include <plat/sys_config.h>
 
@@ -70,11 +70,18 @@ static char *usbc_phy_reset_name[3] = { "usb_phy0", "usb_phy1", "usb_phy2" };
 static u32 usbc_base[3] = {
 	SW_VA_USB0_IO_BASE, SW_VA_USB1_IO_BASE, SW_VA_USB2_IO_BASE
 };
-static u32 ehci_irq_no[3] = { 0, SW_INT_SRC_EHCI0, SW_INT_SRC_EHCI1 };
-static u32 ohci_irq_no[3] = { 0, SW_INT_SRC_OHCI0, SW_INT_SRC_OHCI1 };
 
 static u32 usb1_set_vbus_cnt;
 static u32 usb2_set_vbus_cnt;
+
+
+static void dbg_clocks(struct sw_hci_hcd *sw_hci)
+{
+	DMSG_DEBUG("[%s]: clock info, SW_VA_CCM_AHBMOD_OFFSET(0x%x), SW_VA_CCM_USBCLK_OFFSET(0x%x)\n",
+		   sw_hci->hci_name,
+		   (u32) USBC_Readl(SW_VA_CCM_IO_BASE + SW_VA_CCM_AHBMOD_OFFSET),
+		   (u32) USBC_Readl(SW_VA_CCM_IO_BASE + SW_VA_CCM_USBCLK_OFFSET));
+}
 
 static s32 get_usb_cfg(struct sw_hci_hcd *sw_hci)
 {
@@ -190,7 +197,10 @@ static void UsbPhyInit(__u32 usbc_no)
 /*	DMSG_INFO("csr2-1: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x20, 5)); */
 
 	/* 调节 disconnect 域值 */
-	USBC_Phy_Write(usbc_no, 0x2a, 3, 2);
+	if (sunxi_is_sun5i())
+		USBC_Phy_Write(usbc_no, 0x2a, 2, 2);
+	else
+		USBC_Phy_Write(usbc_no, 0x2a, 3, 2);
 
 /*	DMSG_INFO("csr2: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x2a, 2));
 	DMSG_INFO("csr3: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Readl(USBC_Phy_GetCsr(usbc_no))); */
@@ -320,10 +330,7 @@ static int open_clock(struct sw_hci_hcd *sw_hci, u32 ohci)
 		     sw_hci->phy_reset, sw_hci->clk_is_open, sw_hci->ohci_gate);
 	}
 
-	DMSG_DEBUG("[%s]: open clock, 0x60(0x%x), 0xcc(0x%x)\n",
-		   sw_hci->hci_name,
-		   (u32) USBC_Readl(SW_VA_CCM_IO_BASE + 0x60),
-		   (u32) USBC_Readl(SW_VA_CCM_IO_BASE + 0xcc));
+	dbg_clocks(sw_hci);
 
 	return 0;
 }
@@ -352,10 +359,7 @@ static int close_clock(struct sw_hci_hcd *sw_hci, u32 ohci)
 		     sw_hci->phy_reset, sw_hci->clk_is_open, sw_hci->ohci_gate);
 	}
 
-	DMSG_DEBUG("[%s]: close clock, 0x60(0x%x), 0xcc(0x%x)\n",
-		   sw_hci->hci_name,
-		   (u32) USBC_Readl(SW_VA_CCM_IO_BASE + 0x60),
-		   (u32) USBC_Readl(SW_VA_CCM_IO_BASE + 0xcc));
+	dbg_clocks(sw_hci);
 
 	return 0;
 }
@@ -363,10 +367,9 @@ static int close_clock(struct sw_hci_hcd *sw_hci, u32 ohci)
 static void usb_passby(struct sw_hci_hcd *sw_hci, u32 enable)
 {
 	unsigned long reg_value = 0;
-	spinlock_t lock;
+	static DEFINE_SPINLOCK(lock);
 	unsigned long flags = 0;
 
-	spin_lock_init(&lock);
 	spin_lock_irqsave(&lock, flags);
 
 	/*enable passby */
@@ -403,6 +406,7 @@ static void hci_port_configure(struct sw_hci_hcd *sw_hci, u32 enable)
 {
 	unsigned long reg_value = 0;
 	u32 usbc_sdram_hpcr = 0;
+	void __iomem *addr = NULL;
 
 	if (sw_hci->usbc_no == 1) {
 		usbc_sdram_hpcr = SW_SDRAM_REG_HPCR_USB1;
@@ -413,13 +417,15 @@ static void hci_port_configure(struct sw_hci_hcd *sw_hci, u32 enable)
 		return;
 	}
 
-	reg_value = USBC_Readl(sw_hci->sdram_vbase + usbc_sdram_hpcr);
+	addr = (void __iomem*) SW_VA_DRAM_IO_BASE + usbc_sdram_hpcr;
+
+	reg_value = USBC_Readl(addr);
 	if (enable)
 		reg_value |= (1 << SW_SDRAM_BP_HPCR_ACCESS_EN);
 	else
 		reg_value &= ~(1 << SW_SDRAM_BP_HPCR_ACCESS_EN);
 
-	USBC_Writel(reg_value, (sw_hci->sdram_vbase + usbc_sdram_hpcr));
+	USBC_Writel(reg_value, addr);
 
 	return;
 }
@@ -513,7 +519,6 @@ struct temp_buffer {
 static void *alloc_temp_buffer(size_t size, gfp_t mem_flags)
 {
 	struct temp_buffer *temp, *kmalloc_ptr;
-	void *temp_data;
 	size_t kmalloc_size;
 
 	kmalloc_size = size + sizeof(struct temp_buffer) +
@@ -523,10 +528,12 @@ static void *alloc_temp_buffer(size_t size, gfp_t mem_flags)
 	if (!kmalloc_ptr)
 		return NULL;
 
-	/* Position our struct temp_buffer such that data is aligned */
-	temp_data = PTR_ALIGN(kmalloc_ptr->data + 1, SUNXI_USB_DMA_ALIGN) - 1;
-	temp = (void *)((uintptr_t)temp_data -
-		offsetof(struct temp_buffer, data));
+	/* Position our struct temp_buffer such that data is aligned.
+	 *
+	 * Note: kmalloc_ptr is type 'struct temp_buffer *' and PTR_ALIGN
+	 * returns pointer with the same type 'struct temp_buffer *'.
+	 */
+	temp = PTR_ALIGN(kmalloc_ptr + 1, SUNXI_USB_DMA_ALIGN) - 1;
 
 	temp->kmalloc_ptr = kmalloc_ptr;
 	return temp;
@@ -674,24 +681,23 @@ EXPORT_SYMBOL_GPL(sunxi_hcd_unmap_urb_for_dma);
 #define  SW_EHCI_NAME		"sw-ehci"
 static const char ehci_name[] = SW_EHCI_NAME;
 
-static struct sw_hci_hcd sw_ehci0;
 static struct sw_hci_hcd sw_ehci1;
 static struct sw_hci_hcd sw_ehci2;
 
 static u64 sw_ehci_dmamask = DMA_BIT_MASK(32);
 
+static struct resource sw_ehci1_resources[] = {
+		DEFINE_RES_MEM(SW_PA_USB1_IO_BASE + SW_USB_EHCI_BASE_OFFSET, SW_USB_EHCI_LEN),
+		DEFINE_RES_IRQ(SW_INT_IRQNO_USB1)
+};
+
+static struct resource sw_ehci2_resources[] = {
+		DEFINE_RES_MEM(SW_PA_USB2_IO_BASE + SW_USB_EHCI_BASE_OFFSET, SW_USB_EHCI_LEN),
+		DEFINE_RES_IRQ(SW_INT_IRQNO_USB2)
+};
+
 static struct platform_device sw_usb_ehci_device[] = {
 	[0] = {
-	       .name = ehci_name,
-	       .id = 0,
-	       .dev = {
-		       .dma_mask = &sw_ehci_dmamask,
-		       .coherent_dma_mask = DMA_BIT_MASK(32),
-		       .platform_data = &sw_ehci0,
-		       },
-	       },
-
-	[1] = {
 	       .name = ehci_name,
 	       .id = 1,
 	       .dev = {
@@ -699,9 +705,11 @@ static struct platform_device sw_usb_ehci_device[] = {
 		       .coherent_dma_mask = DMA_BIT_MASK(32),
 		       .platform_data = &sw_ehci1,
 		       },
+	       .resource = sw_ehci1_resources,
+	       .num_resources = ARRAY_SIZE(sw_ehci1_resources),
 	       },
 
-	[2] = {
+	[1] = {
 	       .name = ehci_name,
 	       .id = 2,
 	       .dev = {
@@ -709,6 +717,8 @@ static struct platform_device sw_usb_ehci_device[] = {
 		       .coherent_dma_mask = DMA_BIT_MASK(32),
 		       .platform_data = &sw_ehci2,
 		       },
+	       .resource = sw_ehci2_resources,
+	       .num_resources = ARRAY_SIZE(sw_ehci2_resources),
 	       },
 };
 
@@ -721,24 +731,23 @@ static struct platform_device sw_usb_ehci_device[] = {
 #define  SW_OHCI_NAME		"sw-ohci"
 static const char ohci_name[] = SW_OHCI_NAME;
 
-static struct sw_hci_hcd sw_ohci0;
 static struct sw_hci_hcd sw_ohci1;
 static struct sw_hci_hcd sw_ohci2;
 
 static u64 sw_ohci_dmamask = DMA_BIT_MASK(32);
 
+static struct resource sw_ohci1_resources[] = {
+		DEFINE_RES_MEM(SW_PA_USB1_IO_BASE + SW_USB_OHCI_BASE_OFFSET, SW_USB_OHCI_LEN),
+		DEFINE_RES_IRQ(SW_INT_IRQNO_USB3)
+};
+
+static struct resource sw_ohci2_resources[] = {
+		DEFINE_RES_MEM(SW_PA_USB2_IO_BASE + SW_USB_OHCI_BASE_OFFSET, SW_USB_OHCI_LEN),
+		DEFINE_RES_IRQ(SW_INT_IRQNO_USB4)
+};
+
 static struct platform_device sw_usb_ohci_device[] = {
 	[0] = {
-	       .name = ohci_name,
-	       .id = 0,
-	       .dev = {
-		       .dma_mask = &sw_ohci_dmamask,
-		       .coherent_dma_mask = DMA_BIT_MASK(32),
-		       .platform_data = &sw_ohci0,
-		       },
-	       },
-
-	[1] = {
 	       .name = ohci_name,
 	       .id = 1,
 	       .dev = {
@@ -746,9 +755,10 @@ static struct platform_device sw_usb_ohci_device[] = {
 		       .coherent_dma_mask = DMA_BIT_MASK(32),
 		       .platform_data = &sw_ohci1,
 		       },
+	       .resource = sw_ohci1_resources,
+	       .num_resources = ARRAY_SIZE(sw_ohci1_resources),
 	       },
-
-	[2] = {
+	[1] = {
 	       .name = ohci_name,
 	       .id = 2,
 	       .dev = {
@@ -756,6 +766,8 @@ static struct platform_device sw_usb_ohci_device[] = {
 		       .coherent_dma_mask = DMA_BIT_MASK(32),
 		       .platform_data = &sw_ohci2,
 		       },
+	       .resource = sw_ohci2_resources,
+	       .num_resources = ARRAY_SIZE(sw_ohci2_resources),
 	       },
 };
 
@@ -763,13 +775,9 @@ static void print_sw_hci(struct sw_hci_hcd *sw_hci)
 {
 	DMSG_DEBUG("\n------%s config------\n", sw_hci->hci_name);
 	DMSG_DEBUG("hci_name             = %s\n", sw_hci->hci_name);
-	DMSG_DEBUG("irq_no               = %d\n", sw_hci->irq_no);
 	DMSG_DEBUG("usbc_no              = %d\n", sw_hci->usbc_no);
 
 	DMSG_DEBUG("usb_vbase            = 0x%p\n", sw_hci->usb_vbase);
-	DMSG_DEBUG("sram_vbase           = 0x%p\n", sw_hci->sram_vbase);
-	DMSG_DEBUG("clock_vbase          = 0x%p\n", sw_hci->clock_vbase);
-	DMSG_DEBUG("sdram_vbase          = 0x%p\n", sw_hci->sdram_vbase);
 
 	DMSG_DEBUG("used                 = %d\n", sw_hci->used);
 	DMSG_DEBUG("host_init_state      = %d\n", sw_hci->host_init_state);
@@ -789,6 +797,16 @@ static void print_sw_hci(struct sw_hci_hcd *sw_hci)
 	DMSG_DEBUG("data                 = %d\n",
 		   sw_hci->drv_vbus_gpio_set.data);
 
+	dbg_clocks(sw_hci);
+
+	pr_info("USB PMU IRQ: 0x%x\n",
+		(u32) USBC_Readl(sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE));
+	pr_info("DRAM: USB1(0x%x), USB2(0x%x)\n",
+	       (u32) USBC_Readl(SW_VA_DRAM_IO_BASE + SW_SDRAM_REG_HPCR_USB1),
+	       (u32) USBC_Readl(SW_VA_DRAM_IO_BASE + SW_SDRAM_REG_HPCR_USB2));
+
+	pr_info("----------------------------------\n");
+
 	DMSG_DEBUG("\n--------------------------\n");
 
 	return;
@@ -803,18 +821,9 @@ static int init_sw_hci(struct sw_hci_hcd *sw_hci, u32 usbc_no, u32 ohci,
 
 	sw_hci->usbc_no = usbc_no;
 
-	if (ohci)
-		sw_hci->irq_no = ohci_irq_no[sw_hci->usbc_no];
-	else
-		sw_hci->irq_no = ehci_irq_no[sw_hci->usbc_no];
-
 	sprintf(sw_hci->hci_name, "%s%d", hci_name, sw_hci->usbc_no);
 
 	sw_hci->usb_vbase = (void __iomem *)usbc_base[sw_hci->usbc_no];
-	sw_hci->sram_vbase = (void __iomem *)SW_VA_SRAM_IO_BASE;
-	sw_hci->clock_vbase = (void __iomem *)SW_VA_CCM_IO_BASE;
-	sw_hci->gpio_vbase = (void __iomem *)SW_VA_PORTC_IO_BASE;
-	sw_hci->sdram_vbase = (void __iomem *)SW_VA_DRAM_IO_BASE;
 
 	get_usb_cfg(sw_hci);
 	sw_hci->open_clock = open_clock;
@@ -837,13 +846,6 @@ failed1:
 	return -1;
 }
 
-static int exit_sw_hci(struct sw_hci_hcd *sw_hci, u32 ohci)
-{
-	clock_exit(sw_hci, ohci);
-
-	return 0;
-}
-
 static int __init sw_hci_sunxi_init(void)
 {
 /* XXX Should be rewtitten with checks if CONFIG_USB_EHCI_HCD or CONFIG_USB_OHCI_HCD
@@ -851,6 +853,15 @@ static int __init sw_hci_sunxi_init(void)
 */
 	u32 usb1_drv_vbus_Handle = 0;
 	u32 usb2_drv_vbus_Handle = 0;
+
+	if (sunxi_is_sun5i()) {
+		/*
+		 * The sun5i has only one usb controller and thus uses
+		 * IRQNO_USB2 for its ohci controller.
+		 */
+		sw_ohci1_resources[1].start = SW_INT_IRQNO_USB2;
+		sw_ohci1_resources[1].end   = SW_INT_IRQNO_USB2;
+	}
 
 	init_sw_hci(&sw_ehci1, 1, 0, ehci_name);
 	init_sw_hci(&sw_ohci1, 1, 1, ohci_name);
@@ -883,15 +894,15 @@ static int __init sw_hci_sunxi_init(void)
 
 /* XXX '.used' flag is for USB port, not for EHCI or OHCI. So it can be checked this way */
 	if (sw_ehci1.used) {
-		platform_device_register(&sw_usb_ehci_device[1]);
-		platform_device_register(&sw_usb_ohci_device[1]);
+		platform_device_register(&sw_usb_ehci_device[0]);
+		platform_device_register(&sw_usb_ohci_device[0]);
 	} else {
 /*      DMSG_PANIC("ERR: usb%d %s is disabled in script.bin\n", sw_ehci1.usbc_no, sw_ehci1.hci_name); */
 	}
 
 	if (sw_ehci2.used) {
-		platform_device_register(&sw_usb_ehci_device[2]);
-		platform_device_register(&sw_usb_ohci_device[2]);
+		platform_device_register(&sw_usb_ehci_device[1]);
+		platform_device_register(&sw_usb_ohci_device[1]);
 	} else {
 /*      DMSG_PANIC("ERR: usb%d %s is disabled in script.bin\n", sw_ehci2.usbc_no, sw_ehci2.hci_name); */
 	}
@@ -906,21 +917,21 @@ static void __exit sw_hci_sunxi_exit(void)
 {
 /* XXX '.used' flag is for USB port, not for EHCI or OHCI. So it can be checked this way */
 	if (sw_ehci1.used) {
-		platform_device_unregister(&sw_usb_ehci_device[1]);
-		platform_device_unregister(&sw_usb_ohci_device[1]);
+		platform_device_unregister(&sw_usb_ehci_device[0]);
+		platform_device_unregister(&sw_usb_ohci_device[0]);
 
-		exit_sw_hci(&sw_ehci1, 0);
-		exit_sw_hci(&sw_ohci1, 1);
+		clock_exit(&sw_ehci1, 0);
+		clock_exit(&sw_ohci1, 1);
 
 		free_pin(sw_ehci1.drv_vbus_Handle);
 	}
 
 	if (sw_ehci2.used) {
-		platform_device_unregister(&sw_usb_ehci_device[2]);
-		platform_device_unregister(&sw_usb_ohci_device[2]);
+		platform_device_unregister(&sw_usb_ehci_device[1]);
+		platform_device_unregister(&sw_usb_ohci_device[1]);
 
-		exit_sw_hci(&sw_ehci2, 0);
-		exit_sw_hci(&sw_ohci2, 1);
+		clock_exit(&sw_ehci2, 0);
+		clock_exit(&sw_ohci2, 1);
 
 		free_pin(sw_ehci2.drv_vbus_Handle);
 	}
