@@ -183,18 +183,10 @@ static __u32 USBC_Phy_Write(__u32 usbc_no, __u32 addr, __u32 data, __u32 len)
 
 static void UsbPhyInit(__u32 usbc_no)
 {
-/*	DMSG_INFO("csr1: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Readl(USBC_Phy_GetCsr(usbc_no))); */
-
-	/* 调节45欧阻抗 */
-	if (usbc_no == 0)
-		USBC_Phy_Write(usbc_no, 0x0c, 0x01, 1);
-
-/*	DMSG_INFO("csr2-0: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x0c, 1)); */
-
 	/* 调整 USB0 PHY 的幅度和速率 */
 	USBC_Phy_Write(usbc_no, 0x20, 0x14, 5);
 
-/*	DMSG_INFO("csr2-1: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x20, 5)); */
+	DMSG_DEBUG("csr2-1: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x20, 5));
 
 	/* 调节 disconnect 域值 */
 	if (sunxi_is_sun5i())
@@ -202,8 +194,8 @@ static void UsbPhyInit(__u32 usbc_no)
 	else
 		USBC_Phy_Write(usbc_no, 0x2a, 3, 2);
 
-/*	DMSG_INFO("csr2: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x2a, 2));
-	DMSG_INFO("csr3: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Readl(USBC_Phy_GetCsr(usbc_no))); */
+	DMSG_DEBUG("csr2: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x2a, 2));
+	DMSG_DEBUG("csr3: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Readl(USBC_Phy_GetCsr(usbc_no)));
 
 	return;
 }
@@ -367,35 +359,25 @@ static int close_clock(struct sw_hci_hcd *sw_hci, u32 ohci)
 static void usb_passby(struct sw_hci_hcd *sw_hci, u32 enable)
 {
 	unsigned long reg_value = 0;
+	unsigned long bits = 0;
 	static DEFINE_SPINLOCK(lock);
 	unsigned long flags = 0;
 
 	spin_lock_irqsave(&lock, flags);
 
-	/*enable passby */
-	if (enable) {
-		reg_value =
-		    USBC_Readl(sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE);
-		reg_value |= (1 << 10);	/* AHB Master interface INCR8 enable */
-		reg_value |= (1 << 9);	/* AHB Master interface burst type
-					   INCR4 enable */
-		reg_value |= (1 << 8);	/* AHB Master interface INCRX align
-					   enable */
-		reg_value |= (1 << 0);	/* ULPI bypass enable */
-		USBC_Writel(reg_value,
-			    (sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE));
-	} else {
-		reg_value =
-		    USBC_Readl(sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE);
-		reg_value &= ~(1 << 10);/* AHB Master interface INCR8 disable */
-		reg_value &= ~(1 << 9);	/* AHB Master interface burst type
-					   INCR4 disable */
-		reg_value &= ~(1 << 8);	/* AHB Master interface INCRX align
-					   disable */
-		reg_value &= ~(1 << 0);	/* ULPI bypass disable */
-		USBC_Writel(reg_value,
-			    (sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE));
-	}
+	bits =	BIT(10) | /* AHB Master interface INCR8 enable */
+			BIT(9)  | /* AHB Master interface burst type INCR4 enable */
+			BIT(8)  | /* AHB Master interface INCRX align enable */
+			BIT(0);   /* ULPI bypass enable */
+
+	reg_value = USBC_Readl(sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE);
+
+	if (enable)
+		reg_value |= bits;
+	else
+		reg_value &= ~bits;
+
+	USBC_Writel(reg_value, sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE);
 
 	spin_unlock_irqrestore(&lock, flags);
 
