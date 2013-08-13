@@ -79,8 +79,8 @@ static void dbg_clocks(struct sw_hci_hcd *sw_hci)
 {
 	DMSG_DEBUG("[%s]: clock info, SW_VA_CCM_AHBMOD_OFFSET(0x%x), SW_VA_CCM_USBCLK_OFFSET(0x%x)\n",
 		   sw_hci->hci_name,
-		   (u32) USBC_Readl(SW_VA_CCM_IO_BASE + SW_VA_CCM_AHBMOD_OFFSET),
-		   (u32) USBC_Readl(SW_VA_CCM_IO_BASE + SW_VA_CCM_USBCLK_OFFSET));
+		   (u32) readl(SW_VA_CCM_IO_BASE + SW_VA_CCM_AHBMOD_OFFSET),
+		   (u32) readl(SW_VA_CCM_IO_BASE + SW_VA_CCM_USBCLK_OFFSET));
 }
 
 static s32 get_usb_cfg(struct sw_hci_hcd *sw_hci)
@@ -153,28 +153,37 @@ static __u32 USBC_Phy_Write(__u32 usbc_no, __u32 addr, __u32 data, __u32 len)
 {
 	__u32 temp = 0, dtmp = 0;
 	__u32 j = 0;
+	__u32 usbc_bit = 0;
+	__u32 dest = USBC_Phy_GetCsr(usbc_no);
 
 	dtmp = data;
+	usbc_bit = BIT(usbc_no * 2);
 	for (j = 0; j < len; j++) {
-		/* set  the bit address to be write */
-		temp = USBC_Readl(USBC_Phy_GetCsr(usbc_no));
+		/* set the bit address to be written */
+		temp = readl(dest);
 		temp &= ~(0xff << 8);
 		temp |= ((addr + j) << 8);
-		USBC_Writel(temp, USBC_Phy_GetCsr(usbc_no));
+		writel(temp, dest);
 
-		temp = USBC_Readb(USBC_Phy_GetCsr(usbc_no));
-		temp &= ~(0x1 << 7);
-		temp |= (dtmp & 0x1) << 7;
-		temp &= ~(0x1 << (usbc_no << 1));
-		USBC_Writeb(temp, USBC_Phy_GetCsr(usbc_no));
+		/* clear usbc bit and set data bit */
+		temp = readb(dest);
+		temp &= ~usbc_bit;
+		if (dtmp & 0x1)
+			temp |= BIT(7);
+		else
+			temp &= ~BIT(7);
+		writeb(temp, dest);
 
-		temp = USBC_Readb(USBC_Phy_GetCsr(usbc_no));
-		temp |= (0x1 << (usbc_no << 1));
-		USBC_Writeb(temp, USBC_Phy_GetCsr(usbc_no));
+		/* set usbc bit */
+		temp = readb(dest);
+		temp |= usbc_bit;
+		writeb(temp, dest);
 
-		temp = USBC_Readb(USBC_Phy_GetCsr(usbc_no));
-		temp &= ~(0x1 << (usbc_no << 1));
-		USBC_Writeb(temp, USBC_Phy_GetCsr(usbc_no));
+		/* clear usbc bit */
+		temp = readb(dest);
+		temp &= ~usbc_bit;
+		writeb(temp, dest);
+
 		dtmp >>= 1;
 	}
 
@@ -185,18 +194,18 @@ static void UsbPhyInit(__u32 usbc_no)
 {
 	/* 调整 USB0 PHY 的幅度和速率 */
 	USBC_Phy_Write(usbc_no, 0x20, 0x14, 5);
-/*
-	DMSG_DEBUG("csr2-1: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x20, 5));
-*/
+
+	/* DMSG_DEBUG("csr2-1: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x20, 5)); */
+
 	/* 调节 disconnect 域值 */
 	if (sunxi_is_sun5i())
 		USBC_Phy_Write(usbc_no, 0x2a, 2, 2);
 	else
 		USBC_Phy_Write(usbc_no, 0x2a, 3, 2);
-/*
-	DMSG_DEBUG("csr2: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x2a, 2));
-	DMSG_DEBUG("csr3: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Readl(USBC_Phy_GetCsr(usbc_no)));
-*/
+
+	/* DMSG_DEBUG("csr2: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x2a, 2)); */
+	DMSG_DEBUG("csr3: usbc%d: 0x%x\n", usbc_no, (u32)readl(USBC_Phy_GetCsr(usbc_no)));
+
 	return;
 }
 
@@ -370,14 +379,14 @@ static void usb_passby(struct sw_hci_hcd *sw_hci, u32 enable)
 			BIT(8)  | /* AHB Master interface INCRX align enable */
 			BIT(0);   /* ULPI bypass enable */
 
-	reg_value = USBC_Readl(sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE);
+	reg_value = readl(sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE);
 
 	if (enable)
 		reg_value |= bits;
 	else
 		reg_value &= ~bits;
 
-	USBC_Writel(reg_value, sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE);
+	writel(reg_value, sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE);
 
 	spin_unlock_irqrestore(&lock, flags);
 
@@ -401,13 +410,13 @@ static void hci_port_configure(struct sw_hci_hcd *sw_hci, u32 enable)
 
 	addr = (void __iomem*) SW_VA_DRAM_IO_BASE + usbc_sdram_hpcr;
 
-	reg_value = USBC_Readl(addr);
+	reg_value = readl(addr);
 	if (enable)
-		reg_value |= (1 << SW_SDRAM_BP_HPCR_ACCESS_EN);
+		reg_value |= BIT(SW_SDRAM_BP_HPCR_ACCESS_EN);
 	else
-		reg_value &= ~(1 << SW_SDRAM_BP_HPCR_ACCESS_EN);
+		reg_value &= ~BIT(SW_SDRAM_BP_HPCR_ACCESS_EN);
 
-	USBC_Writel(reg_value, addr);
+	writel(reg_value, addr);
 
 	return;
 }
@@ -782,10 +791,10 @@ static void print_sw_hci(struct sw_hci_hcd *sw_hci)
 	dbg_clocks(sw_hci);
 
 	pr_info("USB PMU IRQ: 0x%x\n",
-		(u32) USBC_Readl(sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE));
+		(u32) readl(sw_hci->usb_vbase + SW_USB_PMU_IRQ_ENABLE));
 	pr_info("DRAM: USB1(0x%x), USB2(0x%x)\n",
-	       (u32) USBC_Readl(SW_VA_DRAM_IO_BASE + SW_SDRAM_REG_HPCR_USB1),
-	       (u32) USBC_Readl(SW_VA_DRAM_IO_BASE + SW_SDRAM_REG_HPCR_USB2));
+	       (u32) readl(SW_VA_DRAM_IO_BASE + SW_SDRAM_REG_HPCR_USB1),
+	       (u32) readl(SW_VA_DRAM_IO_BASE + SW_SDRAM_REG_HPCR_USB2));
 
 	pr_info("----------------------------------\n");
 
@@ -798,6 +807,7 @@ static int init_sw_hci(struct sw_hci_hcd *sw_hci, u32 usbc_no, u32 ohci,
 		       const char *hci_name)
 {
 	s32 ret = 0;
+	u32 drv_vbus_Handle = 0;
 
 	memset(sw_hci, 0, sizeof(struct sw_hci_hcd));
 
@@ -808,6 +818,14 @@ static int init_sw_hci(struct sw_hci_hcd *sw_hci, u32 usbc_no, u32 ohci,
 	sw_hci->usb_vbase = (void __iomem *)usbc_base[sw_hci->usbc_no];
 
 	get_usb_cfg(sw_hci);
+
+	drv_vbus_Handle = alloc_pin(&sw_hci->drv_vbus_gpio_set);
+	if (drv_vbus_Handle == 0) {
+		DMSG_PANIC("ERR: alloc_pin failed\n");
+		goto failed1;
+	}
+	sw_hci->drv_vbus_Handle = drv_vbus_Handle;
+
 	sw_hci->open_clock = open_clock;
 	sw_hci->close_clock = close_clock;
 	sw_hci->set_power = sw_set_vbus;
@@ -833,9 +851,6 @@ static int __init sw_hci_sunxi_init(void)
 /* XXX Should be rewtitten with checks if CONFIG_USB_EHCI_HCD or CONFIG_USB_OHCI_HCD
        are actually defined. Original code assumes that EHCI is always on.
 */
-	u32 usb1_drv_vbus_Handle = 0;
-	u32 usb2_drv_vbus_Handle = 0;
-
 	if (sunxi_is_sun5i()) {
 		/*
 		 * The sun5i has only one usb controller and thus uses
@@ -848,28 +863,10 @@ static int __init sw_hci_sunxi_init(void)
 	init_sw_hci(&sw_ehci1, 1, 0, ehci_name);
 	init_sw_hci(&sw_ohci1, 1, 1, ohci_name);
 
-	usb1_drv_vbus_Handle = alloc_pin(&sw_ehci1.drv_vbus_gpio_set);
-	if (usb1_drv_vbus_Handle == 0) {
-		DMSG_PANIC("ERR: usb1 alloc_pin failed\n");
-		goto failed0;
-	}
-
-	sw_ehci1.drv_vbus_Handle = usb1_drv_vbus_Handle;
-	sw_ohci1.drv_vbus_Handle = usb1_drv_vbus_Handle;
-
 	if (sunxi_is_sun4i() || sunxi_is_sun7i()) {
 		/* A13 has only one *HCI USB controller */
 		init_sw_hci(&sw_ehci2, 2, 0, ehci_name);
 		init_sw_hci(&sw_ohci2, 2, 1, ohci_name);
-
-		usb2_drv_vbus_Handle = alloc_pin(&sw_ehci2.drv_vbus_gpio_set);
-		if (usb2_drv_vbus_Handle == 0) {
-			DMSG_PANIC("ERR: usb2 alloc_pin failed\n");
-			goto failed0;
-		}
-
-		sw_ehci2.drv_vbus_Handle = usb2_drv_vbus_Handle;
-		sw_ohci2.drv_vbus_Handle = usb2_drv_vbus_Handle;
 	} else {
 		sw_ehci2.used = 0;
 	}
@@ -890,9 +887,6 @@ static int __init sw_hci_sunxi_init(void)
 	}
 
 	return 0;
-
-failed0:
-	return -1;
 }
 
 static void __exit sw_hci_sunxi_exit(void)
