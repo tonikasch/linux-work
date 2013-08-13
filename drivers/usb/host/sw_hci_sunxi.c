@@ -185,18 +185,18 @@ static void UsbPhyInit(__u32 usbc_no)
 {
 	/* 调整 USB0 PHY 的幅度和速率 */
 	USBC_Phy_Write(usbc_no, 0x20, 0x14, 5);
-
+/*
 	DMSG_DEBUG("csr2-1: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x20, 5));
-
+*/
 	/* 调节 disconnect 域值 */
 	if (sunxi_is_sun5i())
 		USBC_Phy_Write(usbc_no, 0x2a, 2, 2);
 	else
 		USBC_Phy_Write(usbc_no, 0x2a, 3, 2);
-
+/*
 	DMSG_DEBUG("csr2: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x2a, 2));
 	DMSG_DEBUG("csr3: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Readl(USBC_Phy_GetCsr(usbc_no)));
-
+*/
 	return;
 }
 
