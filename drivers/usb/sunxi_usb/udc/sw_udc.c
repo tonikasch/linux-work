@@ -1028,7 +1028,9 @@ static void sw_udc_handle_ep0_idle(struct sw_udc *dev,
 		dev->ep0state = EP0_OUT_DATA_PHASE;
     }
 
+	spin_unlock(&dev->lock);
 	ret = dev->driver->setup(&dev->gadget, crq);
+	spin_lock(&dev->lock);
 	if (ret < 0) {
 		if (dev->req_config) {
 			DMSG_PANIC("ERR: config change %02x fail %d?\n", crq->bRequest, ret);
@@ -3324,9 +3326,7 @@ int sw_usb_device_enable(void)
 
 err:
 	if(is_udc_support_dma()){
-		if(udc->sw_udc_dma.dma_hdle >= 0){
-			sw_udc_dma_remove(udc);
-		}
+		sw_udc_dma_remove(udc);
 	}
 
     sw_udc_io_exit(usbd_port_no, pdev, &g_sw_udc_io);
@@ -3362,9 +3362,7 @@ int sw_usb_device_disable(void)
 	sw_udc_set_pullup(udc, 0);
 
 	if(is_udc_support_dma()){
-		if(udc->sw_udc_dma.dma_hdle >= 0){
-			sw_udc_dma_remove(udc);
-		}
+		sw_udc_dma_remove(udc);
 	}
 
 	free_irq(udc->irq_no, udc);
@@ -3527,13 +3525,15 @@ static int sw_udc_probe_device_only(struct platform_device *pdev)
 		goto err;
 	}
 
+	retval = usb_add_gadget_udc(&pdev->dev, &udc->gadget);
+	if (retval)
+		goto err;
+
     return 0;
 
 err:
 	if(is_udc_support_dma()){
-		if(udc->sw_udc_dma.dma_hdle >= 0){
-			sw_udc_dma_remove(udc);
-		}
+		sw_udc_dma_remove(udc);
 	}
 
     sw_udc_io_exit(usbd_port_no, pdev, &g_sw_udc_io);
@@ -3569,9 +3569,7 @@ static int sw_udc_remove_device_only(struct platform_device *pdev)
     }
 
 	if(is_udc_support_dma()){
-		if(udc->sw_udc_dma.dma_hdle >= 0){
-			sw_udc_dma_remove(udc);
-		}
+		sw_udc_dma_remove(udc);
 	}
 
 	free_irq(udc->irq_no, udc);
