@@ -69,7 +69,6 @@ config ARCH_VEXPRESS_DCSCB
 config ARCH_VEXPRESS_TC2_PM
 	bool "Versatile Express TC2 power management"
 	depends on MCPM
-	select VEXPRESS_SPC
 	select ARM_CCI
 	help
 	  Support for CPU and cluster power management on Versatile Express

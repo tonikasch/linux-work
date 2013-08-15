@@ -15,6 +15,13 @@ next/fixes-non-critical
 		git://git.infradead.org/linux-mvebu.git tags/fixes-non-3.12
 	keystone/fixes-non-critical
 		git://git.kernel.org/pub/scm/linux/kernel/git/ssantosh/linux-keystone.git tags/keystone-fixes-non-critical
+	patches
+		ARM: clps711x: edb7211: Remove extra iotable_init() call                      
+		ARM: clps711x: autcpu12: Remove incorrect config checking                     
+		ARM: clps711x: Drop fortunet board support                                    
+		ARM: clps711x: Remove the special name for the syscon driver 
+	renesas/fixes2
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-fixes2-for-v3.12
 
 next/cleanup
 	localtimer/removal
@@ -26,23 +33,51 @@ next/cleanup
 		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-cleanup-for-v3.12
 	omap/remove-defines
 		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.12/cleanup-unused-defines
+	msm/cleanup
+		git://git.kernel.org/pub/scm/linux/kernel/git/davidb/linux-msm.git tags/msm-cleanup3-for-3.12
+	samsung/pwm-cleanup
+		git://github.com/tom3q/linux.git tags/v3.12-pwm-cleanup-for-olof
+
+next/dt
+	renesas/dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-dt-for-v3.12
+		based on renesas/cleanup
+	renesas/pinmux
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-pinmux-for-v3.12
+	renesas/multiplatform
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-multiplatform-for-v3.12
+		
+next/soc
+	vexpress/mcpm
+		git://git.linaro.org/people/pawelmoll/linux.git tags/tc2-pm
+	patches
+		ARM: debug: support debug ll on hisilicon soc
+		ARM: prima2: pm: drop redundant postcore_initcall                             
+		ARM: prima2: pm: enable rtc alarm0 and alarm1 as wakeup source     
+	renesas/soc
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-soc-for-v3.12
+		based on renesas/dt
+	renesas/soc2
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-soc2-for-v3.12
+		includes renesas/fixes-for-3.12
 
 next/boards
 	renesas/backlight
 		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-backlight-for-v3.12
 	mvebu/boards
 		git://git.infradead.org/linux-mvebu.git tags/boards-3.12
+	renesas/tpu-pwm
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-tpu-pwm-for-v3.12
+	renesas/boards
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-boards-for-v3.12
+	renesas/defconfig
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-defconfig-for-v3.12
+	renesas/boards2
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-boards2-for-v3.12
+	renesas/boards-cleanup
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-boards-cleanup-for-v3.12
 
-next/dt
-	renesas/dt
-		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-dt-for-v3.12
-		based on renesas/cleanup
-
-olof/vexpress -- unstable branch for vexpress mcpm/spc patches
-	vexpress/mcpm
-		git://git.linaro.org/people/nico/linux mcpm+tc2
-	patches
-		Documentation: devicetree: arm: rename SPC device tree bindings to SCC
-		ARM: vexpress: move spc driver back under mach-vexpress
-		ARM: vexpress: make spc code TC2-only
-		ARM: vexpress: don't print virtual address in dmesg
+next/dt2
+	renesas/dt2
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-dt2-for-v3.12
+		contains renesas/cleanup renesas/dt and renesas/soc

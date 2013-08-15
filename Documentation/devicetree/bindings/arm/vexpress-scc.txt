@@ -1,37 +1,33 @@
-* ARM Versatile Express Serial Configuration Controller device tree bindings
+ARM Versatile Express Serial Configuration Controller
+-----------------------------------------------------
 
-Latest ARM development boards implement a serial configuration interface (SCC)
-that can be used to retrieve temperature sensors, energy/voltage/current
-probes and oscillators values through the SYS configuration protocol defined
-for versatile express motherboards.
-It also provides a power management interface (serial power controller - SPC)
-that is capable of managing power/voltage and operating points transitions,
-wake-up IRQs and resume addresses for ARM multiprocessor testchips.
+Test chips for ARM Versatile Express platform implement SCC (Serial
+Configuration Controller) interface, used to set initial conditions
+for the test chip.
 
-The SCC DT bindings are defined as follows:
+In some cases its registers are also mapped in normal address space
+and can be used to obtain runtime information about the chip internals
+(like silicon temperature sensors) and as interface to other subsystems
+like platform configuration control and power management.
 
-- scc node
+Required properties:
 
-	- compatible:
-		Usage: required
-		Value type: <stringlist>
-		Definition: must be
-			    "arm,vexpress-scc,v2p-ca15_a7", "arm,vexpress-scc"
-	- reg:
-		Usage: required
-		Value type: <prop-encode-array>
-		Definition: A standard property that specifies the base address
-			    and the size of the SCC address space
-	- interrupts:
-		Usage: required
-		Value type: <prop-encoded-array>
-		Definition:  SCC interrupt configuration. A standard property
-			     that follows ePAPR interrupts specifications
+- compatible value: "arm,vexpress-scc,<model>", "arm,vexpress-scc";
+		    where <model> is the full tile model name (as used
+		    in the tile's Technical Reference Manual),
+		    eg. for Coretile Express A15x2 A7x3 (V2P-CA15_A7):
+	compatible = "arm,vexpress-scc,v2p-ca15_a7", "arm,vexpress-scc";
+
+Optional properties:
+
+- reg: when the SCC is memory mapped, physical address and size of the
+       registers window
+- interrupts: when the SCC can generate a system-level interrupt
 
 Example:
 
-scc: scc@7fff0000 {
-	compatible = "arm,vexpress-scc,v2p-ca15_a7", "arm,vexpress-scc";
-	reg = <0x7fff0000 0x1000>;
-	interrupts = <0 95 4>;
-};
+	scc@7fff0000 {
+		compatible = "arm,vexpress-scc,v2p-ca15_a7", "arm,vexpress-scc";
+		reg = <0 0x7fff0000 0 0x1000>;
+		interrupts = <0 95 4>;
+	};

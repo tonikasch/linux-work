@@ -17,34 +17,24 @@
  * GNU General Public License for more details.
  */
 
-#include <linux/device.h>
 #include <linux/err.h>
 #include <linux/io.h>
-#include <linux/of_address.h>
 #include <linux/slab.h>
-#include <linux/vexpress.h>
 
 #include <asm/cacheflush.h>
 
 #define SPCLOG "vexpress-spc: "
 
-/* SCC conf registers */
-#define A15_CONF		0x400
-#define SYS_INFO		0x700
-
-/* SPC registers base */
-#define SPC_BASE		0xB00
-
 /* SPC wake-up IRQs status and mask */
-#define WAKE_INT_MASK		(SPC_BASE + 0x24)
-#define WAKE_INT_RAW		(SPC_BASE + 0x28)
-#define WAKE_INT_STAT		(SPC_BASE + 0x2c)
+#define WAKE_INT_MASK		0x24
+#define WAKE_INT_RAW		0x28
+#define WAKE_INT_STAT		0x2c
 /* SPC power down registers */
-#define A15_PWRDN_EN		(SPC_BASE + 0x30)
-#define A7_PWRDN_EN		(SPC_BASE + 0x34)
+#define A15_PWRDN_EN		0x30
+#define A7_PWRDN_EN		0x34
 /* SPC per-CPU mailboxes */
-#define A15_BX_ADDR0		(SPC_BASE + 0x68)
-#define A7_BX_ADDR0		(SPC_BASE + 0x78)
+#define A15_BX_ADDR0		0x68
+#define A7_BX_ADDR0		0x78
 
 /* wake-up interrupt masks */
 #define GBL_WAKEUP_INT_MSK	(0x3 << 10)
@@ -147,26 +137,6 @@ void ve_spc_set_resume_addr(u32 cluster, u32 cpu, u32 addr)
 }
 
 /**
- * ve_spc_get_nr_cpus() - get number of cpus in a cluster
- *
- * @cluster: mpidr[15:8] bitfield describing cluster affinity level
- *
- * Return: > 0 number of cpus in the cluster
- *         or 0 if cluster number invalid
- */
-u32 ve_spc_get_nr_cpus(u32 cluster)
-{
-	u32 val;
-
-	if (cluster >= MAX_CLUSTERS)
-		return 0;
-
-	val = readl_relaxed(info->baseaddr + SYS_INFO);
-	val = cluster_is_a15(cluster) ? (val >> 16) : (val >> 20);
-	return val & 0xf;
-}
-
-/**
  * ve_spc_powerdown()
  *
  * Function to enable/disable cluster powerdown. Not protected by locking
@@ -187,30 +157,16 @@ void ve_spc_powerdown(u32 cluster, bool enable)
 	writel_relaxed(enable, info->baseaddr + pwdrn_reg);
 }
 
-static int __init ve_spc_probe(void)
+int __init ve_spc_init(void __iomem *baseaddr, u32 a15_clusid)
 {
-	int ret;
-	struct device_node *dn;
-
-	dn = of_find_compatible_node(NULL, NULL,
-
-	if (!dn)
-		return -ENODEV;
-
 	info = kzalloc(sizeof(*info), GFP_KERNEL);
 	if (!info) {
 		pr_err(SPCLOG "unable to allocate mem\n");
 		return -ENOMEM;
 	}
 
-	info->baseaddr = of_iomap(dn, 0);
-	if (!info->baseaddr) {
-		pr_err(SPCLOG "unable to ioremap memory\n");
-		ret = -ENXIO;
-		goto mem_free;
-	}
-
-	info->a15_clusid = readl_relaxed(info->baseaddr + A15_CONF) & 0xf;
+	info->baseaddr = baseaddr;
+	info->a15_clusid = a15_clusid;
 
 	/*
 	 * Multi-cluster systems may need this data when non-coherent, during
@@ -221,28 +177,4 @@ static int __init ve_spc_probe(void)
 	sync_cache_w(&info);
 
 	return 0;
-
-mem_free:
-	kfree(info);
-	return ret;
-}
-
-/**
- * ve_spc_init()
- *
- * Function exported to manage pre early_initcall initialization.
- * SPC code is needed very early in the boot process to bring CPUs out of
- * reset and initialize power management back-end so an init interface is
- * provided to platform code to allow early initialization. The init
- * interface can be removed as soon as the DT layer and platform bus allow
- * platform device creation and probing before SMP boot.
- */
-int __init ve_spc_init(void)
-{
-	static int ve_spc_init_status __initdata = -EAGAIN;
-
-	if (ve_spc_init_status == -EAGAIN)
-		ve_spc_init_status = ve_spc_probe();
-
-	return ve_spc_init_status;
 }
