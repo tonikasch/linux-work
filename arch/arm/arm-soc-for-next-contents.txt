@@ -22,6 +22,8 @@ next/fixes-non-critical
 		ARM: clps711x: Remove the special name for the syscon driver 
 	renesas/fixes2
 		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-fixes2-for-v3.12
+	highbank/fixes-non-critical
+		git://sources.calxeda.com/kernel/linux.git tags/highbank-lpae-fixes-for-3.12
 
 next/cleanup
 	localtimer/removal
@@ -46,12 +48,16 @@ next/dt
 		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-pinmux-for-v3.12
 	renesas/multiplatform
 		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-multiplatform-for-v3.12
+	pxa/dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/hzhuang1/linux.git tags/pxa-dt
+		rebased to v3.11-rc1
+	zynq/dt
+		git://git.xilinx.com/linux-xlnx.git tags/zynq-dt-for-3.12
 		
 next/soc
 	vexpress/mcpm
 		git://git.linaro.org/people/pawelmoll/linux.git tags/tc2-pm
 	patches
-		ARM: debug: support debug ll on hisilicon soc
 		ARM: prima2: pm: drop redundant postcore_initcall                             
 		ARM: prima2: pm: enable rtc alarm0 and alarm1 as wakeup source     
 	renesas/soc
@@ -60,6 +66,8 @@ next/soc
 	renesas/soc2
 		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-soc2-for-v3.12
 		includes renesas/fixes-for-3.12
+	patch
+		ARM: vexpress/MCPM: fix cache disable sequence when CONFIG_FRAME_POINTER=y
 
 next/boards
 	renesas/backlight
