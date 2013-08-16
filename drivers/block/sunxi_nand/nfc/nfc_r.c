@@ -21,8 +21,6 @@
  */
 
 #include "nfc_i.h"
-//#include "dma_for_nand.h"
-#include <plat/dma.h>
 #include <linux/dma-mapping.h>
 
 __u32	nand_board_version;
@@ -97,30 +95,6 @@ __s32 _wait_cmd_finish(void)
 
 	NFC_WRITE_REG(NFC_REG_ST, NFC_READ_REG(NFC_REG_ST) & NFC_CMD_INT_FLAG);
 	return 0;
-}
-
-void _dma_config_start(__u8 rw, __u32 buff_addr, __u32 len)
-{
-	struct dma_hw_conf nand_hwconf = {
-		.xfer_type = DMAXFER_D_BWORD_S_BWORD,
-		.hf_irq = SW_DMA_IRQ_FULL,
-		.cmbk = 0x7f077f07,
-	};
-
-	nand_hwconf.dir = rw+1;
-
-	if(rw == 0){
-		nand_hwconf.from = 0x01C03030,
-		nand_hwconf.address_type = DMAADDRT_D_LN_S_IO,
-		nand_hwconf.drqsrc_type = DRQ_TYPE_NAND;
-	} else {
-		nand_hwconf.to = 0x01C03030,
-		nand_hwconf.address_type = DMAADDRT_D_IO_S_LN,
-		nand_hwconf.drqdst_type = DRQ_TYPE_NAND;
-	}
-
-	NAND_SettingDMA(dma_hdle, (void*)&nand_hwconf);
-	NAND_DMAEqueueBuf(dma_hdle, buff_addr, len);
 }
 
 __s32 _reset(void)
@@ -241,53 +215,14 @@ void _enable_ecc(__u32 pipline)
 	cfg |= NFC_ECC_EN;
 	NFC_WRITE_REG(NFC_REG_ECC_CTL, cfg);
 }
-#if 0
-/**************************save and restore irq*************************/
-__s32 _save_irq(void)
-{
 
-	__u32 temp;
-
-
-	__asm{MRS temp,CPSR};
-	irq_value = temp;
-	/*diable irq*/
-	__asm{
-		ORR temp,temp,#0x80
-		MSR CPSR_c,temp
-	};
-
-
-	return 0;
-}
-
-__s32 _restore_irq(void)
-{
-	__u32 temp;
-
-	temp = irq_value;
-
-	/*enable irq*/
-	__asm{
-		MSR CPSR_c,temp
-	};
-
-	return 0;
-}
-#endif
 __s32 _enter_nand_critical(void)
 {
-    // NAND_GetPin();
-    //_save_irq();
-
 	return 0;
 }
 
 __s32 _exit_nand_critical(void)
 {
-    // _restore_irq();
-    // NAND_ReleasePin();
-
 	return 0;
 }
 
@@ -342,7 +277,7 @@ __s32 _read_in_page_mode(NFC_CMD_LIST  *rcmd,void *mainbuf,void *sparebuf,__u8 d
 	this_dma_handle = dma_map_single(NULL, mainbuf, pagesize,
 					 DMA_FROM_DEVICE);
 
-	_dma_config_start(0, (__u32)mainbuf, pagesize);
+	NAND_Config_Start_DMA(0, this_dma_handle, pagesize);
 
 	/*wait cmd fifo free*/
 	ret = _wait_cmdfifo_free();
@@ -843,25 +778,13 @@ __s32 NFC_Init(NFC_INIT_INFO *nand_info )
     for(i=0;i<8;i++)
         ddr_param[i] = 0;
 
-//	nand_board_version = NAND_GetBoardVersion();
-//	_SetCE4567(nand_board_version);
-
 	NFC_SetEccMode(0);
 
 	/*init nand control machine*/
 	ret = NFC_ChangMode( nand_info);
-	//for debug
-	#if 1
-		printk("ret of NFC_ChangMode is %x \n", ret);
-		printk("dma_hdle  is %x \n", dma_hdle);
-	#endif
 
 	/*request special dma*/
 	dma_hdle = NAND_RequestDMA(1);
-	//for debug
-	#if 1
-		printk("dma_hdle  is %x \n", dma_hdle);
-	#endif
 	if (dma_hdle == 0)
 		return -1;
 	return ret;
