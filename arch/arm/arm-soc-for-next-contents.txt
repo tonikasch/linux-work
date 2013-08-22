@@ -67,6 +67,9 @@ next/dt
 		git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.12-dt
 	patch
 		ARM: tegra: configure power off for Dalmore
+	sunxi/dt
+		https://github.com/mripard/linux.git tags/sunxi-dt-for-3.12
+		https://github.com/mripard/linux.git tags/sunxi-dt-for-3.12-2
 
 next/soc
 	vexpress/mcpm
@@ -86,6 +89,11 @@ next/soc
 		git://git.infradead.org/linux-mvebu.git tags/drivers-3.12
 	omap/dra7xx
 		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.12/dra7xx
+	tegra/soc
+		git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.12-soc
+	sunxi/soc
+		https://github.com/mripard/linux.git tags/sunxi-core-for-3.12
+		https://github.com/mripard/linux.git tags/sunxi-core-for-3.12-2
 
 next/boards
 	renesas/backlight
