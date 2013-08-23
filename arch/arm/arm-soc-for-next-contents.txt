@@ -47,6 +47,8 @@ next/cleanup
 		git://git.xilinx.com/linux-xlnx.git tags/zynq-cleanup-for-3.12
 	tegra/cleanup
 		git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.12-cleanup
+	samsung/cleanup
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/samsung-cleanup-1
 
 next/dt
 	renesas/dt
@@ -70,6 +72,12 @@ next/dt
 	sunxi/dt
 		https://github.com/mripard/linux.git tags/sunxi-dt-for-3.12
 		https://github.com/mripard/linux.git tags/sunxi-dt-for-3.12-2
+	samsung/dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/samsung-dt-1
+	nomadik/i2c
+		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-nomadik.git tags/nomadik-i2c-for-arm-soc
+	at91/dt
+		git://github.com/at91linux/linux-at91.git tags/at91-dt
 
 next/soc
 	vexpress/mcpm
@@ -94,6 +102,13 @@ next/soc
 	sunxi/soc
 		https://github.com/mripard/linux.git tags/sunxi-core-for-3.12
 		https://github.com/mripard/linux.git tags/sunxi-core-for-3.12-2
+	ux500/soc
+		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson.git tags/ux500-core-for-arm-soc
+	davinci/soc
+		git://git.kernel.org/pub/scm/linux/kernel/git/nsekhar/linux-davinci.git tags/davinci-for-v3.12/soc
+	davinci/dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/nsekhar/linux-davinci.git tags/davinci-for-v3.12/dt
+		# khilman: included in next/soc due to dependency on davinci/soc
 
 next/boards
 	renesas/backlight
