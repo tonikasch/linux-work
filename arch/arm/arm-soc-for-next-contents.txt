@@ -24,6 +24,8 @@ next/fixes-non-critical
 		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-fixes2-for-v3.12
 	mvebu/fixes-non-critical-2
 		git://git.infradead.org/linux-mvebu.git tags/fixes-non-3.12-2
+	omap/fixes-non-critical
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.12/fixes-non-critical-signed
 
 next/cleanup
 	localtimer/removal
@@ -49,6 +51,12 @@ next/cleanup
 		git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.12-cleanup
 	samsung/cleanup
 		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/samsung-cleanup-1
+	patch
+		gpio: (gpio-pca953x) move header to linux/platform_data/
+	samsung/defconfig
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/samsung-defconfig-v2
+	patch
+		ARM: OMAP2+: Add back the define for AM33XX_RST_GLOBAL_WARM_SW_MASK
 
 next/dt
 	renesas/dt
@@ -82,9 +90,16 @@ next/dt
 		git://git.kernel.org/pub/scm/linux/kernel/git/bcousson/linux-omap-dt.git for_3.12/dts
 	mxs/dt
 		git://git.linaro.org/people/shawnguo/linux-2.6.git tags/mxs-dt-3.12
+	bcm/dt
+		git://github.com/broadcom/bcm11351.git armsoc/for-3.12/dt
+	socfpga/dt
+		patch
+			dts: Rename DW APB timer compatible strings
+			dts: Deprecate ALTR as a vendor prefix
+			of: add vendor prefix for Altera Corp.
 
 next/soc
-	vexpress/mcpm
+	vess/mcpm
 		git://git.linaro.org/people/pawelmoll/linux.git tags/tc2-pm
 	patches
 		ARM: prima2: pm: drop redundant postcore_initcall                             
@@ -122,13 +137,27 @@ next/soc
 		# khilman: included into next/soc due to dependency on imx/soc
 	mxs/soc
 		git://git.linaro.org/people/shawnguo/linux-2.6.git tags/mxs-soc-3.12
+	mvebu/dt
+		git://git.infradead.org/linux-mvebu.git tags/dt-3.12
+	patch
+		ARM: tegra: Drop ARCH_SUPPORTS_MSI and sort list
+		PCI: tegra: replace devm_request_and_ioremap by devm_ioremap_resource         
+		tegra-cpuidle: provide stub when !CONFIG_CPU_IDLE                             
+
+next/drivers
+	cpuidle/biglittle
+		patch cpuidle: big.LITTLE: vexpress-TC2 CPU idle driver
+		patch ARM: vexpress: tc2: disable GIC CPU IF in tc2_pm_suspend
+		patch drivers: irq-chip: irq-gic: introduce gic_cpu_if_down()
+	mvebu/msi
+		git://git.infradead.org/linux-mvebu.git tags/msi-3.12
 
 next/boards
 	renesas/backlight
 		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-backlight-for-v3.12
 	mvebu/boards
 		git://git.infradead.org/linux-mvebu.git tags/boards-3.12
-	renesas/tpu-pwm
+	renesas/tpepwm
 		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-tpu-pwm-for-v3.12
 	renesas/boards
 		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-boards-for-v3.12
@@ -144,8 +173,59 @@ next/boards
 		git://git.infradead.org/linux-mvebu.git tags/defconfig-3.12
 	tegra/defconfig
 		git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.12-defconfig
+	bcm/soc
+		git://github.com/broadcom/bcm11351.git armsoc/for-3.12/soc
+	bcm/soc2
+		git://github.com/broadcom/bcm11351.git tags/bcm-for-3.12-late-soc
 
 next/dt2
 	renesas/dt2
 		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-dt2-for-v3.12
 		contains renesas/cleanup renesas/dt and renesas/soc
+
+next/renesas
+	renesas/cleanup2
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-cleanup2-for-v3.12
+		contains renesas/backlight
+		contains renesas/soc
+		contains renesas/dt
+		contains renesas/cleanup
+
+	renesas/cleanup3
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-cleanup3-for-v3.12
+		contains renesas/dt2
+		contains renesas/cleanup2
+
+	renesas/smp
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-smp-for-v3.12
+		contains renesas/dt
+		contains renesas/soc
+		contains renesas/cleanup
+
+
+patch
+	ARM: shmobile: lager: Do not use register_type field of struct sh_eth_plat_data
+	Needed to not break builds on lager on linux-next; needs to be merged after net-next)
+
+late/all
+	ux500/core
+		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson.git tags/ux500-core-for-arm-soc-2
+	mmp/irq
+		git://git.kernel.org/pub/scm/linux/kernel/git/hzhuang1/linux.git tags/mmp-irq
+	samsung/dt2
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/samsung-dt-2
+	samsung/soc
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/samsung-mach-exynos-v2
+	at91/dt2
+		git://github.com/at91linux/linux-at91.git tags/at91-dt
+	sunxi/dt4
+		https://github.com/mripard/linux.git tags/sunxi-dt-for-3.12-4
+	at91/soc
+		git://github.com/at91linux/linux-at91.git tags/at91-soc
+	highbank/soc
+		git://sources.calxeda.com/kernel/linux.git tags/highbank-for-3.12
+	omap/prcm
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.12/prcm-signed
+	omap/dra7xx-prm
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.12/dra7xx-prcm
+
