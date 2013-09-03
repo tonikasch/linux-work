@@ -815,7 +815,50 @@ static void __init sunxi_divs_clk_setup(struct device_node *node,
 	of_clk_add_provider(node, of_clk_src_onecell_get, clk_data);
 }
 
+#define SUNXI_USB_CLK_NUM 6
 
+static void __init sunxi_usb_clk_setup(struct device_node *node, const void * data)
+{
+	struct clk_onecell_data *clk_data;
+	struct clk *clk;
+	const char *clk_name;
+	const char *clk_parent;
+	void *reg;
+	int i = 0;
+	int gate_idx[SUNXI_USB_CLK_NUM] = {0, 1, 2, 6, 7 , 8};
+
+	reg = of_iomap(node, 0);
+
+	clk_parent = of_clk_get_parent_name(node, 0);
+
+	clk_data = kmalloc(sizeof(struct clk_onecell_data), GFP_KERNEL);
+	if (!clk_data)
+		return;
+
+	clk_data->clks = kzalloc(SUNXI_USB_CLK_NUM * sizeof(struct clk *), GFP_KERNEL);
+	if (!clk_data->clks) {
+		kfree(clk_data);
+		return;
+	}
+	clk_data->clk_num = SUNXI_USB_CLK_NUM;
+
+	for (i = 0; i < SUNXI_USB_CLK_NUM; i++) {
+
+		of_property_read_string_index(node, "clock-output-names",
+										i, &clk_name);
+
+		clk = clk_register_gate(NULL, clk_name,
+				clk_parent, 0 /* flags */,
+				reg, gate_idx[i], 
+				0 /* clk_gate_flags */, &clk_lock);
+
+		WARN_ON(IS_ERR(clk));
+
+		clk_data->clks[i] = clk;
+	}
+
+	of_clk_add_provider(node, of_clk_src_onecell_get, clk_data);
+}
 
 /* Matches for factors clocks */
 static const struct of_device_id clk_factors_match[] __initconst = {
@@ -847,6 +890,12 @@ static const struct of_device_id clk_mux_match[] __initconst = {
 	{.compatible = "allwinner,sun4i-cpu-clk", .data = &sun4i_cpu_mux_data,},
 	{.compatible = "allwinner,sun4i-apb1-mux-clk", .data = &sun4i_apb1_mux_data,},
 	{.compatible = "allwinner,sun6i-a31-ahb1-mux-clk", .data = &sun6i_a31_ahb1_mux_data,},
+	{}
+};
+
+/* Match for a USB clock */
+static const __initconst struct of_device_id clk_usb_match[] = {
+	{.compatible = "allwinner,sun4i-usb-clk"},
 	{}
 };
 
@@ -905,4 +954,7 @@ void __init sunxi_init_clocks(void)
 
 	/* Register gate clocks */
 	of_sunxi_table_clock_setup(clk_gates_match, sunxi_gates_clk_setup);
+
+	/* Register USB clock */
+	of_sunxi_table_clock_setup(clk_usb_match, sunxi_usb_clk_setup);
 }
