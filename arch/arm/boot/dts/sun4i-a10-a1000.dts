@@ -53,6 +53,13 @@
 				allwinner,drive = <0>;
 				allwinner,pull = <0>;
 			};
+
+			usb_pins_a: usb1@0 {
+					allwinner,pins = "PH6";
+					allwinner,function = "gpio_out";
+					allwinner,drive = <1>;
+					allwinner,pull = <0>;
+			};
 		};
 
 		uart0: serial@01c28000 {
@@ -65,6 +72,20 @@
 			pinctrl-names = "default";
 			pinctrl-0 = <&i2c0_pins_a>;
 			status = "okay";
+		};
+
+		ohci0: ohci0@0x01c14400 {
+				pinctrl-names = "default";
+				pinctrl-0 = <&usb_pins_a>;
+				gpios = <&pio 7 6 0>; /* PH6 */
+				status = "okay";
+		};
+
+		ehci0: ehci0@0x01c14000 {
+				pinctrl-names = "default";
+				pinctrl-0 = <&usb_pins_a>;
+				gpios = <&pio 7 6 0>; /* PH6 */
+				status = "okay";
 		};
 	};
 
