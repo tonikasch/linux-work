@@ -146,6 +146,7 @@ static u32 sun4i_timer_sched_read(void)
 
 static void __init sun4i_timer_init(struct device_node *node)
 {
+	unsigned long rate = 0;
 	struct clk *clk;
 	int ret, irq;
 	u32 val;
