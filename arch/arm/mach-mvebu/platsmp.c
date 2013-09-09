@@ -30,6 +30,9 @@
 #include "pmsu.h"
 #include "coherency.h"
 
+#define AXP_BOOTROM_BASE 0xfff00000
+#define AXP_BOOTROM_SIZE 0x100000
+
 static struct clk *__init get_cpu_clk(int cpu)
 {
 	struct clk *cpu_clk;
