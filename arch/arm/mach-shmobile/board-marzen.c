@@ -40,7 +40,6 @@
 #include <linux/mmc/sh_mobile_sdhi.h>
 #include <linux/mfd/tmio.h>
 #include <media/soc_camera.h>
-#include <mach/hardware.h>
 #include <mach/r8a7779.h>
 #include <mach/common.h>
 #include <mach/irqs.h>
@@ -232,6 +231,7 @@ static struct platform_device *marzen_devices[] __initdata = {
 	&thermal_device,
 	&hspi_device,
 	&leds_device,
+	&usb_phy,
 	&camera0_device,
 	&camera1_device,
 };
@@ -294,7 +294,6 @@ static void __init marzen_init(void)
 	r8a7779_init_irq_extpin(1); /* IRQ1 as individual interrupt */
 
 	r8a7779_add_standard_devices();
-	r8a7779_add_usb_phy_device(&usb_phy_platform_data);
 	r8a7779_add_vin_device(1, &vin_platform_data);
 	r8a7779_add_vin_device(3, &vin_platform_data);
 	platform_add_devices(marzen_devices, ARRAY_SIZE(marzen_devices));

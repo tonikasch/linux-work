@@ -281,20 +281,6 @@ void __init r8a7778_register_hspi(int id)
 		hspi_resources + (2 * id), 2);
 }
 
-/* MMC */
-static struct resource mmc_resources[] __initdata = {
-	DEFINE_RES_MEM(0xffe4e000, 0x100),
-	DEFINE_RES_IRQ(gic_iid(0x5d)),
-};
-
-void __init r8a7778_add_mmc_device(struct sh_mmcif_plat_data *info)
-{
-	platform_device_register_resndata(
-		&platform_bus, "sh_mmcif", -1,
-		mmc_resources, ARRAY_SIZE(mmc_resources),
-		info, sizeof(*info));
-}
-
 /* VIN */
 #define R8A7778_VIN(idx)						\
 static struct resource vin##idx##_resources[] __initdata = {		\
@@ -329,7 +315,7 @@ void __init r8a7778_add_vin_device(int id, struct rcar_vin_platform_data *pdata)
 	platform_device_register_full(vin_info_table[id]);
 }
 
-void __init r8a7778_add_standard_devices(void)
+void __init r8a7778_add_dt_devices(void)
 {
 	int i;
 

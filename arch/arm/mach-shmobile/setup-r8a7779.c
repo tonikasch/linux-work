@@ -675,14 +675,6 @@ void __init r8a7779_add_ether_device(struct sh_eth_plat_data *pdata)
 					  pdata, sizeof(*pdata));
 }
 
-void __init r8a7779_add_usb_phy_device(struct rcar_phy_platform_data *pdata)
-{
-	platform_device_register_resndata(&platform_bus, "rcar_usb_phy", -1,
-					  usb_phy_resources,
-					  ARRAY_SIZE(usb_phy_resources),
-					  pdata, sizeof(*pdata));
-}
-
 void __init r8a7779_add_vin_device(int id, struct rcar_vin_platform_data *pdata)
 {
 	BUG_ON(id < 0 || id > 3);

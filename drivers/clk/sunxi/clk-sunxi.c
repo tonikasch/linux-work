@@ -369,30 +369,14 @@ static struct clk_factors_config sun4i_apb1_config = {
 	.pwidth = 2,
 };
 
-/* user manual says "n" but it's really "p" */
-static struct clk_factors_config sun4i_mod0_config = {
-	.mshift = 0,
-	.mwidth = 4,
-	.pshift = 16,
-	.pwidth = 2,
-};
-
 static const struct factors_data sun4i_pll1_data __initconst = {
-	.enable = 31,
 	.table = &sun4i_pll1_config,
 	.getter = sun4i_get_pll1_factors,
 };
 
 static const struct factors_data sun6i_a31_pll1_data __initconst = {
-	.enable = 31,
 	.table = &sun6i_a31_pll1_config,
 	.getter = sun6i_a31_get_pll1_factors,
-};
-
-static const struct factors_data sun4i_pll5_data __initconst = {
-	.enable = 31,
-	.table = &sun4i_pll5_config,
-	.getter = sun4i_get_pll5_factors,
 };
 
 static const struct factors_data sun4i_apb1_data __initconst = {

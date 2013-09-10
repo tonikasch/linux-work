@@ -236,9 +236,6 @@ static void __init bockw_init(void)
 	r8a7778_init_irq_extpin(1);
 	r8a7778_add_standard_devices();
 	r8a7778_add_ether_device(&ether_platform_data);
-	r8a7778_add_i2c_device(0);
-	r8a7778_add_hspi_device(0);
-	r8a7778_add_mmc_device(&sh_mmcif_plat);
 	r8a7778_add_vin_device(0, &vin_platform_data);
 	/* VIN1 has a pin conflict with Ether */
 	if (!IS_ENABLED(CONFIG_SH_ETH))
