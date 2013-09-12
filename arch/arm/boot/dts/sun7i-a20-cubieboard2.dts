@@ -34,6 +34,10 @@
 			};
 		};
 
+		sata: ahci@01c18000 {
+			satus = "okay";
+		};
+
 		pinctrl@01c20800 {
 			led_pins_cubieboard2: led_pins@0 {
 				allwinner,pins = "PH20", "PH21";
