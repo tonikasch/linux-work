@@ -15,6 +15,11 @@
 / {
 	interrupt-parent = <&intc>;
 
+	aliases {
+		ehci1 = &ehci0;
+		ehci2 = &ehci1;
+	};
+
 	cpus {
 		#address-cells = <1>;
 		#size-cells = <0>;
@@ -406,6 +411,24 @@
 			interrupts = <9>;
 			clocks = <&apb1_gates 2>;
 			clock-frequency = <100000>;
+			status = "disabled";
+		};
+
+		ehci0: ehci0@0x01c14000 {
+			compatible = "allwinner,sunxi-ehci";
+			reg = <0x01c14000 0x400 0x01c14800 0x4 0x01c13404 0x4>;
+			interrupts = <39>;
+			clocks = <&usb 5>, <&usb 1>, <&ahb_gates 1>;
+			clock-names = "usb_phy", "phy_reset", "ahb_ehci";
+			status = "disabled";
+		};
+
+		ehci1: ehci1@0x01c1c000 {
+			compatible = "allwinner,sunxi-ehci";
+			reg = <0x01c1c000 0x400 0x01c1c800 0x4 0x01c13404 0x4>;
+			interrupts = <40>;
+			clocks = <&usb 5>, <&usb 2>, <&ahb_gates 3>;
+			clock-names = "usb_phy", "phy_reset", "ahb_ehci";
 			status = "disabled";
 		};
 	};
