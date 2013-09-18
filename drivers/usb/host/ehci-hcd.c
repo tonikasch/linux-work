@@ -1277,6 +1277,9 @@ static int __init ehci_hcd_init(void)
 {
 	int retval = 0;
 
+	printk("AROKUX2 - sunxi_ehci_init_module \n");
+
+
 	if (usb_disabled())
 		return -ENODEV;
 
