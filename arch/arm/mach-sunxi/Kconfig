@@ -12,3 +12,5 @@ config ARCH_SUNXI
 	select PINCTRL_SUNXI
 	select ARM_GIC
 	select HAVE_SMP
+	select ARCH_HAS_CPUFREQ
+

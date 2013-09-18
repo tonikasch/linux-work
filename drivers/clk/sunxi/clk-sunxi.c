@@ -210,6 +210,65 @@ static void sun6i_a31_get_pll1_factors(u32 *freq, u32 parent_rate,
 }
 
 /**
+ * sun4i_get_pll5_factors() - calculates n, k factors for PLL5
+ * PLL5 rate is calculated as follows
+ * rate = parent_rate * n * (k + 1)
+ * parent_rate is always 24Mhz
+ */
+
+static void sun4i_get_pll5_factors(u32 *freq, u32 parent_rate,
+				   u8 *n, u8 *k, u8 *m, u8 *p)
+{
+	u8 div;
+
+	/* Normalize value to a 24M multiple */
+	div = *freq / 24000000;
+	*freq = 24000000 * div;
+
+	/* we were called to round the frequency, we can now return */
+	if (n == NULL)
+		return;
+
+	if (div < 31)
+		*k = 0;
+	else if (div / 2 < 31)
+		*k = 1;
+	else if (div / 3 < 31)
+		*k = 2;
+	else
+		*k = 3;
+
+	*n = DIV_ROUND_UP(div, (*k+1));
+}
+
+/**
+ * sun5i_get_ahb_factors() - calculates p factor for AHB
+ * AHB rate is calculated as follows
+ * rate = parent_rate >> p
+ */
+
+static void sun5i_a13_get_ahb_factors(u32 *freq, u32 parent_rate,
+				      u8 *n, u8 *k, u8 *m, u8 *p)
+{
+	u8 div;
+
+	/* This clock can only divide, so we will never achieve a higher
+	 * rate than the parent's */
+	if (*freq > parent_rate)
+		*freq = parent_rate;
+
+	/* Normalize value to a parent multiple */
+	div = *freq / parent_rate;
+	*freq = parent_rate * div;
+
+	/* we were called to round the frequency, we can now return */
+	if (n == NULL)
+		return;
+
+	*p = div;
+}
+
+/**
  * sun4i_get_apb1_factors() - calculates m, p factors for APB1
  * APB1 rate is calculated as follows
  * rate = (parent_rate >> p) / (m + 1);
@@ -253,10 +312,55 @@ static void sun4i_get_apb1_factors(u32 *freq, u32 parent_rate,
 
 
 /**
+ * sun4i_get_mod0_factors() - calculates m, n factors for MOD0-style clocks
+ * MMC rate is calculated as follows
+ * rate = (parent_rate >> p) / (m + 1);
+ */
+
+static void sun4i_get_mod0_factors(u32 *freq, u32 parent_rate,
+				   u8 *n, u8 *k, u8 *m, u8 *p)
+{
+	u8 div, calcm, calcp;
+
+	/* These clocks can only divide, so we will never be able to achieve
+	 * frequencies higher than the parent frequency */
+	if (*freq > parent_rate)
+		*freq = parent_rate;
+
+	div = parent_rate / *freq;
+
+	if (div < 16)
+		calcp = 0;
+	else if (div / 2 < 16)
+		calcp = 1;
+	else if (div / 4 < 16)
+		calcp = 2;
+	else
+		calcp = 3;
+
+	calcm = DIV_ROUND_UP(div, 1 << calcp);
+
+	*freq = (parent_rate >> calcp) / calcm;
+
+	/* we were called to round the frequency, we can now return */
+	if (n == NULL)
+		return;
+
+	*m = calcm - 1;
+	*p = calcp;
+}
+
+
+
+/**
  * sunxi_factors_clk_setup() - Setup function for factor clocks
  */
 
+#define SUNXI_FACTORS_MUX_MASK 0x3
+
 struct factors_data {
+	int enable;
+	int mux;
 	struct clk_factors_config *table;
 	void (*getter) (u32 *rate, u32 parent_rate, u8 *n, u8 *k, u8 *m, u8 *p);
 };
@@ -281,6 +385,18 @@ static struct clk_factors_config sun6i_a31_pll1_config = {
 	.mwidth = 2,
 };
 
+static struct clk_factors_config sun4i_pll5_config = {
+	.nshift = 8,
+	.nwidth = 5,
+	.kshift = 4,
+	.kwidth = 2,
+};
+
+static struct clk_factors_config sun5i_a13_ahb_config = {
+	.pshift = 4,
+	.pwidth = 2,
+};
+
 static struct clk_factors_config sun4i_apb1_config = {
 	.mshift = 0,
 	.mwidth = 5,
@@ -288,40 +404,129 @@ static struct clk_factors_config sun4i_apb1_config = {
 	.pwidth = 2,
 };
 
+/* user manual says "n" but it's really "p" */
+static struct clk_factors_config sun4i_mod0_config = {
+	.mshift = 0,
+	.mwidth = 4,
+	.pshift = 16,
+	.pwidth = 2,
+};
+
 static const struct factors_data sun4i_pll1_data __initconst = {
+	.enable = 31,
 	.table = &sun4i_pll1_config,
 	.getter = sun4i_get_pll1_factors,
 };
 
 static const struct factors_data sun6i_a31_pll1_data __initconst = {
+	.enable = 31,
 	.table = &sun6i_a31_pll1_config,
 	.getter = sun6i_a31_get_pll1_factors,
 };
 
+static const struct factors_data sun4i_pll5_data __initconst = {
+	.enable = 31,
+	.table = &sun4i_pll5_config,
+	.getter = sun4i_get_pll5_factors,
+};
+
+static const struct factors_data sun5i_a13_ahb_data __initconst = {
+	.mux = 6,
+	.table = &sun5i_a13_ahb_config,
+	.getter = sun5i_a13_get_ahb_factors,
+};
+
 static const struct factors_data sun4i_apb1_data __initconst = {
+	.mux = 24,
 	.table = &sun4i_apb1_config,
 	.getter = sun4i_get_apb1_factors,
 };
 
-static void __init sunxi_factors_clk_setup(struct device_node *node,
-					   struct factors_data *data)
+static const struct factors_data sun4i_mod0_data __initconst = {
+	.enable = 31,
+	.mux = 24,
+	.table = &sun4i_mod0_config,
+	.getter = sun4i_get_mod0_factors,
+};
+
+static struct clk * __init sunxi_factors_clk_setup(struct device_node *node,
+						const struct factors_data *data)
 {
 	struct clk *clk;
+	struct clk_factors *factors;
+	struct clk_gate *gate;
+	struct clk_mux *mux;
+	struct clk_hw *gate_hw = NULL;
+	struct clk_hw *mux_hw = NULL;
 	const char *clk_name = node->name;
-	const char *parent;
+	const char *parents[5];
 	void *reg;
+	unsigned long flags;
+	int i = 0;
 
 	reg = of_iomap(node, 0);
 
-	parent = of_clk_get_parent_name(node, 0);
+	/* if we have a mux, we will have >1 parents */
+	while (i < 5 && (parents[i] = of_clk_get_parent_name(node, i)) != NULL)
+		i++;
 
-	clk = clk_register_factors(NULL, clk_name, parent, 0, reg,
-				   data->table, data->getter, &clk_lock);
+	factors = kzalloc(sizeof(struct clk_factors), GFP_KERNEL);
+	if (!factors)
+		return NULL;
+
+	/* Add a gate if this factor clock can be gated */
+	if (data->enable) {
+		gate = kzalloc(sizeof(struct clk_gate), GFP_KERNEL);
+		if (!gate) {
+			kfree(factors);
+			return NULL;
+		}
+
+		/* set up gate properties */
+		gate->reg = reg;
+		gate->bit_idx = data->enable;
+		gate->lock = &clk_lock;
+		gate_hw = &gate->hw;
+	}
+
+	/* Add a mux if this factor clock can be muxed */
+	if (data->mux) {
+		mux = kzalloc(sizeof(struct clk_mux), GFP_KERNEL);
+		if (!mux) {
+			kfree(factors);
+			kfree(gate);
+			return NULL;
+		}
+
+		/* set up gate properties */
+		mux->reg = reg;
+		mux->shift = data->mux;
+		mux->mask = SUNXI_FACTORS_MUX_MASK;
+		mux->lock = &clk_lock;
+		mux_hw = &mux->hw;
+	}
+
+	/* set up factors properties */
+	factors->reg = reg;
+	factors->config = data->table;
+	factors->get_factors = data->getter;
+	factors->lock = &clk_lock;
+
+	/* We should not disable pll5, it powers the RAM */
+	flags = !strcmp("pll5", clk_name) ? CLK_IGNORE_UNUSED : 0;
+
+	clk = clk_register_composite(NULL, clk_name,
+			parents, i,
+			mux_hw, &clk_mux_ops,
+			&factors->hw, &clk_factors_ops,
+			gate_hw, &clk_gate_ops, flags);
 
 	if (!IS_ERR(clk)) {
 		of_clk_add_provider(node, of_clk_src_simple_get, clk);
 		clk_register_clkdev(clk, clk_name, NULL);
 	}
+
+	return clk;
 }
 
 
@@ -342,10 +547,6 @@ static const struct mux_data sun4i_cpu_mux_data __initconst = {
 
 static const struct mux_data sun6i_a31_ahb1_mux_data __initconst = {
 	.shift = 12,
-};
-
-static const struct mux_data sun4i_apb1_mux_data __initconst = {
-	.shift = 24,
 };
 
 static void __init sunxi_mux_clk_setup(struct device_node *node,
@@ -556,11 +757,119 @@ static void __init sunxi_gates_clk_setup(struct device_node *node,
 	of_clk_add_provider(node, of_clk_src_onecell_get, clk_data);
 }
 
+
+
+/**
+ * sunxi_divs_clk_setup() - Setup function for leaf divisors on clocks
+ */
+
+#define SUNXI_DIVS_MAX_QTY	2
+#define SUNXI_DIVISOR_WIDTH	2
+
+struct divs_data {
+	const struct factors_data *factors; /* data for the factor clock */
+	struct {
+		u8 fixed; /* is it a fixed divisor? if not... */
+		struct clk_div_table *table; /* is it a table based divisor? */
+		u8 shift; /* otherwise it's a normal divisor with this shift */
+		u8 pow;   /* is it power-of-two based? */
+	} div[SUNXI_DIVS_MAX_QTY];
+};
+
+static struct clk_div_table pll6_sata_table[] = {
+	{ .val = 0, .div = 6, },
+	{ .val = 1, .div = 12, },
+	{ .val = 2, .div = 18, },
+	{ .val = 3, .div = 24, },
+	{ } /* sentinel */
+};
+
+static const struct divs_data pll5_divs_data __initconst = {
+	.factors = &sun4i_pll5_data,
+	.div = {
+		{ .shift = 0, .pow = 0, }, /* M, DDR */
+		{ .shift = 16, .pow = 1, }, /* P, other */
+	}
+};
+
+static const struct divs_data pll6_divs_data __initconst = {
+	.factors = &sun4i_pll5_data,
+	.div = {
+		{ .shift = 0, .table = pll6_sata_table }, /* M, SATA */
+		{ .fixed = 2 }, /* P, other */
+	}
+};
+
+static void __init sunxi_divs_clk_setup(struct device_node *node,
+					struct divs_data *data)
+{
+	struct clk_onecell_data *clk_data;
+	const char *parent  = node->name;
+	const char *clk_name;
+	struct clk **clks, *pclk;
+	void *reg;
+	int i = 0;
+	int flags, clkflags;
+
+	/* Set up factor clock that we will be dividing */
+	pclk = sunxi_factors_clk_setup(node, data->factors);
+
+	reg = of_iomap(node, 0);
+
+	clk_data = kmalloc(sizeof(struct clk_onecell_data), GFP_KERNEL);
+	if (!clk_data)
+		return;
+	clks = kzalloc(SUNXI_DIVS_MAX_QTY * sizeof(struct clk *), GFP_KERNEL);
+	if (!clks) {
+		kfree(clk_data);
+		return;
+	}
+	clk_data->clks = clks;
+
+	/* It's not a good idea to have automatic reparenting changing
+	 * our RAM clock! */
+	clkflags = !strcmp("pll5", parent) ? 0 : CLK_SET_RATE_PARENT;
+
+	for (i = 0; i < SUNXI_DIVS_MAX_QTY; i++) {
+		if (of_property_read_string_index(node, "clock-output-names",
+						  i, &clk_name) != 0)
+			break;
+
+		if (data->div[i].fixed) {
+			clks[i] = clk_register_fixed_factor(NULL, clk_name,
+						parent, clkflags,
+						1, data->div[i].fixed);
+		} else {
+			flags = data->div[i].pow ? CLK_DIVIDER_POWER_OF_TWO : 0;
+			clks[i] = clk_register_divider_table(NULL, clk_name,
+						parent, clkflags, reg,
+						data->div[i].shift,
+						SUNXI_DIVISOR_WIDTH, flags,
+						data->div[i].table, &clk_lock);
+		}
+
+		WARN_ON(IS_ERR(clk_data->clks[i]));
+		clk_register_clkdev(clks[i], clk_name, NULL);
+	}
+
+	/* The last clock available on the getter is the parent */
+	clks[i++] = pclk;
+
+	/* Adjust to the real max */
+	clk_data->clk_num = i;
+
+	of_clk_add_provider(node, of_clk_src_onecell_get, clk_data);
+}
+
+
+
 /* Matches for factors clocks */
 static const struct of_device_id clk_factors_match[] __initconst = {
 	{.compatible = "allwinner,sun4i-pll1-clk", .data = &sun4i_pll1_data,},
 	{.compatible = "allwinner,sun6i-a31-pll1-clk", .data = &sun6i_a31_pll1_data,},
+	{.compatible = "allwinner,sun5i-a13-ahb-clk", .data = &sun5i_a13_ahb_data,},
 	{.compatible = "allwinner,sun4i-apb1-clk", .data = &sun4i_apb1_data,},
+	{.compatible = "allwinner,sun4i-mod0-clk", .data = &sun4i_mod0_data,},
 	{}
 };
 
@@ -573,10 +882,16 @@ static const struct of_device_id clk_div_match[] __initconst = {
 	{}
 };
 
+/* Matches for divided outputs */
+static const struct of_device_id clk_divs_match[] __initconst = {
+	{.compatible = "allwinner,sun4i-pll5-clk", .data = &pll5_divs_data,},
+	{.compatible = "allwinner,sun4i-pll6-clk", .data = &pll6_divs_data,},
+	{}
+};
+
 /* Matches for mux clocks */
 static const struct of_device_id clk_mux_match[] __initconst = {
 	{.compatible = "allwinner,sun4i-cpu-clk", .data = &sun4i_cpu_mux_data,},
-	{.compatible = "allwinner,sun4i-apb1-mux-clk", .data = &sun4i_apb1_mux_data,},
 	{.compatible = "allwinner,sun6i-a31-ahb1-mux-clk", .data = &sun6i_a31_ahb1_mux_data,},
 	{}
 };
@@ -617,6 +932,32 @@ static void __init of_sunxi_table_clock_setup(const struct of_device_id *clk_mat
 	}
 }
 
+/**
+ * System clock protection
+ *
+ * By enabling these critical clocks, we prevent their accidental gating
+ * by the framework
+ */
+static void __init sunxi_clock_protect(void)
+{
+	struct clk *clk;
+
+	/* memory bus clock - sun5i+ */
+	clk = clk_get(NULL, "mbus");
+	if (!IS_ERR(clk)) {
+		clk_set_rate(clk, 600000000);
+		clk_prepare_enable(clk);
+		clk_put(clk);
+	}
+
+	/* DDR clock - sun4i+ */
+	clk = clk_get(NULL, "pll5_ddr");
+	if (!IS_ERR(clk)) {
+		clk_prepare_enable(clk);
+		clk_put(clk);
+	}
+}
+
 void __init sunxi_init_clocks(void)
 {
 	/* Register all the simple and basic clocks on DT */
@@ -628,9 +969,15 @@ void __init sunxi_init_clocks(void)
 	/* Register divider clocks */
 	of_sunxi_table_clock_setup(clk_div_match, sunxi_divider_clk_setup);
 
+	/* Register divided output clocks */
+	of_sunxi_table_clock_setup(clk_divs_match, sunxi_divs_clk_setup);
+
 	/* Register mux clocks */
 	of_sunxi_table_clock_setup(clk_mux_match, sunxi_mux_clk_setup);
 
 	/* Register gate clocks */
 	of_sunxi_table_clock_setup(clk_gates_match, sunxi_gates_clk_setup);
+
+	/* Enable core system clocks */
+	sunxi_clock_protect();
 }
