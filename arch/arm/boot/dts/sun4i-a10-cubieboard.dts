@@ -52,8 +52,30 @@
 			status = "okay";
 		};
 
+		usbphy: phy@0x01c13400 {
+			usb1_vbus-supply = <&reg_usb1_vbus>;
+			usb2_vbus-supply = <&reg_usb2_vbus>;
+			status = "okay";
+		};
+
+		ehci0: ehci@0x01c14000 {
+			status = "okay";
+		};
+
+		ohci0: ohci@0x01c14400 {
+			status = "okay";
+		};
+
 		sata: ahci@01c18000 {
 			target-supply = <&reg_ahci_5v>;
+			status = "okay";
+		};
+
+		ehci1: ehci@0x01c1c000 {
+			status = "okay";
+		};
+
+		ohci1: ohci@0x01c1c400 {
 			status = "okay";
 		};
 
@@ -70,6 +92,20 @@
 				allwinner,function = "gpio_out";
 				allwinner,drive = <1>;
 				allwinner,pull = <0>;
+			};
+
+			usb1_vbus_pin_cubieboard: usb1_vbus_pin@0 {
+					allwinner,pins = "PH6";
+					allwinner,function = "gpio_out";
+					allwinner,drive = <0>;
+					allwinner,pull = <0>;
+			};
+
+			usb2_vbus_pin_cubieboard: usb2_vbus_pin@0 {
+					allwinner,pins = "PH3";
+					allwinner,function = "gpio_out";
+					allwinner,drive = <0>;
+					allwinner,pull = <0>;
 			};
 		};
 
@@ -106,6 +142,30 @@
 			label = "cubieboard:green:usr";
 			gpios = <&pio 7 20 0>; /* LED2 */
 			linux,default-trigger = "heartbeat";
+		};
+	};
+
+	regulators {
+		reg_usb1_vbus: usb1-vbus {
+			compatible = "regulator-fixed";
+			pinctrl-names = "default";
+			pinctrl-0 = <&usb1_vbus_pin_cubieboard>;
+			regulator-name = "usb1-vbus";
+			regulator-min-microvolt = <5000000>;
+			regulator-max-microvolt = <5000000>;
+			enable-active-high;
+			gpio = <&pio 7 6 0>;
+		};
+
+		reg_usb2_vbus: usb2-vbus {
+			compatible = "regulator-fixed";
+			pinctrl-names = "default";
+			pinctrl-0 = <&usb2_vbus_pin_cubieboard>;
+			regulator-name = "usb2-vbus";
+			regulator-min-microvolt = <5000000>;
+			regulator-max-microvolt = <5000000>;
+			enable-active-high;
+			gpio = <&pio 7 3 0>;
 		};
 	};
 };
