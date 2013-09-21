@@ -229,14 +229,16 @@ static void sun4i_get_pll5_factors(u32 *freq, u32 parent_rate,
 	if (n == NULL)
 		return;
 
-	if (*freq < 480000000)
+	if (div < 31)
 		*k = 0;
-	else if (*freq < 960000000)
+	else if (div / 2 < 31)
 		*k = 1;
+	else if (div / 3 < 31)
+		*k = 2;
 	else
 		*k = 3;
 
-	*n = DIV_ROUND_UP(*freq, ((*k+1) * 24000000));
+	*n = DIV_ROUND_UP(div, (*k+1));
 }
 
 
@@ -295,9 +297,12 @@ static void sun4i_get_mod0_factors(u32 *freq, u32 parent_rate,
 {
 	u8 div, calcm, calcp;
 
-	/* Normalize value to a division of the parent */
+	/* These clocks can only divide, so we will never be able to achieve
+	 * frequencies higher than the parent frequency */
+	if (*freq > parent_rate)
+		*freq = parent_rate;
+
 	div = parent_rate / *freq;
-	*freq = parent_rate / div;
 
 	if (div < 16)
 		calcp = 0;
@@ -369,14 +374,30 @@ static struct clk_factors_config sun4i_apb1_config = {
 	.pwidth = 2,
 };
 
+/* user manual says "n" but it's really "p" */
+static struct clk_factors_config sun4i_mod0_config = {
+	.mshift = 0,
+	.mwidth = 4,
+	.pshift = 16,
+	.pwidth = 2,
+};
+
 static const struct factors_data sun4i_pll1_data __initconst = {
+	.enable = 31,
 	.table = &sun4i_pll1_config,
 	.getter = sun4i_get_pll1_factors,
 };
 
 static const struct factors_data sun6i_a31_pll1_data __initconst = {
+	.enable = 31,
 	.table = &sun6i_a31_pll1_config,
 	.getter = sun6i_a31_get_pll1_factors,
+};
+
+static const struct factors_data sun4i_pll5_data __initconst = {
+	.enable = 31,
+	.table = &sun4i_pll5_config,
+	.getter = sun4i_get_pll5_factors,
 };
 
 static const struct factors_data sun4i_apb1_data __initconst = {
@@ -391,13 +412,13 @@ static const struct factors_data sun4i_mod0_data __initconst = {
 	.getter = sun4i_get_mod0_factors,
 };
 
-static void __init sunxi_factors_clk_setup(struct device_node *node,
-					   struct factors_data *data)
+static struct clk * __init sunxi_factors_clk_setup(struct device_node *node,
+						const struct factors_data *data)
 {
 	struct clk *clk;
 	struct clk_factors *factors;
-	struct clk_gate *gate = NULL;
-	struct clk_mux *mux = NULL;
+	struct clk_gate *gate;
+	struct clk_mux *mux;
 	struct clk_hw *gate_hw = NULL;
 	struct clk_hw *mux_hw = NULL;
 	const char *clk_name = node->name;
@@ -414,14 +435,14 @@ static void __init sunxi_factors_clk_setup(struct device_node *node,
 
 	factors = kzalloc(sizeof(struct clk_factors), GFP_KERNEL);
 	if (!factors)
-		return;
+		return NULL;
 
 	/* Add a gate if this factor clock can be gated */
 	if (data->enable) {
 		gate = kzalloc(sizeof(struct clk_gate), GFP_KERNEL);
 		if (!gate) {
 			kfree(factors);
-			return;
+			return NULL;
 		}
 
 		/* set up gate properties */
@@ -437,7 +458,7 @@ static void __init sunxi_factors_clk_setup(struct device_node *node,
 		if (!mux) {
 			kfree(factors);
 			kfree(gate);
-			return;
+			return NULL;
 		}
 
 		/* set up gate properties */
@@ -467,6 +488,8 @@ static void __init sunxi_factors_clk_setup(struct device_node *node,
 		of_clk_add_provider(node, of_clk_src_simple_get, clk);
 		clk_register_clkdev(clk, clk_name, NULL);
 	}
+
+	return clk;
 }
 
 
@@ -750,13 +773,13 @@ static void __init sunxi_divs_clk_setup(struct device_node *node,
 	struct clk_onecell_data *clk_data;
 	const char *parent  = node->name;
 	const char *clk_name;
-	struct clk **clks;
+	struct clk **clks, *pclk;
 	void *reg;
 	int i = 0;
-	int flags;
+	int flags, clkflags;
 
 	/* Set up factor clock that we will be dividing */
-	sunxi_factors_clk_setup(node, (struct factors_data *)data->factors);
+	pclk = sunxi_factors_clk_setup(node, data->factors);
 
 	reg = of_iomap(node, 0);
 
@@ -770,6 +793,10 @@ static void __init sunxi_divs_clk_setup(struct device_node *node,
 	}
 	clk_data->clks = clks;
 
+	/* It's not a good idea to have automatic reparenting changing
+	 * our RAM clock! */
+	clkflags = !strcmp("pll5", parent) ? 0 : CLK_SET_RATE_PARENT;
+
 	for (i = 0; i < SUNXI_DIVS_MAX_QTY; i++) {
 		if (of_property_read_string_index(node, "clock-output-names",
 						  i, &clk_name) != 0)
@@ -777,21 +804,23 @@ static void __init sunxi_divs_clk_setup(struct device_node *node,
 
 		if (data->div[i].fixed) {
 			clks[i] = clk_register_fixed_factor(NULL, clk_name,
-							    parent, 0, 1,
-							    data->div[i].fixed);
+						parent, clkflags,
+						1, data->div[i].fixed);
 		} else {
 			flags = data->div[i].pow ? CLK_DIVIDER_POWER_OF_TWO : 0;
 			clks[i] = clk_register_divider_table(NULL, clk_name,
-							     parent, 0, reg,
-							     data->div[i].shift,
-							     SUNXI_DIVISOR_WIDTH,
-							     flags,
-							     data->div[i].table,
-							     &clk_lock);
+						parent, clkflags, reg,
+						data->div[i].shift,
+						SUNXI_DIVISOR_WIDTH, flags,
+						data->div[i].table, &clk_lock);
 		}
 
 		WARN_ON(IS_ERR(clk_data->clks[i]));
+		clk_register_clkdev(clks[i], clk_name, NULL);
 	}
+
+	/* The last clock available on the getter is the parent */
+	clks[i++] = pclk;
 
 	/* Adjust to the real max */
 	clk_data->clk_num = i;
@@ -799,9 +828,10 @@ static void __init sunxi_divs_clk_setup(struct device_node *node,
 	of_clk_add_provider(node, of_clk_src_onecell_get, clk_data);
 }
 
-#define SUNXI_USB_CLK_NUM 6
+#define SUNXI_USBCLK_NUM 6
 
-static void __init sunxi_usb_clk_setup(struct device_node *node, const void * data)
+static void __init sunxi_usb_clk_setup(struct device_node *node,
+				       const void *data)
 {
 	struct clk_onecell_data *clk_data;
 	struct clk *clk;
@@ -809,7 +839,7 @@ static void __init sunxi_usb_clk_setup(struct device_node *node, const void * da
 	const char *clk_parent;
 	void *reg;
 	int i = 0;
-	int gate_idx[SUNXI_USB_CLK_NUM] = {0, 1, 2, 6, 7 , 8};
+	int gate_idx[SUNXI_USBCLK_NUM] = {0, 1, 2, 6, 7 , 8};
 
 	reg = of_iomap(node, 0);
 
@@ -819,21 +849,22 @@ static void __init sunxi_usb_clk_setup(struct device_node *node, const void * da
 	if (!clk_data)
 		return;
 
-	clk_data->clks = kzalloc(SUNXI_USB_CLK_NUM * sizeof(struct clk *), GFP_KERNEL);
+	clk_data->clks = kzalloc(SUNXI_USBCLK_NUM * sizeof(struct clk *),
+				 GFP_KERNEL);
 	if (!clk_data->clks) {
 		kfree(clk_data);
 		return;
 	}
-	clk_data->clk_num = SUNXI_USB_CLK_NUM;
+	clk_data->clk_num = SUNXI_USBCLK_NUM;
 
-	for (i = 0; i < SUNXI_USB_CLK_NUM; i++) {
+	for (i = 0; i < SUNXI_USBCLK_NUM; i++) {
 
 		of_property_read_string_index(node, "clock-output-names",
-										i, &clk_name);
+					i, &clk_name);
 
 		clk = clk_register_gate(NULL, clk_name,
 				clk_parent, 0 /* flags */,
-				reg, gate_idx[i], 
+				reg, gate_idx[i],
 				0 /* clk_gate_flags */, &clk_lock);
 
 		WARN_ON(IS_ERR(clk));
@@ -877,8 +908,8 @@ static const struct of_device_id clk_mux_match[] __initconst = {
 	{}
 };
 
-/* Match for a USB clock */
-static const __initconst struct of_device_id clk_usb_match[] = {
+/* Match for a USB clocks */
+static const struct of_device_id clk_usb_match[] __initconst = {
 	{.compatible = "allwinner,sun4i-usb-clk"},
 	{}
 };

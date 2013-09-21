@@ -275,11 +275,11 @@ config USB_OCTEON_EHCI
 	  supported.
 
 config USB_SUNXI_EHCI
-	bool "SUNXI on-chip EHCI support"
+	bool "Allwinner sunXi EHCI support"
 	depends on ARCH_SUNXI
 	default n
 	help
-	  Enable support for the SUNXI SOC's on-chip EHCI
+	  Enable support for the Allwinner sunXi on-chip EHCI
 	  controller. It is needed for high-speed (480Mbit/sec)
 	  USB 2.0 device support.
 

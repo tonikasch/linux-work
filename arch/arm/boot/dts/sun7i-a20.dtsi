@@ -16,6 +16,11 @@
 / {
 	interrupt-parent = <&gic>;
 
+	aliases {
+		ehci1 = &ehci0;
+		ehci2 = &ehci1;
+	};
+
 	cpus {
 		#address-cells = <1>;
 		#size-cells = <0>;
@@ -62,23 +67,43 @@
 			clocks = <&osc24M>;
 		};
 
-		/*
-		 * This is a dummy clock, to be used as placeholder on
-		 * other mux clocks when a specific parent clock is not
-		 * yet implemented. It should be dropped when the driver
-		 * is complete.
-		 */
-		pll6: pll6 {
+		pll4: pll4@01c20018 {
 			#clock-cells = <0>;
-			compatible = "fixed-clock";
-			clock-frequency = <0>;
+			compatible = "allwinner,sun4i-pll1-clk";
+			reg = <0x01c20018 0x4>;
+			clocks = <&osc24M>;
+		};
+
+		pll5: pll5@01c20020 {
+			#clock-cells = <1>;
+			compatible = "allwinner,sun4i-pll5-clk";
+			reg = <0x01c20020 0x4>;
+			clocks = <&osc24M>;
+			clock-output-names = "pll5_ddr", "pll5_other";
+		};
+
+		pll6: pll6@01c20028 {
+			#clock-cells = <1>;
+			compatible = "allwinner,sun4i-pll6-clk";
+			reg = <0x01c20028 0x4>;
+			clocks = <&osc24M>;
+			clock-output-names = "pll6_sata", "pll6_other", "pll6";
+		};
+
+		usb:usb@0x01c200cc {
+			#clock-cells = <1>;
+			compatible = "allwinner,sun4i-usb-clk";
+			reg = <0x01c200cc 0x4>;
+			clocks = <&pll6 1>;
+			clock-output-names = "phy0_reset", "phy1_reset", "phy2_reset",
+					     "usb_ohci0", "usb_ohci1", "usb_phy";
 		};
 
 		cpu: cpu@01c20054 {
 			#clock-cells = <0>;
 			compatible = "allwinner,sun4i-cpu-clk";
 			reg = <0x01c20054 0x4>;
-			clocks = <&osc32k>, <&osc24M>, <&pll1>, <&pll6>;
+			clocks = <&osc32k>, <&osc24M>, <&pll1>, <&pll6 1>;
 		};
 
 		axi: axi@01c20054 {
@@ -137,7 +162,7 @@
 			#clock-cells = <0>;
 			compatible = "allwinner,sun4i-apb1-mux-clk";
 			reg = <0x01c20058 0x4>;
-			clocks = <&osc24M>, <&pll6>, <&osc32k>;
+			clocks = <&osc24M>, <&pll6 1>, <&osc32k>;
 		};
 
 		apb1: apb1@01c20058 {
@@ -404,6 +429,24 @@
 			interrupt-controller;
 			#interrupt-cells = <3>;
 			interrupts = <1 9 0xf04>;
+		};
+
+		ehci0: ehci0@0x01c14000 {
+			compatible = "allwinner,sunxi-ehci";
+			reg = <0x01c14000 0x400 0x01c14800 0x4 0x01c13404 0x4>;
+			interrupts = <0 39 1>;
+			clocks = <&usb 5>, <&usb 1>, <&ahb_gates 1>;
+			clock-names = "usb_phy", "phy_reset", "ahb_ehci";
+			status = "disabled";
+		};
+
+		ehci1: ehci1@0x01c1c000 {
+			compatible = "allwinner,sunxi-ehci";
+			reg = <0x01c1c000 0x400 0x01c1c800 0x4 0x01c13404 0x4>;
+			interrupts = <0 40 1>;
+			clocks = <&usb 5>, <&usb 2>, <&ahb_gates 3>;
+			clock-names = "usb_phy", "phy_reset", "ahb_ehci";
+			status = "disabled";
 		};
 	};
 };

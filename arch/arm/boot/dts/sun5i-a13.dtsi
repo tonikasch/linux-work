@@ -87,7 +87,7 @@
 			compatible = "allwinner,sun4i-pll6-clk";
 			reg = <0x01c20028 0x4>;
 			clocks = <&osc24M>;
-			clock-output-names = "pll6_sata", "pll6_other";
+			clock-output-names = "pll6_sata", "pll6_other", "pll6";
 		};
 
 		/* dummy is 200M */

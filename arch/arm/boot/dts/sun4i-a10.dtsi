@@ -15,6 +15,11 @@
 / {
 	interrupt-parent = <&intc>;
 
+	aliases {
+		ehci1 = &ehci0;
+		ehci2 = &ehci1;
+	};
+
 	cpus {
 		#address-cells = <1>;
 		#size-cells = <0>;
@@ -86,7 +91,7 @@
 			compatible = "allwinner,sun4i-pll6-clk";
 			reg = <0x01c20028 0x4>;
 			clocks = <&osc24M>;
-			clock-output-names = "pll6_sata", "pll6_other";
+			clock-output-names = "pll6_sata", "pll6_other", "pll6";
 		};
 
 		usb:usb@0x01c200cc {
@@ -95,7 +100,7 @@
 			reg = <0x01c200cc 0x4>;
 			clocks = <&pll6 1>;
 			clock-output-names = "phy0_reset", "phy1_reset", "phy2_reset",
-								"usb_ohci0", "usb_ohci1", "usb_phy";
+					     "usb_ohci0", "usb_ohci1", "usb_phy";
 		};
 
 		/* dummy is 200M */
@@ -514,17 +519,22 @@
 			status = "disabled";
 		};
 
-		ohci0: ohci0@0x01c14400 {
-				status = "disabled";
+		ehci0: ehci0@0x01c14000 {
+			compatible = "allwinner,sunxi-ehci";
+			reg = <0x01c14000 0x400 0x01c14800 0x4 0x01c13404 0x4>;
+			interrupts = <39>;
+			clocks = <&usb 5>, <&usb 1>, <&ahb_gates 1>;
+			clock-names = "usb_phy", "phy_reset", "ahb_ehci";
+			status = "disabled";
 		};
 
-		ehci0: ehci0@0x01c14000 {
-				compatible = "allwinner,sunxi-ehci";
-				reg = <0x01c14000 0x400>;
-				interrupts = <39>;
-				status = "disabled";
-				clocks = <&usb 5>, <&usb 1>, <&ahb_gates 1>;
-				clock-names = "usb_phy", "phy1_reset", "ahb_ehci0";
+		ehci1: ehci1@0x01c1c000 {
+			compatible = "allwinner,sunxi-ehci";
+			reg = <0x01c1c000 0x400 0x01c1c800 0x4 0x01c13404 0x4>;
+			interrupts = <40>;
+			clocks = <&usb 5>, <&usb 2>, <&ahb_gates 3>;
+			clock-names = "usb_phy", "phy_reset", "ahb_ehci";
+			status = "disabled";
 		};
 	};
 };
