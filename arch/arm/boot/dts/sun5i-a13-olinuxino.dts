@@ -33,6 +33,15 @@
 			status = "okay";
 		};
 
+		usbphy: phy@0x01c13400 {
+			usb1_vbus-supply = <&reg_usb1_vbus>;
+			status = "okay";
+		};
+
+		ehci0: ehci@0x01c14000 {
+			status = "okay";
+		};
+
 		pinctrl@01c20800 {
 			mmc0_cd_pin_olinuxino: mmc0_cd_pin@0 {
 				allwinner,pins = "PG0";
@@ -45,6 +54,13 @@
 				allwinner,pins = "PG9";
 				allwinner,function = "gpio_out";
 				allwinner,drive = <1>;
+				allwinner,pull = <0>;
+			};
+
+			usb1_vbus_pin_olinuxino: usb1_vbus_pin@0 {
+				allwinner,pins = "PG11";
+				allwinner,function = "gpio_out";
+				allwinner,drive = <0>;
 				allwinner,pull = <0>;
 			};
 		};
@@ -89,6 +105,21 @@
 		power {
 			gpios = <&pio 6 9 0>;
 			default-state = "on";
+		};
+	};
+
+	regulators {
+		compatible = "simple-bus";
+
+		reg_usb1_vbus: usb1-vbus {
+			compatible = "regulator-fixed";
+			pinctrl-names = "default";
+			pinctrl-0 = <&usb1_vbus_pin_olinuxino>;
+			regulator-name = "usb1-vbus";
+			regulator-min-microvolt = <5000000>;
+			regulator-max-microvolt = <5000000>;
+			enable-active-high;
+			gpio = <&pio 6 11 0>;
 		};
 	};
 };
