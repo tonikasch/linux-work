@@ -275,7 +275,7 @@ config USB_OCTEON_EHCI
 	  supported.
 
 config USB_SUNXI_EHCI
-	bool "Allwinner sunXi EHCI support"
+	tristate "Allwinner sunXi EHCI support"
 	depends on ARCH_SUNXI
 	default n
 	help

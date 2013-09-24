@@ -11,11 +11,19 @@
  * warranty of any kind, whether express or implied.
  */
 
-#include <linux/platform_device.h>
-#include <linux/clk.h>
-#include <linux/of.h>
-#include <linux/regulator/consumer.h>
 #include <linux/bitops.h>
+#include <linux/clk.h>
+#include <linux/dma-mapping.h>
+#include <linux/io.h>
+#include <linux/irq.h>
+#include <linux/module.h>
+#include <linux/of.h>
+#include <linux/platform_device.h>
+#include <linux/regulator/consumer.h>
+#include <linux/usb.h>
+#include <linux/usb/hcd.h>
+
+#include "ehci.h"
 
 #define DRV_DESC	"Allwinner sunXi EHCI driver"
 #define DRV_NAME	"sunxi-ehci"
@@ -404,6 +412,7 @@ static struct platform_driver ehci_sunxi_driver = {
 
 static int __init sunxi_ehci_init_module(void)
 {
+	printk("AROKUX1 - sunxi_ehci_init_module\n");
 	if (usb_disabled())
 		return -ENODEV;
 
@@ -427,4 +436,4 @@ MODULE_DESCRIPTION(DRIVER_DESC);
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("platform:" DRV_NAME);
 MODULE_DEVICE_TABLE(of, ehci_of_match);
-MODULE_AUTHOR("John Lenz <lenz@cs.wisc.edu>");
+MODULE_AUTHOR("Roman Byshko <rbyshko@gmail.com>");
