@@ -36,7 +36,6 @@
 #define SUNXI_EHCI_ULPI_BYPASS_EN	BIT(0)
 
 struct sunxi_ehci_hcd {
-	struct usb_hcd *hcd;
 	struct clk *phy_clk;
 	struct clk *phy_rst_clk;
 	struct clk *ahb_ehci_clk;
@@ -47,30 +46,37 @@ struct sunxi_ehci_hcd {
 	int id;
 };
 
-static void usb_phy_write(struct sunxi_ehci_hcd *sunxi_ehci, int addr,
-			  int data, int len)
+
+static void usb_phy_write(struct sunxi_ehci_hcd *sunxi_ehci,u32 addr, u32 data, u32 len)
 {
-	int temp = 0, j = 0, usbc_bit = 0;
+	u32 j = 0;
+	u32 temp = 0;
+	u32 usbc_bit = 0;
 	void __iomem *dest = sunxi_ehci->csr;
 
-	usbc_bit = BIT(sunxi_ehci->id * 2);
+	usbc_bit = BIT(sunxi_ehci->id << 1);
+
 	for (j = 0; j < len; j++) {
-		/* set the bit address to be written */
 		temp = readl(dest);
+
+		/* clear the address portion */
 		temp &= ~(0xff << 8);
+
+		/* set the address */
 		temp |= ((addr + j) << 8);
 		writel(temp, dest);
 
-		__clear_bit(usbc_bit, dest);
-		/* set data bit */
+		/* set the data bit and clear usbc bit*/
+		temp = readb(dest);
 		if (data & 0x1)
 			temp |= BIT(7);
 		else
 			temp &= ~BIT(7);
+		temp &= ~usbc_bit;
 		writeb(temp, dest);
 
+		/* flip usbc_bit */
 		__set_bit(usbc_bit, dest);
-
 		__clear_bit(usbc_bit, dest);
 
 		data >>= 1;
@@ -220,14 +226,14 @@ static const struct ehci_driver_overrides sunxi_overrides __initconst = {
 	.extra_priv_size	= sizeof(struct sunxi_ehci_hcd),
 };
 
-/* FIXME: Should there be two of those? */
+/* FIXME: Should there be two instances of hc_driver,
+ * or one is enough to handle two EHCI controllers? */
 static struct hc_driver __read_mostly sunxi_ehci_hc_driver;
 
-static int sunxi_ehci_init(struct platform_device *pdev,
+static int sunxi_ehci_init(struct platform_device *pdev, struct usb_hcd *hcd,
 			   struct sunxi_ehci_hcd *sunxi_ehci)
 {
 	void __iomem *ehci_regs = NULL;
-	struct usb_hcd *hcd = NULL;
 	struct resource *res = NULL;
 
 	sunxi_ehci->vbus_reg = devm_regulator_get(&pdev->dev, "vbus");
@@ -251,8 +257,6 @@ static int sunxi_ehci_init(struct platform_device *pdev,
 	ehci_regs = devm_ioremap_resource(&pdev->dev, res);
 	if (IS_ERR(ehci_regs))
 		return PTR_ERR(ehci_regs);
-
-	hcd = sunxi_ehci->hcd;
 
 	hcd->rsrc_start = res->start;
 	hcd->rsrc_len = resource_size(res);
@@ -340,28 +344,30 @@ static int sunxi_ehci_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "unable to create HCD\n");
 		return -ENOMEM;
 	}
-	sunxi_ehci = (struct sunxi_ehci_hcd *)hcd_to_ehci(hcd)->priv;
-	sunxi_ehci->hcd = hcd;
 
 	platform_set_drvdata(pdev, hcd);
 
-	ret = sunxi_ehci_init(pdev, sunxi_ehci);
+	sunxi_ehci = (struct sunxi_ehci_hcd *)hcd_to_ehci(hcd)->priv;
+	ret = sunxi_ehci_init(pdev, hcd, sunxi_ehci);
 	if (ret)
-		goto fail;
+		goto fail1;
 
 	ret = sunxi_ehci_enable(sunxi_ehci);
 	if (ret)
-		goto fail;
+		goto fail1;
 
 	ret = usb_add_hcd(hcd, sunxi_ehci->irq, IRQF_SHARED | IRQF_DISABLED);
 	if (ret) {
 		dev_err(&pdev->dev, "failed to add USB HCD\n");
-		goto fail;
+		goto fail2;
 	}
 
 	return 0;
 
-fail:
+fail2:
+	sunxi_ehci_disable(sunxi_ehci);
+
+fail1:
 	usb_put_hcd(hcd);
 	return ret;
 }
@@ -375,9 +381,9 @@ static int sunxi_ehci_remove(struct platform_device *pdev)
 
 	usb_remove_hcd(hcd);
 
-	usb_put_hcd(hcd);
-
 	sunxi_ehci_disable(sunxi_ehci);
+
+	usb_put_hcd(hcd);
 
 	return 0;
 }
@@ -412,15 +418,12 @@ static struct platform_driver ehci_sunxi_driver = {
 
 static int __init sunxi_ehci_init_module(void)
 {
-	printk("AROKUX1 - sunxi_ehci_init_module\n");
 	if (usb_disabled())
 		return -ENODEV;
 
 	pr_info(DRV_NAME ": " DRV_DESC "\n");
 
 	ehci_init_driver(&sunxi_ehci_hc_driver, &sunxi_overrides);
-
-	sunxi_ehci_hc_driver.product_desc = "Allwinner sunXi EHCI controller";
 
 	return platform_driver_register(&ehci_sunxi_driver);
 }
