@@ -134,9 +134,10 @@ static int HPDStatus = 0;
 
 int it66121_poll_status(struct hdmi *hdmi)
 {
+	struct it66121 *it66121 = hdmi->property->priv;
 	char HPDChangeStatus;
 	CheckHDMITX((BYTE*)&HPDStatus, &HPDChangeStatus);
-	if(HPDChangeStatus)
+	if(HPDChangeStatus && it66121->enable)
 		hdmi_submit_work(hdmi, HDMI_HPD_CHANGE, 10, NULL);
 	return HDMI_ERROR_SUCESS;
 }
@@ -163,7 +164,7 @@ int it66121_remove(struct hdmi *hdmi)
 
 int it66121_read_edid(struct hdmi *hdmi, int block, unsigned char *buff)
 {
-	return (getHDMITX_EDIDBlock(block, buff) == TRUE)?HDMI_ERROR_SUCESS:HDMI_ERROR_FALSE;;
+	return (getHDMITX_EDIDBlock(block, buff) == TRUE)?HDMI_ERROR_SUCESS:HDMI_ERROR_FALSE;
 }
 
 int it66121_config_video(struct hdmi *hdmi, struct hdmi_video *vpara)
@@ -268,6 +269,7 @@ int it66121_config_audio(struct hdmi *hdmi, struct hdmi_audio *audio)
     struct it66121 *it66121 = hdmi->property->priv;
     unsigned long ulAudioSampleFS;
 	unsigned char word_length;
+	unsigned char audio_type;
 	
 	switch(audio->rate)
 	{
@@ -310,8 +312,14 @@ int it66121_config_audio(struct hdmi *hdmi, struct hdmi_audio *audio)
 			word_length = 24;
 			break;
 	}
+
+    if(HDMI_AUDIO_NLPCM == audio->type){
+        audio_type = T_AUDIO_NLPCM;
+    }else{
+        audio_type = T_AUDIO_LPCM;
+    }
     HDMITX_EnableAudioOutput(
-    CONFIG_INPUT_AUDIO_TYPE,
+    audio_type,
     CONFIG_INPUT_AUDIO_SPDIF,
     ulAudioSampleFS,
     audio->channel,

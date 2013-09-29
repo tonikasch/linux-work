@@ -14,6 +14,8 @@
 #define HDMI_VIDEO_DVI					(3 << 8)
 #define HDMI_VIC_MASK					(0xFF)
 #define HDMI_TYPE_MASK					(0xFF << 8)
+#define HDMI_MAX_ID	4
+
 
 // HDMI video information code according CEA-861-E
 enum hdmi_video_infomation_code {
@@ -125,6 +127,7 @@ enum hdmi_deep_color {
 
 // HDMI Audio Type
 enum hdmi_audio_type {
+	HDMI_AUDIO_NLPCM = 0,
 	HDMI_AUDIO_LPCM = 1,
 	HDMI_AUDIO_AC3,
 	HDMI_AUDIO_MPEG1,
@@ -339,4 +342,6 @@ extern int hdmi_ouputmode_select(struct hdmi *hdmi, int edid_ok);
 extern int hdmi_add_vic(int vic, struct list_head *head);
 extern int hdmi_videomode_to_vic(struct fb_videomode *vmode);
 extern const struct fb_videomode* hdmi_vic_to_videomode(int vic);
+extern int hdmi_config_audio(struct hdmi_audio	*audio);
+
 #endif

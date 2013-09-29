@@ -50,6 +50,8 @@
 #if defined(CONFIG_CT36X_TS)
 #include <linux/ct36x.h>
 #endif
+#include <plat/efuse.h>
+
 #if defined(CONFIG_MFD_RK610)
 #include <linux/mfd/rk610_core.h>
 #endif
@@ -636,7 +638,7 @@ static struct rk_hdmi_platform_data rk_hdmi_pdata = {
 };
 #endif
 #ifdef CONFIG_ION
-#define ION_RESERVE_SIZE        (80 * SZ_1M)
+#define ION_RESERVE_SIZE        (120 * SZ_1M)
 static struct ion_platform_data rk30_ion_pdata = {
 	.nr = 1,
 	.heaps = {
@@ -986,23 +988,35 @@ static struct rfkill_rk_platform_data rfkill_rk_platdata = {
     .type               = RFKILL_TYPE_BLUETOOTH,
 
     .poweron_gpio       = { // BT_REG_ON
-        .io             = RK30_PIN3_PD1, //RK30_PIN3_PC7,
+        .io             = RK30_PIN3_PC7, //RK30_PIN3_PC7,
         .enable         = GPIO_HIGH,
+        .iomux          = {
+            .name       = "bt_poweron",
+            .fgpio      = GPIO3_C7,
+        },
     },
 
     .reset_gpio         = { // BT_RST
-        .io             = INVALID_GPIO, // set io to INVALID_GPIO for disable it
+        .io             = RK30_PIN3_PD1, // set io to INVALID_GPIO for disable it
         .enable         = GPIO_LOW,
-   }, 
+        .iomux          = {
+            .name       = "bt_reset",
+            .fgpio      = GPIO3_D1,
+       },
+    },
 
     .wake_gpio          = { // BT_WAKE, use to control bt's sleep and wakeup
         .io             = RK30_PIN3_PC6, // set io to INVALID_GPIO for disable it
         .enable         = GPIO_HIGH,
+        .iomux          = {
+            .name       = "bt_wake",
+            .fgpio      = GPIO3_C6,
+        },
     },
 
     .wake_host_irq      = { // BT_HOST_WAKE, for bt wakeup host when it is in deep sleep
         .gpio           = {
-            .io         = RK30_PIN0_PA5, // set io to INVALID_GPIO for disable it
+            .io         = RK30_PIN3_PD2, // set io to INVALID_GPIO for disable it
             .enable     = GPIO_LOW,      // set GPIO_LOW for falling, set 0 for rising
             .iomux      = {
                 .name   = NULL,
@@ -1251,13 +1265,13 @@ static struct rkdisplay_platform_data hdmi_data = {
 	.io_reset_pin 	= RK30_PIN3_PB2,
 };
 
-#if defined(CONFIG_RK1000_TVOUT)
+#if defined(CONFIG_RK1000_TVOUT) || defined(CONFIG_MFD_RK1000)
 static struct rkdisplay_platform_data tv_data = {
 	.property 		= DISPLAY_AUX,
 	.video_source 	= DISPLAY_SOURCE_LCDC0,
 	.io_pwr_pin 	= INVALID_GPIO,
 	.io_reset_pin 	= RK30_PIN3_PD4,
-	.io_switch_pin	= INVALID_GPIO,
+	.io_switch_pin	= RK30_PIN2_PD7,
 };
 #endif
 //$_rbox_$_modify_$ zhengyang modified end
@@ -1845,6 +1859,7 @@ static struct i2c_board_info __initdata i2c4_info[] = {
 		.type           = "rk1000_i2c_codec",
 		.addr           = 0x60,
 		.flags          = 0,
+		.platform_data = &tv_data,
     },
 #endif
 #endif
@@ -1929,7 +1944,7 @@ static void rk30_pm_power_off(void)
 
 static void __init machine_rk30_board_init(void)
 {
-	//avs_init();
+	avs_init();
 	gpio_request(POWER_ON_PIN, "poweronpin");
 	gpio_direction_output(POWER_ON_PIN, GPIO_HIGH);
 	
@@ -2027,18 +2042,50 @@ static struct cpufreq_frequency_table dvfs_ddr_table[] = {
 	{.frequency = 400 * 1000 + DDR_FREQ_NORMAL,     .index = 1100 * 1000},
 	{.frequency = CPUFREQ_TABLE_END},
 };
-
+static struct cpufreq_frequency_table dvfs_ddr_table_t[] = {
+	{.frequency = 200 * 1000 + DDR_FREQ_SUSPEND,    .index = 950 * 1000},
+	{.frequency = 460 * 1000 + DDR_FREQ_NORMAL,     .index = 1150 * 1000},
+	{.frequency = CPUFREQ_TABLE_END},
+};
 //#define DVFS_CPU_TABLE_SIZE	(ARRAY_SIZE(dvfs_cpu_logic_table))
 //static struct cpufreq_frequency_table cpu_dvfs_table[DVFS_CPU_TABLE_SIZE];
 //static struct cpufreq_frequency_table dep_cpu2core_table[DVFS_CPU_TABLE_SIZE];
+int get_max_freq(struct cpufreq_frequency_table *table)
+{
+	int i,temp=0;
+	
+	for(i=0;table[i].frequency!= CPUFREQ_TABLE_END;i++)
+	{
+		if(temp<table[i].frequency)
+			temp=table[i].frequency;
+	}	
+	printk("get_max_freq=%d\n",temp);
+	return temp;
+}
 
 void __init board_clock_init(void)
 {
-	rk30_clock_data_init(periph_pll_default, codec_pll_default, RK30_CLOCKS_DEFAULT_FLAGS);
-	//dvfs_set_arm_logic_volt(dvfs_cpu_logic_table, cpu_dvfs_table, dep_cpu2core_table);
+	u32 flags=RK30_CLOCKS_DEFAULT_FLAGS;
+#if !defined(CONFIG_ARCH_RK3188)
+	if(get_max_freq(dvfs_gpu_table)<=(400*1000))
+	{	
+		flags=RK30_CLOCKS_DEFAULT_FLAGS|CLK_GPU_GPLL;
+	}
+	else
+		flags=RK30_CLOCKS_DEFAULT_FLAGS|CLK_GPU_CPLL;
+#endif	
+	rk30_clock_data_init(periph_pll_default, codec_pll_default, flags);
+	//dvfs_set_arm_logic_volt(dvfs_cpu_logic_table, cpu_dvfs_table, dep_cpu2core_table);	
 	dvfs_set_freq_volt_table(clk_get(NULL, "cpu"), dvfs_arm_table);
 	dvfs_set_freq_volt_table(clk_get(NULL, "gpu"), dvfs_gpu_table);
+#if defined(CONFIG_ARCH_RK3188)
+	if (rk_pll_flag() == 0)
+		dvfs_set_freq_volt_table(clk_get(NULL, "ddr"), dvfs_ddr_table);
+	else
+		dvfs_set_freq_volt_table(clk_get(NULL, "ddr"), dvfs_ddr_table_t);
+#else
 	dvfs_set_freq_volt_table(clk_get(NULL, "ddr"), dvfs_ddr_table);
+#endif
 }
 
 MACHINE_START(RK30, "RK30board")
