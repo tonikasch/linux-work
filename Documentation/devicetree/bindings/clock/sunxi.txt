@@ -15,6 +15,7 @@ Required properties:
 	"allwinner,sun4i-axi-clk" - for the AXI clock
 	"allwinner,sun4i-axi-gates-clk" - for the AXI gates
 	"allwinner,sun4i-ahb-clk" - for the AHB clock
+	"allwinner,sun5i-a13-ahb-clk" - for the AHB clock on A13
 	"allwinner,sun4i-ahb-gates-clk" - for the AHB gates on A10
 	"allwinner,sun5i-a13-ahb-gates-clk" - for the AHB gates on A13
 	"allwinner,sun5i-a10s-ahb-gates-clk" - for the AHB gates on A10s
@@ -27,7 +28,6 @@ Required properties:
 	"allwinner,sun5i-a10s-apb0-gates-clk" - for the APB0 gates on A10s
 	"allwinner,sun7i-a20-apb0-gates-clk" - for the APB0 gates on A20
 	"allwinner,sun4i-apb1-clk" - for the APB1 clock
-	"allwinner,sun4i-apb1-mux-clk" - for the APB1 clock muxing
 	"allwinner,sun4i-apb1-gates-clk" - for the APB1 gates on A10
 	"allwinner,sun5i-a13-apb1-gates-clk" - for the APB1 gates on A13
 	"allwinner,sun5i-a10s-apb1-gates-clk" - for the APB1 gates on A10s

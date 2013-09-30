@@ -241,7 +241,32 @@ static void sun4i_get_pll5_factors(u32 *freq, u32 parent_rate,
 	*n = DIV_ROUND_UP(div, (*k+1));
 }
 
+/**
+ * sun5i_get_ahb_factors() - calculates p factor for AHB
+ * AHB rate is calculated as follows
+ * rate = parent_rate >> p
+ */
 
+static void sun5i_a13_get_ahb_factors(u32 *freq, u32 parent_rate,
+				      u8 *n, u8 *k, u8 *m, u8 *p)
+{
+	u8 div;
+
+	/* This clock can only divide, so we will never achieve a higher
+	 * rate than the parent's */
+	if (*freq > parent_rate)
+		*freq = parent_rate;
+
+	/* Normalize value to a parent multiple */
+	div = *freq / parent_rate;
+	*freq = parent_rate * div;
+
+	/* we were called to round the frequency, we can now return */
+	if (n == NULL)
+		return;
+
+	*p = div;
+}
 
 /**
  * sun4i_get_apb1_factors() - calculates m, p factors for APB1
@@ -367,6 +392,11 @@ static struct clk_factors_config sun4i_pll5_config = {
 	.kwidth = 2,
 };
 
+static struct clk_factors_config sun5i_a13_ahb_config = {
+	.pshift = 4,
+	.pwidth = 2,
+};
+
 static struct clk_factors_config sun4i_apb1_config = {
 	.mshift = 0,
 	.mwidth = 5,
@@ -400,7 +430,14 @@ static const struct factors_data sun4i_pll5_data __initconst = {
 	.getter = sun4i_get_pll5_factors,
 };
 
+static const struct factors_data sun5i_a13_ahb_data __initconst = {
+	.mux = 6,
+	.table = &sun5i_a13_ahb_config,
+	.getter = sun5i_a13_get_ahb_factors,
+};
+
 static const struct factors_data sun4i_apb1_data __initconst = {
+	.mux = 24,
 	.table = &sun4i_apb1_config,
 	.getter = sun4i_get_apb1_factors,
 };
@@ -510,10 +547,6 @@ static const struct mux_data sun4i_cpu_mux_data __initconst = {
 
 static const struct mux_data sun6i_a31_ahb1_mux_data __initconst = {
 	.shift = 12,
-};
-
-static const struct mux_data sun4i_apb1_mux_data __initconst = {
-	.shift = 24,
 };
 
 static void __init sunxi_mux_clk_setup(struct device_node *node,
@@ -879,6 +912,7 @@ static void __init sunxi_usb_clk_setup(struct device_node *node,
 static const struct of_device_id clk_factors_match[] __initconst = {
 	{.compatible = "allwinner,sun4i-pll1-clk", .data = &sun4i_pll1_data,},
 	{.compatible = "allwinner,sun6i-a31-pll1-clk", .data = &sun6i_a31_pll1_data,},
+	{.compatible = "allwinner,sun5i-a13-ahb-clk", .data = &sun5i_a13_ahb_data,},
 	{.compatible = "allwinner,sun4i-apb1-clk", .data = &sun4i_apb1_data,},
 	{.compatible = "allwinner,sun4i-mod0-clk", .data = &sun4i_mod0_data,},
 	{}
@@ -903,7 +937,6 @@ static const struct of_device_id clk_divs_match[] __initconst = {
 /* Matches for mux clocks */
 static const struct of_device_id clk_mux_match[] __initconst = {
 	{.compatible = "allwinner,sun4i-cpu-clk", .data = &sun4i_cpu_mux_data,},
-	{.compatible = "allwinner,sun4i-apb1-mux-clk", .data = &sun4i_apb1_mux_data,},
 	{.compatible = "allwinner,sun6i-a31-ahb1-mux-clk", .data = &sun6i_a31_ahb1_mux_data,},
 	{}
 };
@@ -963,6 +996,7 @@ static void __init sunxi_clock_protect(void)
 	/* memory bus clock - sun5i+ */
 	clk = clk_get(NULL, "mbus");
 	if (!IS_ERR(clk)) {
+		clk_set_rate(clk, 600000000);
 		clk_prepare_enable(clk);
 		clk_put(clk);
 	}
