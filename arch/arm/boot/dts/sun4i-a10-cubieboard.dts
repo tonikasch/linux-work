@@ -54,7 +54,6 @@
 				allwinner,driver = <0>;
 				allwinner,pull = <0>;
 			};
-
 			led_pins_cubieboard: led_pins@0 {
 				allwinner,pins = "PH20", "PH21";
 				allwinner,function = "gpio_out";

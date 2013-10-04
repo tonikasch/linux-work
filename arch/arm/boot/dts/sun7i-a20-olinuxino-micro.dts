@@ -34,7 +34,7 @@
 			};
 		};
 
-		sata@01c18000 {
+		sata: ahci@01c18000 {
 			pwr-supply = <&reg_ahci_5v>;
 			status = "okay";
 		};

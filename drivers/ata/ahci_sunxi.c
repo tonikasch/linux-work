@@ -30,6 +30,7 @@
 #include <linux/device.h>
 #include <linux/gfp.h>
 #include <linux/clk.h>
+#include <linux/clk-provider.h>
 #include <linux/errno.h>
 #include <linux/ahci_platform.h>
 #include "ahci.h"
@@ -206,7 +207,7 @@ static int sunxi_ahci_remove(struct platform_device *pdev)
 }
 
 static const struct of_device_id sunxi_ahci_of_match[] = {
-	{ .compatible = "allwinner,sun4i-ahci", .data = &sunxi_sata_pdata},
+	{ .compatible = "allwinner,sun4i-a10-ahci", .data = &sunxi_sata_pdata},
 	{/* sentinel */},
 };
 MODULE_DEVICE_TABLE(of, sunxi_ahci_of_match);
@@ -224,9 +225,11 @@ static int sunxi_ahci_probe(struct platform_device *pdev)
 	if (!ahci_data)
 		return -ENOMEM;
 
+	printk("Lets probe!\n");
 	ahci_pdev = platform_device_alloc("ahci", -1);
 	if (!ahci_pdev)
 		return -ENODEV;
+	printk("device ahci allocated\n");
 
 	ahci_pdev->dev.parent = &pdev->dev;
 
@@ -235,12 +238,14 @@ static int sunxi_ahci_probe(struct platform_device *pdev)
 		ret = PTR_ERR(ahci_data->ahb_clk);
 		goto err_out;
 	}
+	printk("got ahb_sata clk\n");
 
 	ahci_data->sata_clk = devm_clk_get(&pdev->dev, "pll6_sata");
 	if (IS_ERR(ahci_data->sata_clk)) {
 		ret = PTR_ERR(ahci_data->sata_clk);
 		goto err_out;
 	}
+	printk("got pll6_sata clk\n");
 
 	ahci_data->ahci_pdev = ahci_pdev;
 	platform_set_drvdata(pdev, ahci_data);
@@ -256,9 +261,12 @@ static int sunxi_ahci_probe(struct platform_device *pdev)
 		ret = -EINVAL;
 		goto err_out;
 	}
+	printk("device matched %s\n", of_dev_id->name);
 
 	mem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	printk("got mem res\n");
 	irq = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
+	printk("got irq res\n");
 	if (!mem || !irq) {
 		ret = -ENOMEM;
 		goto err_out;
@@ -268,18 +276,22 @@ static int sunxi_ahci_probe(struct platform_device *pdev)
 	ret = platform_device_add_resources(ahci_pdev, res, 2);
 	if (ret)
 		goto err_out;
+	printk("registered resources\n");
 
 	ret = platform_device_add_data(ahci_pdev, pdata, sizeof(*pdata));
 	if (ret)
 		goto err_out;
+	printk("added data\n");
 
 	ret = platform_device_add(ahci_pdev);
 	if (ret)
 		goto err_out;
+	printk("added device\n");
 
 	return 0;
 
 err_out:
+	printk("remove device\n");
 	platform_device_put(ahci_pdev);
 	return ret;
 }

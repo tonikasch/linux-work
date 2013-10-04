@@ -378,7 +378,7 @@
 			};
 		};
 
-		sata@01c1800 {
+		sata: ahci@01c18000 {
 			compatible = "allwinner,sun4i-a10-ahci";
 			reg = <0x01c18000 0x1000>;
 			interrupts = <0 56 1>;
