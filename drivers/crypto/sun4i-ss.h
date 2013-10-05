@@ -102,4 +102,12 @@
 /* RX FIFO available spaces - bits 16-21 */
 #define SUNXI_TXFIFO_SPACES(val)	(((val) >> 16) & 0x3f)
 
+/* Enable interrupt on available data on TX FIFO */
+#define SUNXI_TXFIFO_AVA_INT_ENABLE	(1 << 0)
+#define SUNXI_TXFIFO_AVA_INT_PENDING	(1 << 8)
+
+/* Enable interrupt on available spaces on RX FIFO */
+#define SUNXI_RXFIFO_EMP_INT_ENABLE	(1 << 2)
+#define SUNXI_RXFIFO_EMP_INT_PENDING	(1 << 10)
+
 #endif
