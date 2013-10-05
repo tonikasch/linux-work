@@ -136,6 +136,8 @@
 			regulator-max-microvolt = <3300000>;
 			enable-active-high;
 			gpio = <&pio 7 3 0>;
+		};
+
 		reg_ahci_5v: ahci-5v {
 			compatible = "regulator-fixed";
 			regulator-name = "ahci-5v";
