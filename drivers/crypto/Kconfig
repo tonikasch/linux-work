@@ -399,4 +399,16 @@ config CRYPTO_DEV_ATMEL_SHA
 	  To compile this driver as a module, choose M here: the module
 	  will be called atmel-sha.
 
+config CRYPTO_DEV_SUN4I_SS
+	tristate "Support for Allwinner Security System crypto accelerator"
+	depends on ARCH_SUNXI
+	select CRYPTO_MD5
+	help
+	  Some Allwinner processors have a crypto accelerator named
+	  Security System. Select this if you want to use the Allwinner
+	  module.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called sun4i-ss.
+
 endif # CRYPTO_HW
