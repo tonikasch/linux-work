@@ -32,10 +32,10 @@
 			};
 
 			usb1_vbus_pin: usb1_vbus_pin@0 {
-					allwinner,pins = "PG11";
-					allwinner,function = "gpio_out";
-					allwinner,drive = <0>;
-					allwinner,pull = <0>;
+				allwinner,pins = "PG11";
+				allwinner,function = "gpio_out";
+				allwinner,drive = <0>;
+				allwinner,pull = <2>;
 			};
 		};
 

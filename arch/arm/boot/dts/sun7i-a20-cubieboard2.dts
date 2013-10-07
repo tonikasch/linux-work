@@ -57,32 +57,20 @@
 					allwinner,pins = "PH6";
 					allwinner,function = "gpio_out";
 					allwinner,drive = <0>;
-					allwinner,pull = <0>;
+					allwinner,pull = <2>;
 			};
 
 			usb2_vbus_pin: usb2_vbus_pin@0 {
 					allwinner,pins = "PH3";
 					allwinner,function = "gpio_out";
 					allwinner,drive = <0>;
-					allwinner,pull = <0>;
+					allwinner,pull = <2>;
 			};
 		};
 
 		uart0: serial@01c28000 {
 			pinctrl-names = "default";
 			pinctrl-0 = <&uart0_pins_a>;
-			status = "okay";
-		};
-
-		i2c0: i2c@01c2ac00 {
-			pinctrl-names = "default";
-			pinctrl-0 = <&i2c0_pins_a>;
-			status = "okay";
-		};
-
-		i2c1: i2c@01c2b000 {
-			pinctrl-names = "default";
-			pinctrl-0 = <&i2c1_pins_a>;
 			status = "okay";
 		};
 
@@ -136,16 +124,6 @@
 			regulator-max-microvolt = <3300000>;
 			enable-active-high;
 			gpio = <&pio 7 3 0>;
-		};
-
-		reg_ahci_5v: ahci-5v {
-			compatible = "regulator-fixed";
-			regulator-name = "ahci-5v";
-			regulator-min-microvolt = <5000000>;
-			regulator-max-microvolt = <5000000>;
-			pinctrl-0 = <&ahci_pwr_pin>;
-			gpio = <&pio 1 8 0>;
-			enable-active-high;
 		};
 	};
 };

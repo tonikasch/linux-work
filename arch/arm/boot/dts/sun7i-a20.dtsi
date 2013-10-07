@@ -92,7 +92,7 @@
 
 		usb:usb@0x01c200cc {
 			#clock-cells = <1>;
-			compatible = "allwinner,sun4i-usb-clk";
+			compatible = "allwinner,sun47i-usb-gates-clk";
 			reg = <0x01c200cc 0x4>;
 			clocks = <&pll6 1>;
 			clock-output-names = "phy0_reset", "phy1_reset", "phy2_reset",
@@ -156,6 +156,13 @@
 				"apb0_ac97", "apb0_iis0", "apb0_iis1",
 				"apb0_pio", "apb0_ir0", "apb0_ir1",
 				"apb0_iis2", "apb0_keypad";
+		};
+
+		apb1_mux: apb1_mux@01c20058 {
+			#clock-cells = <0>;
+			compatible = "allwinner,sun4i-apb1-mux-clk";
+			reg = <0x01c20058 0x4>;
+			clocks = <&osc24M>, <&pll6 1>, <&osc32k>;
 		};
 
 		apb1: apb1@01c20058 {
@@ -549,7 +556,7 @@
 			compatible = "allwinner,sunxi-ehci";
 			reg = <0x01c14000 0x400 0x01c14800 0x4 0x01c13404 0x4>;
 			interrupts = <0 39 1>;
-			clocks = <&usb 5>, <&usb 1>, <&ahb_gates 1>;
+			clocks = <&usb 8>, <&usb 1>, <&ahb_gates 1>;
 			clock-names = "usb_phy", "phy_reset", "ahb_ehci";
 			status = "disabled";
 		};
@@ -558,7 +565,7 @@
 			compatible = "allwinner,sunxi-ehci";
 			reg = <0x01c1c000 0x400 0x01c1c800 0x4 0x01c13404 0x4>;
 			interrupts = <0 40 1>;
-			clocks = <&usb 5>, <&usb 2>, <&ahb_gates 3>;
+			clocks = <&usb 8>, <&usb 2>, <&ahb_gates 3>;
 			clock-names = "usb_phy", "phy_reset", "ahb_ehci";
 			status = "disabled";
 		};

@@ -392,11 +392,14 @@ static struct clk_factors_config sun4i_pll5_config = {
 	.kwidth = 2,
 };
 
+<<<<<<< HEAD
 static struct clk_factors_config sun5i_a13_ahb_config = {
 	.pshift = 4,
 	.pwidth = 2,
 };
 
+=======
+>>>>>>> arokux/sunxi-next-usb
 static struct clk_factors_config sun4i_apb1_config = {
 	.mshift = 0,
 	.mwidth = 5,
@@ -430,12 +433,15 @@ static const struct factors_data sun4i_pll5_data __initconst = {
 	.getter = sun4i_get_pll5_factors,
 };
 
+<<<<<<< HEAD
 static const struct factors_data sun5i_a13_ahb_data __initconst = {
 	.mux = 6,
 	.table = &sun5i_a13_ahb_config,
 	.getter = sun5i_a13_get_ahb_factors,
 };
 
+=======
+>>>>>>> arokux/sunxi-next-usb
 static const struct factors_data sun4i_apb1_data __initconst = {
 	.mux = 24,
 	.table = &sun4i_apb1_config,
@@ -505,6 +511,7 @@ static struct clk * __init sunxi_factors_clk_setup(struct device_node *node,
 		mux->lock = &clk_lock;
 		mux_hw = &mux->hw;
 	}
+<<<<<<< HEAD
 
 	/* set up factors properties */
 	factors->reg = reg;
@@ -512,6 +519,15 @@ static struct clk * __init sunxi_factors_clk_setup(struct device_node *node,
 	factors->get_factors = data->getter;
 	factors->lock = &clk_lock;
 
+=======
+
+	/* set up factors properties */
+	factors->reg = reg;
+	factors->config = data->table;
+	factors->get_factors = data->getter;
+	factors->lock = &clk_lock;
+
+>>>>>>> arokux/sunxi-next-usb
 	/* We should not disable pll5, it powers the RAM */
 	flags = !strcmp("pll5", clk_name) ? CLK_IGNORE_UNUSED : 0;
 
@@ -650,6 +666,14 @@ static const struct gates_data sun4i_axi_gates_data __initconst = {
 
 static const struct gates_data sun4i_ahb_gates_data __initconst = {
 	.mask = {0x7F77FFF, 0x14FB3F},
+};
+
+static const struct gates_data sun47i_usb_gates_data __initconst = {
+	.mask = {0x1C7},
+};
+
+static const struct gates_data sun5i_usb_gates_data __initconst = {
+	.mask = {0x143},
 };
 
 static const struct gates_data sun5i_a10s_ahb_gates_data __initconst = {
@@ -861,6 +885,7 @@ static void __init sunxi_divs_clk_setup(struct device_node *node,
 	of_clk_add_provider(node, of_clk_src_onecell_get, clk_data);
 }
 
+<<<<<<< HEAD
 #define SUNXI_USBCLK_NUM 6
 
 static void __init sunxi_usb_clk_setup(struct device_node *node,
@@ -907,6 +932,9 @@ static void __init sunxi_usb_clk_setup(struct device_node *node,
 
 	of_clk_add_provider(node, of_clk_src_onecell_get, clk_data);
 }
+=======
+
+>>>>>>> arokux/sunxi-next-usb
 
 /* Matches for factors clocks */
 static const struct of_device_id clk_factors_match[] __initconst = {
@@ -951,8 +979,10 @@ static const struct of_device_id clk_usb_match[] __initconst = {
 static const struct of_device_id clk_gates_match[] __initconst = {
 	{.compatible = "allwinner,sun4i-axi-gates-clk", .data = &sun4i_axi_gates_data,},
 	{.compatible = "allwinner,sun4i-ahb-gates-clk", .data = &sun4i_ahb_gates_data,},
+	{.compatible = "allwinner,sun47i-usb-gates-clk", .data = &sun47i_usb_gates_data,},
 	{.compatible = "allwinner,sun5i-a10s-ahb-gates-clk", .data = &sun5i_a10s_ahb_gates_data,},
 	{.compatible = "allwinner,sun5i-a13-ahb-gates-clk", .data = &sun5i_a13_ahb_gates_data,},
+	{.compatible = "allwinner,sun5i-usb-gates-clk", .data = &sun5i_usb_gates_data,},
 	{.compatible = "allwinner,sun6i-a31-ahb1-gates-clk", .data = &sun6i_a31_ahb1_gates_data,},
 	{.compatible = "allwinner,sun7i-a20-ahb-gates-clk", .data = &sun7i_a20_ahb_gates_data,},
 	{.compatible = "allwinner,sun4i-apb0-gates-clk", .data = &sun4i_apb0_gates_data,},

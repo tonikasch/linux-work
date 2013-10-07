@@ -96,11 +96,11 @@
 
 		usb:usb@0x01c200cc {
 			#clock-cells = <1>;
-			compatible = "allwinner,sun4i-usb-clk";
+			compatible = "allwinner,sun5i-usb-gates-clk";
 			reg = <0x01c200cc 0x4>;
 			clocks = <&pll6 1>;
-			clock-output-names = "phy0_reset", "phy1_reset", "phy2_reset",
-					     "usb_ohci0", "usb_ohci1", "usb_phy";
+			clock-output-names = "phy0_reset", "phy1_reset",
+					     "usb_ohci0", "usb_phy";
 		};
 
 		/* dummy is 200M */
@@ -159,6 +159,13 @@
 			reg = <0x01c20068 0x4>;
 			clocks = <&apb0>;
 			clock-output-names = "apb0_codec", "apb0_pio", "apb0_ir";
+		};
+
+		apb1_mux: apb1_mux@01c20058 {
+			#clock-cells = <0>;
+			compatible = "allwinner,sun4i-apb1-mux-clk";
+			reg = <0x01c20058 0x4>;
+			clocks = <&osc24M>, <&pll6 1>, <&osc32k>;
 		};
 
 		apb1: apb1@01c20058 {
@@ -390,7 +397,11 @@
 			compatible = "allwinner,sunxi-ehci";
 			reg = <0x01c14000 0x400 0x01c14800 0x4 0x01c13404 0x4>;
 			interrupts = <39>;
+<<<<<<< HEAD
 			clocks = <&usb 5>, <&usb 1>, <&ahb_gates 1>;
+=======
+			clocks = <&usb 8>, <&usb 1>, <&ahb_gates 1>;
+>>>>>>> arokux/sunxi-next-usb
 			clock-names = "usb_phy", "phy_reset", "ahb_ehci";
 			status = "disabled";
 		};
