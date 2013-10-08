@@ -16,7 +16,6 @@
 
 #include <linux/clk-provider.h>
 #include <linux/clkdev.h>
-#include <linux/clk/sunxi.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
 
@@ -392,14 +391,11 @@ static struct clk_factors_config sun4i_pll5_config = {
 	.kwidth = 2,
 };
 
-<<<<<<< HEAD
 static struct clk_factors_config sun5i_a13_ahb_config = {
 	.pshift = 4,
 	.pwidth = 2,
 };
 
-=======
->>>>>>> arokux/sunxi-next-usb
 static struct clk_factors_config sun4i_apb1_config = {
 	.mshift = 0,
 	.mwidth = 5,
@@ -433,15 +429,12 @@ static const struct factors_data sun4i_pll5_data __initconst = {
 	.getter = sun4i_get_pll5_factors,
 };
 
-<<<<<<< HEAD
 static const struct factors_data sun5i_a13_ahb_data __initconst = {
 	.mux = 6,
 	.table = &sun5i_a13_ahb_config,
 	.getter = sun5i_a13_get_ahb_factors,
 };
 
-=======
->>>>>>> arokux/sunxi-next-usb
 static const struct factors_data sun4i_apb1_data __initconst = {
 	.mux = 24,
 	.table = &sun4i_apb1_config,
@@ -511,7 +504,6 @@ static struct clk * __init sunxi_factors_clk_setup(struct device_node *node,
 		mux->lock = &clk_lock;
 		mux_hw = &mux->hw;
 	}
-<<<<<<< HEAD
 
 	/* set up factors properties */
 	factors->reg = reg;
@@ -519,15 +511,6 @@ static struct clk * __init sunxi_factors_clk_setup(struct device_node *node,
 	factors->get_factors = data->getter;
 	factors->lock = &clk_lock;
 
-=======
-
-	/* set up factors properties */
-	factors->reg = reg;
-	factors->config = data->table;
-	factors->get_factors = data->getter;
-	factors->lock = &clk_lock;
-
->>>>>>> arokux/sunxi-next-usb
 	/* We should not disable pll5, it powers the RAM */
 	flags = !strcmp("pll5", clk_name) ? CLK_IGNORE_UNUSED : 0;
 
@@ -885,7 +868,6 @@ static void __init sunxi_divs_clk_setup(struct device_node *node,
 	of_clk_add_provider(node, of_clk_src_onecell_get, clk_data);
 }
 
-<<<<<<< HEAD
 #define SUNXI_USBCLK_NUM 6
 
 static void __init sunxi_usb_clk_setup(struct device_node *node,
@@ -932,9 +914,6 @@ static void __init sunxi_usb_clk_setup(struct device_node *node,
 
 	of_clk_add_provider(node, of_clk_src_onecell_get, clk_data);
 }
-=======
-
->>>>>>> arokux/sunxi-next-usb
 
 /* Matches for factors clocks */
 static const struct of_device_id clk_factors_match[] __initconst = {
@@ -1041,9 +1020,6 @@ static void __init sunxi_clock_protect(void)
 
 void __init sunxi_init_clocks(void)
 {
-	/* Register all the simple and basic clocks on DT */
-	of_clk_init(NULL);
-
 	/* Register factor clocks */
 	of_sunxi_table_clock_setup(clk_factors_match, sunxi_factors_clk_setup);
 
@@ -1065,3 +1041,8 @@ void __init sunxi_init_clocks(void)
 	/* Enable core system clocks */
 	sunxi_clock_protect();
 }
+CLK_OF_DECLARE(sun4i_a10_clk_init, "allwinner,sun4i-a10", sunxi_init_clocks);
+CLK_OF_DECLARE(sun5i_a10s_clk_init, "allwinner,sun5i-a10s", sunxi_init_clocks);
+CLK_OF_DECLARE(sun5i_a13_clk_init, "allwinner,sun5i-a13", sunxi_init_clocks);
+CLK_OF_DECLARE(sun6i_a31_clk_init, "allwinner,sun6i-a31", sunxi_init_clocks);
+CLK_OF_DECLARE(sun7i_a20_clk_init, "allwinner,sun7i-a20", sunxi_init_clocks);
