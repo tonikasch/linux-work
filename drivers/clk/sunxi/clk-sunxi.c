@@ -453,8 +453,8 @@ static struct clk * __init sunxi_factors_clk_setup(struct device_node *node,
 {
 	struct clk *clk;
 	struct clk_factors *factors;
-	struct clk_gate *gate;
-	struct clk_mux *mux;
+	struct clk_gate *gate = NULL;
+	struct clk_mux *mux = NULL;
 	struct clk_hw *gate_hw = NULL;
 	struct clk_hw *mux_hw = NULL;
 	const char *clk_name = node->name;

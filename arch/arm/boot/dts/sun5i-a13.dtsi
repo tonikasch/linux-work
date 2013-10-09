@@ -397,13 +397,16 @@
 			compatible = "allwinner,sunxi-ehci";
 			reg = <0x01c14000 0x400 0x01c14800 0x4 0x01c13404 0x4>;
 			interrupts = <39>;
-<<<<<<< HEAD
-			clocks = <&usb 5>, <&usb 1>, <&ahb_gates 1>;
-=======
 			clocks = <&usb 8>, <&usb 1>, <&ahb_gates 1>;
->>>>>>> arokux/sunxi-next-usb
 			clock-names = "usb_phy", "phy_reset", "ahb_ehci";
 			status = "disabled";
+		};
+
+		hstimer@01c60000 {
+			compatible = "allwinner,sun5i-a13-hstimer";
+			reg = <0x01c60000 0x1000>;
+			interrupts = <82>, <83>;
+			clocks = <&ahb_gates 28>;
 		};
 	};
 };

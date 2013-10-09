@@ -10,6 +10,7 @@
  * warranty of any kind, whether express or implied.
  */
 
+#include <linux/clocksource.h>
 #include <linux/delay.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
@@ -18,6 +19,8 @@
 #include <linux/of_platform.h>
 #include <linux/io.h>
 #include <linux/reboot.h>
+
+#include <linux/clk/sunxi.h>
 
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
@@ -107,6 +110,12 @@ static void sunxi_setup_restart(void)
 	WARN(!wdt_base, "failed to map watchdog base address");
 }
 
+static void __init sunxi_timer_init(void)
+{
+	sunxi_init_clocks();
+	clocksource_of_init();
+}
+
 static void __init sunxi_dt_init(void)
 {
 	sunxi_setup_restart();
@@ -123,6 +132,7 @@ static const char * const sunxi_board_dt_compat[] = {
 
 DT_MACHINE_START(SUNXI_DT, "Allwinner A1X (Device Tree)")
 	.init_machine	= sunxi_dt_init,
+	.init_time	= sunxi_timer_init,
 	.dt_compat	= sunxi_board_dt_compat,
 	.restart	= sun4i_restart,
 MACHINE_END
@@ -132,9 +142,29 @@ static const char * const sun6i_board_dt_compat[] = {
 	NULL,
 };
 
+static const struct of_device_id sun6i_reset_dt_ids[] = {
+	{ .compatible = "allwinner,sun6i-a31-ahb1-reset", },
+	{ .compatible = "allwinner,sun6i-a31-apb1-reset", },
+	{ .compatible = "allwinner,sun6i-a31-apb2-reset", },
+	{ /* sentinel */ }
+};
+
+extern void __init sun6i_reset_init(struct device_node *np);
+static void __init sun6i_timer_init(void)
+{
+	struct device_node *np;
+
+	sunxi_init_clocks();
+
+	for_each_matching_node(np, sun6i_reset_dt_ids)
+		sun6i_reset_init(np);
+
+	clocksource_of_init();
+}
+
 DT_MACHINE_START(SUN6I_DT, "Allwinner sun6i (A31) Family")
 	.init_machine	= sunxi_dt_init,
-	.init_time	= sunxi_timer_init,
+	.init_time	= sun6i_timer_init,
 	.dt_compat	= sun6i_board_dt_compat,
 	.restart	= sun6i_restart,
 MACHINE_END
