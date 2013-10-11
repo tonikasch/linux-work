@@ -515,7 +515,8 @@ static struct resource resource_fb[] = {
 		.flags = IORESOURCE_MEM,
 	},
 	[1] = {
-		.name  = "ipp buf",  //for rotate
+		//.name  = "ipp buf",  //for rotate
+      .name  = "fb1 buf",  //for Ovl support on olegk0's Xf86 video driver
 		.start = 0,
 		.end   = 0,//RK30_FB0_MEM_SIZE - 1,
 		.flags = IORESOURCE_MEM,
@@ -662,7 +663,7 @@ static struct rk_hdmi_platform_data rk_hdmi_pdata = {
 };
 #endif
 #ifdef CONFIG_ION
-#define ION_RESERVE_SIZE        (80 * SZ_1M)
+#define ION_RESERVE_SIZE        (80 * SZ_1M)   //on 3188-SRC-AP6210 it's: (120 * SZ_1M)
 static struct ion_platform_data rk30_ion_pdata = {
 	.nr = 1,
 	.heaps = {
@@ -1322,12 +1323,12 @@ static struct rkdisplay_platform_data hdmi_data = {
 	.io_reset_pin 	= RK30_PIN3_PB2,
 };
 
-#if defined(CONFIG_RK1000_TVOUT)
+#if defined(CONFIG_RK1000_TVOUT) // || defined(CONFIG_MFD_RK1000)
 static struct rkdisplay_platform_data tv_data = {
 	.property 		= DISPLAY_AUX,
 	.video_source 	= DISPLAY_SOURCE_LCDC0,
 	.io_pwr_pin 	= INVALID_GPIO,
-	.io_reset_pin 	= RK30_PIN3_PD4,
+	.io_reset_pin 	= RK30_PIN3_PD7,  //RK1000_RST on GPIO3_D7 in Radxa Rock board
 	.io_switch_pin	= INVALID_GPIO,
 };
 #endif
@@ -2003,7 +2004,7 @@ static void rk30_pm_power_off(void)
 
 static void __init machine_rk30_board_init(void)
 {
-	//avs_init(); //Galland: dvfs?
+	//avs_init();
 	gpio_request(POWER_ON_PIN, "poweronpin");
 	gpio_direction_output(POWER_ON_PIN, GPIO_HIGH);
 	
@@ -2040,9 +2041,11 @@ static void __init rk30_reserve(void)
 #ifdef CONFIG_FB_ROCKCHIP
 	resource_fb[0].start = board_mem_reserve_add("fb0 buf", get_fb_size());
 	resource_fb[0].end = resource_fb[0].start + get_fb_size()- 1;
-#if 0
-	resource_fb[1].start = board_mem_reserve_add("ipp buf", RK30_FB0_MEM_SIZE);
-	resource_fb[1].end = resource_fb[1].start + RK30_FB0_MEM_SIZE - 1;
+#ifdef GALLAND_CHANGED //#if 0
+	//resource_fb[1].start = board_mem_reserve_add("ipp buf", RK30_FB0_MEM_SIZE);
+   //resource_fb[1].end = resource_fb[1].start + RK30_FB0_MEM_SIZE - 1;
+   resource_fb[1].start = board_mem_reserve_add("fb1 buf", get_fb_size());
+	resource_fb[1].end = resource_fb[1].start + get_fb_size()- 1;
 #endif
 
 #if defined(CONFIG_FB_ROTATE) || !defined(CONFIG_THREE_FB_BUFFER)
