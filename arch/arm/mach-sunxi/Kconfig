@@ -2,6 +2,7 @@ config ARCH_SUNXI
 	bool "Allwinner A1X SOCs" if ARCH_MULTI_V7
 	select ARCH_HAS_RESET_CONTROLLER
 	select ARCH_REQUIRE_GPIOLIB
+	select ARM_GIC
 	select CLKSRC_MMIO
 	select CLKSRC_OF
 	select COMMON_CLK
@@ -16,4 +17,3 @@ config ARCH_SUNXI
 	select ARM_GIC
 	select HAVE_SMP
 	select ARCH_HAS_CPUFREQ
-

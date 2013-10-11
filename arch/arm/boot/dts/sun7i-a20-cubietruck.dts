@@ -16,7 +16,7 @@
 
 / {
 	model = "Cubietech Cubietruck";
-	compatible = "cubietech,cubietech", "allwinner,sun7i-a20";
+	compatible = "cubietech,cubietruck", "allwinner,sun7i-a20";
 
 	soc@01c00000 {
 		pinctrl@01c20800 {
@@ -44,14 +44,17 @@
 			label = "cubietruck:blue:usr";
 			gpios = <&pio 7 21 0>;
 		};
+
 		orange {
 			label = "cubietruck:orange:usr";
 			gpios = <&pio 7 20 0>;
 		};
+
 		white {
 			label = "cubietruck:white:usr";
 			gpios = <&pio 7 11 0>;
 		};
+
 		green {
 			label = "cubietruck:green:usr";
 			gpios = <&pio 7 7 0>;
