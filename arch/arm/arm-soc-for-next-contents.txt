@@ -13,6 +13,11 @@ next/cleanup
 		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-cleanup-for-v3.13
 	patch
 		clk: nomadik: fix missing __init on nomadik_src_init
+	renesas/cleanup2
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-cleanup2-for-v3.13
+	patch
+		ARM: clps711x: Use linux/sched_clock.h
+		ARM: Remove temporary sched_clock.h header
 
 next/soc
 	samsung/s3c64xx-clk
@@ -25,6 +30,10 @@ next/soc
 		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-smp-for-v3.13
 	renesas/soc2
 		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-soc2-for-v3.13
+	keystone/soc
+		git://git.kernel.org/pub/scm/linux/kernel/git/ssantosh/linux-keystone.git tags/keystone-soc-for-arm-soc
+	patch
+		ARM: keystone: fix PM domain initcall to be keystone only
 
 next/drivers
 	davinci/gpio
