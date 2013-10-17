@@ -34,18 +34,28 @@ next/soc
 		git://git.kernel.org/pub/scm/linux/kernel/git/ssantosh/linux-keystone.git tags/keystone-soc-for-arm-soc
 	patch
 		ARM: keystone: fix PM domain initcall to be keystone only
+	omap/hwmod
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.13/hwmod-signed
+	omap/soc
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.13/soc-take2
 
 next/drivers
 	davinci/gpio
 		git://git.kernel.org/pub/scm/linux/kernel/git/nsekhar/linux-davinci.git tags/davinci-for-v3.13/gpio
 	mvebu/drivers
 		git://git.infradead.org/linux-mvebu.git tags/drivers-3.13
+	arm/drivers
+		git://git.kernel.org/pub/scm/linux/kernel/git/will/linux.git tags/arm-perf-3.13
 
 next/boards
 	renesas/boards
 		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git renesas-boards-for-v3.13
 	renesas/defconfig
 		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-defconfig-for-v3.13
+	renesas/boards2
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-boards2-for-v3.13
+	omap/boards
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.13/board-signed
 
 next/dt
 	samsung/s3c64xx-dt
@@ -59,5 +69,13 @@ next/dt
 		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-dt-for-v3.13
 	mvebu/dt
 		git://git.infradead.org/linux-mvebu.git tags/dt-3.13
+	mvebu/dt2
 		git://git.infradead.org/linux-mvebu.git tags/dt-3.13-2
-
+	renesas/dt2
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-dt2-for-v3.13
+	socfpga/dt
+		git://git.rocketboards.org/linux-socfpga-next.git tags/socfpga-dts-updates-for-v3.13
+	omap/pdata-quirks		
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.13/quirk-signed
+	omap/dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.13/dt-signed
