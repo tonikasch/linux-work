@@ -18,6 +18,12 @@ next/cleanup
 	patch
 		ARM: clps711x: Use linux/sched_clock.h
 		ARM: Remove temporary sched_clock.h header
+	qcom/cleanup
+		git://git.kernel.org/pub/scm/linux/kernel/git/davidb/linux-msm.git tags/msm-cleanup-for-3.13
+	tegra/cleanup
+		git://git.kernel.org/pub/scm/linux/kernel/git/tegra/linux.git tegra-for-3.13-cleanup
+	at91/cleanup
+		git://github.com/at91linux/linux-at91.git tags/at91-cleanup
 
 next/soc
 	samsung/s3c64xx-clk
@@ -38,6 +44,16 @@ next/soc
 		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.13/hwmod-signed
 	omap/soc
 		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.13/soc-take2
+	davinci/soc
+		git://git.kernel.org/pub/scm/linux/kernel/git/nsekhar/linux-davinci.git tags/davinci-for-v3.13/soc-2 # rebased from -v3.12-rc5 to -rc3
+	integrator/soc
+		git fetch git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-integrator.git tags/integrator-for-v3.13-2
+	mvebu/soc
+		git fetch git://git.infradead.org/linux-mvebu.git tags/soc-3.13-2
+	highbank/soc
+		git://git.kernel.org/pub/scm/linux/kernel/git/robh/linux.git tags/highbank-for-3.13
+	omap/hwmod2
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.13/am43xx-hwmod-signed
 
 next/drivers
 	davinci/gpio
@@ -46,6 +62,8 @@ next/drivers
 		git://git.infradead.org/linux-mvebu.git tags/drivers-3.13
 	arm/drivers
 		git://git.kernel.org/pub/scm/linux/kernel/git/will/linux.git tags/arm-perf-3.13
+	mvebu/drivers2
+		git://git.infradead.org/linux-mvebu.git tags/drivers-3.13-2
 
 next/boards
 	renesas/boards
@@ -56,6 +74,11 @@ next/boards
 		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-boards2-for-v3.13
 	omap/boards
 		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.13/board-signed
+	tegra/defconfig
+		git://git.kernel.org/pub/scm/linux/kernel/git/tegra/linux.git tegra-for-3.13-defconfig
+	rockchip/boards
+		git://git.kernel.org/pub/scm/linux/kernel/git/mmind/linux-rockchip.git tags/v3.13-rockchip-boards
+		# but moved MAINTAINERS patch to fixes
 
 next/dt
 	samsung/s3c64xx-dt
@@ -79,3 +102,11 @@ next/dt
 		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.13/quirk-signed
 	omap/dt
 		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.13/dt-signed
+	mvebu/dt3
+		git fetch git://git.infradead.org/linux-mvebu.git tags/dt-3.13-3
+	tegra/dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/tegra/linux.git tegra-for-3.13-dt
+	at91/dt
+		git://github.com/at91linux/linux-at91.git tags/at91-dt
+	omap/dt2
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.13/board-removal-signed-take2
