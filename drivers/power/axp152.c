@@ -142,7 +142,7 @@ static int axp152_write_interrupts(struct axp152_data *axp152, uint8_t start,
 {
 	int ret;
 	uint8_t v[5];
-        
+
 	v[0] = irqs;
 	v[1] = start + 1;
 	v[2] = irqs >> 8;

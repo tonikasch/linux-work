@@ -1234,16 +1234,6 @@ if VIDEO_SUNXI_CEDAR
 source "drivers/media/video/sunxi/Kconfig"
 endif
 
-config VIDEO_SUN7I_CEDAR
-       tristate "CEDAR driver for sun7i"
-       depends on ARCH_SUN7I
-       help
-         CEDAR driver for sun7i
-
-if VIDEO_SUN7I_CEDAR
-source "drivers/media/video/sun4i/Kconfig"
-endif
-
 menuconfig VIDEO_CSI_SUN4I
 	bool "CSI Driver Config for sun4i"
 	default m
