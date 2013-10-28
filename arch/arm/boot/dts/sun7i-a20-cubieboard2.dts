@@ -34,12 +34,18 @@
 			};
 		};
 
-		sata@01c18000 {
-			status = "okay";
-			pwr-supply = <&reg_sata>;
+		sata: ahci@01c18000 {
+			pwr-supply = <&reg_ahci_5v>;
+			satus = "okay";
 		};
 
 		pinctrl@01c20800 {
+			ahci_pwr_pin: ahci_pwr_pin@0 {
+				allwinner,pins = "PB8";
+				allwinner,function = "gpio_out";
+				allwinner,driver = <0>;
+				allwinner,pull = <0>;
+			};
 			led_pins_cubieboard2: led_pins@0 {
 				allwinner,pins = "PH20", "PH21";
 				allwinner,function = "gpio_out";	
@@ -80,16 +86,15 @@
 
 	regulators {
 		compatible = "simple-bus";
-		reg_sata: reg_sata {
-                        compatible = "regulator-fixed";
-                        pinctrl-names = "default";
-                        pinctrl-0 = <&sata_pwr_pin_cubieboard2>;
-                        regulator-name = "sata-pwr";
-                        regulator-min-microvolt = <3300000>;
-                        regulator-max-microvolt = <3300000>;
-                        enable-active-low;
-                        gpio = <&pio 1 8 0>;
-		};
 
+		reg_ahci_5v: ahci-5v {
+			compatible = "regulator-fixed";
+			regulator-name = "ahci-5v";
+			regulator-min-microvolt = <5000000>;
+			regulator-max-microvolt = <5000000>;
+			pinctrl-0 = <&ahci_pwr_pin>;
+			gpio = <&pio 1 8 0>;
+			enable-active-high;
+		};
 	};
 };
