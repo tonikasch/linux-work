@@ -1,4 +1,8 @@
 
+fixes-non-critical
+	omap/fixes-non-critical2
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.13/fixes-not-urgent-part2
+
 
 next/cleanup
 	shark/removal
@@ -24,6 +28,12 @@ next/cleanup
 		git://git.kernel.org/pub/scm/linux/kernel/git/tegra/linux.git tegra-for-3.13-cleanup
 	at91/cleanup
 		git://github.com/at91linux/linux-at91.git tags/at91-cleanup
+	samsung/cleanup
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/samsung-cleanup
+	omap/cleanup-cm
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.13/cm-scm-cleanup-signed
+	patch
+		ARM: gemini: convert to GENERIC_CLOCKEVENTS
 
 next/soc
 	samsung/s3c64xx-clk
@@ -56,6 +66,17 @@ next/soc
 		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.13/am43xx-hwmod-signed
 	tegra/soc
 		git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git tegra-for-3.13-soc-v2
+	cleanup/dt-clock
+		(brought in as a dependency, part of next/cleanup)
+	sunxi/core
+		https://github.com/mripard/linux.git tags/sunxi-core-for-3.13
+	sunxi/defconfig
+		https://github.com/mripard/linux.git tags/sunxi-defconfig-for-3.13
+	imx/soc
+		git://git.linaro.org/people/shawnguo/linux-2.6.git tags/imx-soc-3.13
+	patches
+		ARM: vexpress: Enable platform-specific options in defconfig
+		ARM: vexpress: Make defconfig work again
 
 next/drivers
 	davinci/gpio
@@ -66,6 +87,8 @@ next/drivers
 		git://git.kernel.org/pub/scm/linux/kernel/git/will/linux.git tags/arm-perf-3.13
 	mvebu/drivers2
 		git://git.infradead.org/linux-mvebu.git tags/drivers-3.13-2
+	samsung/s3c24xx0dma
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/s3c24xx-dma
 
 next/boards
 	renesas/boards
@@ -114,3 +137,20 @@ next/dt
 		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.13/board-removal-signed-take2
 	omap/pinctrl-fix
 		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.13/pinctrl-fix
+	sunxi/dt
+		https://github.com/mripard/linux.git tags/sunxi-dt-for-3.13
+	sunxi/fixes
+		https://github.com/mripard/linux.git tags/sunxi-fixes-for-3.13
+	ux500/dt3
+		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson.git tags/ux500-dt-for-v3.13-3
+	samsung/dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/exynos-dt (all but last patch)
+		NOTE: Pulled the branch but dropped the topmost patch.
+	imx/dt
+		git://git.linaro.org/people/shawnguo/linux-2.6.git tags/imx-dt-3.13
+	mvevu/dt4
+		git://git.infradead.org/linux-mvebu.git tags/dt-3.13-4
+	omap/cpufreq
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.13/cpufreq-late
+	omap/dt3
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.13/dt-late

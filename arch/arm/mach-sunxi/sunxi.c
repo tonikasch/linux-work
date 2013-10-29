@@ -176,7 +176,6 @@ static const char * const sun7i_board_dt_compat[] = {
 
 DT_MACHINE_START(SUN7I_DT, "Allwinner sun7i (A20) Family")
 	.init_machine	= sunxi_dt_init,
-	.init_time	= sunxi_timer_init,
 	.dt_compat	= sun7i_board_dt_compat,
 	.restart	= sun4i_restart,
 MACHINE_END
