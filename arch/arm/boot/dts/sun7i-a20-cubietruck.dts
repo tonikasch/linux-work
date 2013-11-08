@@ -1,7 +1,7 @@
 /*
- * Copyright 2013 Maxime Ripard
+ * Copyright 2013 Oliver Schinagl
  *
- * Maxime Ripard <maxime.ripard@free-electrons.com>
+ * Oliver Schinagl <oliver@schinagl.nl>
  *
  * The code contained herein is licensed under the GNU General Public
  * License. You may obtain a copy of the GNU General Public License
@@ -15,25 +15,10 @@
 /include/ "sun7i-a20.dtsi"
 
 / {
-	model = "Cubietech Cubieboard2";
-	compatible = "cubietech,cubieboard2", "allwinner,sun7i-a20";
+	model = "Cubietech Cubietruck";
+	compatible = "cubietech,cubietruck", "allwinner,sun7i-a20";
 
 	soc@01c00000 {
-		emac: ethernet@01c0b000 {
-			pinctrl-names = "default";
-			pinctrl-0 = <&emac_pins_a>;
-			phy = <&phy1>;
-			status = "okay";
-		};
-
-		mdio@01c0b080 {
-			status = "okay";
-
-			phy1: ethernet-phy@1 {
-				reg = <1>;
-			};
-		};
-
 		sata: ahci@01c18000 {
 			pwr-supply = <&reg_ahci_5v>;
 			status = "okay";
@@ -46,18 +31,11 @@
 				allwinner,driver = <0>;
 				allwinner,pull = <0>;
 			};
-			led_pins_cubieboard2: led_pins@0 {
-				allwinner,pins = "PH20", "PH21";
-				allwinner,function = "gpio_out";	
-				allwinner,drive = <0>;
-				allwinner,pull = <0>;
-			};
-
-			sata_pwr_pin_cubieboard2: sata_pwr@0 {
-				allwinner,pins = "PB8";
+			led_pins_cubietruck: led_pins@0 {
+				allwinner,pins = "PH7", "PH11", "PH20", "PH21";
 				allwinner,function = "gpio_out";
 				allwinner,drive = <0>;
-				allwinner,pull = <2>;
+				allwinner,pull = <0>;
 			};
 		};
 
@@ -71,16 +49,26 @@
 	leds {
 		compatible = "gpio-leds";
 		pinctrl-names = "default";
-		pinctrl-0 = <&led_pins_cubieboard2>;
+		pinctrl-0 = <&led_pins_cubietruck>;
 
 		blue {
-			label = "cubieboard2:blue:usr";
+			label = "cubietruck:blue:usr";
 			gpios = <&pio 7 21 0>;
 		};
 
-		green {
-			label = "cubieboard2:green:usr";
+		orange {
+			label = "cubietruck:orange:usr";
 			gpios = <&pio 7 20 0>;
+		};
+
+		white {
+			label = "cubietruck:white:usr";
+			gpios = <&pio 7 11 0>;
+		};
+
+		green {
+			label = "cubietruck:green:usr";
+			gpios = <&pio 7 7 0>;
 		};
 	};
 
@@ -98,4 +86,5 @@
 			enable-active-high;
 		};
 	};
+};
 };
