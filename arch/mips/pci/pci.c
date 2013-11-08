@@ -120,30 +120,34 @@ static void pcibios_scanbus(struct pci_controller *hose)
 #ifdef CONFIG_OF
 void pci_load_of_ranges(struct pci_controller *hose, struct device_node *node)
 {
-	struct of_pci_range_range range;
+	struct of_pci_range range;
 	struct of_pci_range_parser parser;
-	u32 res_type;
 
 	pr_info("PCI host bridge %s ranges:\n", node->full_name);
 	hose->of_node = node;
 
-	if (of_pci_range_parser(&parser, node))
+	if (of_pci_range_parser_init(&parser, node))
 		return;
 
 	for_each_of_pci_range(&parser, &range) {
 		struct resource *res = NULL;
 
-		res_type = range.flags & IORESOURCE_TYPE_BITS;
-		if (res_type == IORESOURCE_IO) {
+		switch (range.flags & IORESOURCE_TYPE_BITS) {
+		case IORESOURCE_IO:
 			pr_info("  IO 0x%016llx..0x%016llx\n",
-				range.addr, range.addr + range.size - 1);
+				range.cpu_addr,
+				range.cpu_addr + range.size - 1);
 			hose->io_map_base =
-				(unsigned long)ioremap(range.addr, range.size);
+				(unsigned long)ioremap(range.cpu_addr,
+						       range.size);
 			res = hose->io_resource;
-		} else if (res_type == IORESOURCE_MEM) {
+			break;
+		case IORESOURCE_MEM:
 			pr_info(" MEM 0x%016llx..0x%016llx\n",
-				range.addr, range.addr + range.size - 1);
+				range.cpu_addr,
+				range.cpu_addr + range.size - 1);
 			res = hose->mem_resource;
+			break;
 		}
 		if (res != NULL)
 			of_pci_range_to_resource(&range, node, res);
