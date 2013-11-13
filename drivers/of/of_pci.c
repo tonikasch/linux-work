@@ -2,8 +2,6 @@
 #include <linux/export.h>
 #include <linux/of.h>
 #include <linux/of_pci.h>
-#include <linux/of_address.h>
-#include <asm/prom.h>
 
 #if defined(CONFIG_PPC32) || defined(CONFIG_PPC64) || defined(CONFIG_MICROBLAZE)
 #include <asm/pci-bridge.h>

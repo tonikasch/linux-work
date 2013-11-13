@@ -292,6 +292,30 @@ static struct soc_camera_link iclink##idx##_ml86v7667 __initdata = {	\
 BOCKW_CAMERA(0);
 BOCKW_CAMERA(1);
 
+/* VIN */
+static struct rcar_vin_platform_data vin_platform_data __initdata = {
+	.flags	= RCAR_VIN_BT656,
+};
+
+#define R8A7778_VIN(idx)						\
+static struct resource vin##idx##_resources[] __initdata = {		\
+	DEFINE_RES_MEM(0xffc50000 + 0x1000 * (idx), 0x1000),		\
+	DEFINE_RES_IRQ(gic_iid(0x5a)),					\
+};									\
+									\
+static struct platform_device_info vin##idx##_info __initdata = {	\
+	.parent		= &platform_bus,				\
+	.name		= "r8a7778-vin",				\
+	.id		= idx,						\
+	.res		= vin##idx##_resources,				\
+	.num_res	= ARRAY_SIZE(vin##idx##_resources),		\
+	.dma_mask	= DMA_BIT_MASK(32),				\
+	.data		= &vin_platform_data,				\
+	.size_data	= sizeof(vin_platform_data),			\
+}
+R8A7778_VIN(0);
+R8A7778_VIN(1);
+
 /* Sound */
 static struct resource rsnd_resources[] __initdata = {
 	[RSND_GEN1_SRU] = DEFINE_RES_MEM(0xffd90000, 0x1000),
@@ -472,30 +496,6 @@ static struct asoc_simple_card_info rsnd_card_info[] = {
 		},
 	}
 };
-
-/* VIN */
-static struct rcar_vin_platform_data vin_platform_data __initdata = {
-	.flags	= RCAR_VIN_BT656,
-};
-
-#define R8A7778_VIN(idx)						\
-static struct resource vin##idx##_resources[] __initdata = {		\
-	DEFINE_RES_MEM(0xffc50000 + 0x1000 * (idx), 0x1000),		\
-	DEFINE_RES_IRQ(gic_iid(0x5a)),					\
-};									\
-									\
-static struct platform_device_info vin##idx##_info __initdata = {	\
-	.parent		= &platform_bus,				\
-	.name		= "r8a7778-vin",				\
-	.id		= idx,						\
-	.res		= vin##idx##_resources,				\
-	.num_res	= ARRAY_SIZE(vin##idx##_resources),		\
-	.dma_mask	= DMA_BIT_MASK(32),				\
-	.data		= &vin_platform_data,				\
-	.size_data	= sizeof(vin_platform_data),			\
-}
-R8A7778_VIN(0);
-R8A7778_VIN(1);
 
 static const struct pinctrl_map bockw_pinctrl_map[] = {
 	/* AUDIO */
