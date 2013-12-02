@@ -75,6 +75,7 @@ static void sunxi_mmc_init_host(struct mmc_host* mmc)
 	mci_writel(smc_host, REG_RINTR, 0xffffffff);
 	mci_writel(smc_host, REG_DBGC, 0xdeb);
 	mci_writel(smc_host, REG_FUNS, 0xceaa0000);
+	mci_writel(smc_host, REG_DLBA, smc_host->sg_dma);
 	rval = mci_readl(smc_host, REG_GCTRL)|SDXC_INTEnb;
 	rval &= ~SDXC_AccessDoneDirect;
 	mci_writel(smc_host, REG_GCTRL, rval);
@@ -272,9 +273,9 @@ static int sunxi_mmc_prepare_dma(struct sunxi_mmc_host* smc_host, struct mmc_dat
 	mci_writel(smc_host, REG_GCTRL, temp);
 	temp |= SDXC_DMAReset;
 	mci_writel(smc_host, REG_GCTRL, temp);
+
 	mci_writel(smc_host, REG_DMAC, SDXC_IDMACSoftRST);
-	temp = SDXC_IDMACFixBurst|SDXC_IDMACIDMAOn;
-	mci_writel(smc_host, REG_DMAC, temp);
+
 	temp = mci_readl(smc_host, REG_IDIE);
 	temp &= ~(SDXC_IDMACReceiveInt|SDXC_IDMACTransmitInt);
 	if (data->flags & MMC_DATA_WRITE)
@@ -283,8 +284,7 @@ static int sunxi_mmc_prepare_dma(struct sunxi_mmc_host* smc_host, struct mmc_dat
 		temp |= SDXC_IDMACReceiveInt;
 	mci_writel(smc_host, REG_IDIE, temp);
 
-	//write descriptor address to register
-	mci_writel(smc_host, REG_DLBA, smc_host->sg_dma);
+	mci_writel(smc_host, REG_DMAC, SDXC_IDMACFixBurst | SDXC_IDMACIDMAOn);
 
 	return 0;
 }
