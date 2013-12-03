@@ -48,6 +48,10 @@
 			status = "okay";
 		};
 
+		sata: ahci@01c18000 {
+			status = "okay";
+		};
+
 		pinctrl@01c20800 {
 			mmc0_cd_pin_a1000: mmc0_cd_pin@0 {
 				allwinner,pins = "PH1";
