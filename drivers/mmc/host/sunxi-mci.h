@@ -64,10 +64,6 @@
 	__raw_readl((host)->reg_base + SDXC_##reg)
 #define mci_writel(host, reg, value) \
 	__raw_writel((value), (host)->reg_base + SDXC_##reg)
-#define mci_readw(host, reg) \
-	__raw_readw((host)->reg_base + SDXC_##reg)
-#define mci_writew(host, reg, value) \
-	__raw_writew((value), (host)->reg_base + SDXC_##reg)
 
 /* bit field for registers */
 /* global control register */
@@ -136,6 +132,8 @@
 #define SDXC_IntErrBit		(SDXC_RespErr | SDXC_RespCRCErr | SDXC_DataCRCErr \
 				| SDXC_RespTimeout | SDXC_DataTimeout | SDXC_FIFORunErr \
 				| SDXC_HardWLocked | SDXC_StartBitErr | SDXC_EndBitErr)  //0xbfc2
+#define SDXC_IntDoneBit		(SDXC_AutoCMDDone | SDXC_DataOver \
+				| SDXC_CmdDone | SDXC_VolChgDone)
 /* status */
 #define SDXC_RXWLFlag		BIT(0)
 #define SDXC_TXWLFlag		BIT(1)
@@ -234,31 +232,18 @@ struct sunxi_mmc_host {
 
 	/* irq */
 	int 		irq;
-	volatile u32	int_sum;
+	u32		int_sum;
 
 	/* flags */
-	volatile u32 	trans_done:1;
-	volatile u32 	dma_done:1;
 	u32		power_on:1;
 	u32		io_flag:1;
+	u32		wait_dma:1;
 
 	dma_addr_t	sg_dma;
 	void		*sg_cpu;
 
 	struct mmc_request *mrq;
-	volatile u32	error;
-	volatile u32	ferror;
-	volatile u32	wait;
-#define SDC_WAIT_NONE		(1<<0)
-#define SDC_WAIT_CMD_DONE	(1<<1)
-#define SDC_WAIT_DATA_OVER	(1<<2)
-#define SDC_WAIT_AUTOCMD_DONE	(1<<3)
-#define SDC_WAIT_DMA_DONE	(1<<4)
-#define SDC_WAIT_RXDATA_OVER	(SDC_WAIT_DATA_OVER|SDC_WAIT_DMA_DONE)
-#define SDC_WAIT_RXAUTOCMD_DONE	(SDC_WAIT_AUTOCMD_DONE|SDC_WAIT_DMA_DONE)
-#define SDC_WAIT_ERROR		(1<<6)
-#define SDC_WAIT_SWITCH1V8	(1<<7)
-#define SDC_WAIT_FINALIZE	(1<<8)
+	u32		ferror;
 
 	struct timer_list cd_timer;
 	s32 cd_mode;
