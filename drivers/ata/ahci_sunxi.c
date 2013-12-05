@@ -100,7 +100,7 @@ static u32 sunxi_getbits(void __iomem *reg, u8 mask, u8 shift)
 	return (readl(reg) >> shift) & mask;
 }
 
-static int sunxi_ahci_phy_init(void __iomem *reg_base)
+static int sunxi_ahci_phy_init(struct device *dev, void __iomem *reg_base)
 {
 	u32 reg_val;
 	int timeout;
@@ -131,7 +131,7 @@ static int sunxi_ahci_phy_init(void __iomem *reg_base)
 		reg_val = sunxi_getbits(reg_base + AHCI_PHYCS0R, 0x7, 28);
 	} while (--timeout && (reg_val != 0x2));
 	if (!timeout)
-		printk(KERN_ERR "Sunxi: SATA AHCI PHY power up failed.\n");
+		dev_err(dev, "PHY power up failed.\n");
 
 	sunxi_setbits(reg_base + AHCI_PHYCS2R, (0x1 << 24));
 
@@ -140,7 +140,7 @@ static int sunxi_ahci_phy_init(void __iomem *reg_base)
 		reg_val = sunxi_getbits(reg_base + AHCI_PHYCS2R, 0x1, 24);
 	} while (--timeout && reg_val);
 	if (!timeout)
-		printk(KERN_ERR "Sunxi: SATA AHCI PHY calibration failed.\n");
+		dev_err(dev, "PHY calibration failed.\n");
 	mdelay(15);
 
 	writel(0x7, reg_base + AHCI_RWCR);
@@ -148,7 +148,7 @@ static int sunxi_ahci_phy_init(void __iomem *reg_base)
 	return 0;
 }
 
-static int sunxi_sata_init(struct device *dev, void __iomem *reg_base)
+static int sunxi_ahci_init(struct device *dev, void __iomem *reg_base)
 {
 	struct sunxi_ahci_data *ahci_data;
 	int ret;
@@ -167,10 +167,10 @@ static int sunxi_sata_init(struct device *dev, void __iomem *reg_base)
 	if (ret)
 		return ret;
 
-	return sunxi_ahci_phy_init(reg_base);
+	return sunxi_ahci_phy_init(dev, reg_base);
 }
 
-static void sunxi_sata_exit(struct device *dev)
+static void sunxi_ahci_exit(struct device *dev)
 {
 	struct sunxi_ahci_data *ahci_data;
 
@@ -182,9 +182,9 @@ static void sunxi_sata_exit(struct device *dev)
 	clk_disable_unprepare(ahci_data->sata_clk);
 }
 
-static struct ahci_platform_data sunxi_sata_pdata = {
-	.init = sunxi_sata_init,
-	.exit = sunxi_sata_exit,
+static struct ahci_platform_data sunxi_ahci_pdata = {
+	.init = sunxi_ahci_init,
+	.exit = sunxi_ahci_exit,
 };
 
 static int sunxi_ahci_remove(struct platform_device *pdev)
@@ -200,7 +200,7 @@ static int sunxi_ahci_remove(struct platform_device *pdev)
 }
 
 static const struct of_device_id sunxi_ahci_of_match[] = {
-	{ .compatible = "allwinner,sun4i-a10-ahci", .data = &sunxi_sata_pdata},
+	{ .compatible = "allwinner,sun4i-a10-ahci", .data = &sunxi_ahci_pdata},
 	{/* sentinel */},
 };
 MODULE_DEVICE_TABLE(of, sunxi_ahci_of_match);
