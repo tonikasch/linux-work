@@ -57,9 +57,6 @@
 #define OF_AHB_CLK_POSITION 0
 #define OF_MOD_CLK_POSITION 1
 
-// Our debuglevel
-#define CONFIG_MMC_DEBUG_LEVEL 3
-
 static void sunxi_mmc_init_host(struct mmc_host* mmc)
 {
 	u32 rval;
@@ -163,11 +160,6 @@ static void sunxi_mmc_init_idma_des(struct sunxi_mmc_host* host, struct mmc_data
 				pdes[des_idx].buf_addr_ptr2 = (u32)&pdes_pa[des_idx+1];
 			}
 			pdes[des_idx].config = config;
-			SMC_INFO(host, "sg %d, frag %d, remain %d, des[%d](%08x): "
-		    		"[0] = %08x, [1] = %08x, [2] = %08x, [3] = %08x\n", i, j, remain,
-				des_idx, (u32)&pdes[des_idx],
-				(u32)((u32*)&pdes[des_idx])[0], (u32)((u32*)&pdes[des_idx])[1],
-				(u32)((u32*)&pdes[des_idx])[2], (u32)((u32*)&pdes[des_idx])[3]);
 		}
 	}
 	wmb(); /* Ensure idma_des hit main mem before we start the idmac */
@@ -188,18 +180,17 @@ static int sunxi_mmc_prepare_dma(struct sunxi_mmc_host* smc_host, struct mmc_dat
 	u32 temp;
 	struct scatterlist *sg;
 
-	SMC_DBG(smc_host, "%s\n",__FUNCTION__);
-
 	dma_len = dma_map_sg(mmc_dev(smc_host->mmc), data->sg, data->sg_len,
 			     sunxi_mmc_get_dma_dir(data));
 	if (dma_len == 0) {
-		SMC_ERR(smc_host, "no dma map memory\n");
+		dev_err(mmc_dev(smc_host->mmc), "dma_map_sg failed\n");
 		return -ENOMEM;
 	}
 
 	for_each_sg(data->sg, sg, data->sg_len, i) {
 		if (sg->offset & 3 || sg->length & 3) {
-			SMC_ERR(smc_host, "unaligned scatterlist: os %x length %d\n",
+			dev_err(mmc_dev(smc_host->mmc),
+				"unaligned scatterlist: os %x length %d\n",
 				sg->offset, sg->length);
 			return -EINVAL;
 		}
@@ -264,7 +255,8 @@ static void sunxi_mmc_dump_errinfo(struct sunxi_mmc_host* smc_host)
 			(cmd->opcode == 5 || cmd->opcode == 52))
 		return;
 
-	SMC_ERR(smc_host, "smc %d err, cmd %d,%s%s%s%s%s%s%s%s%s%s%s !!\n",
+	dev_err(mmc_dev(smc_host->mmc),
+		"smc %d err, cmd %d,%s%s%s%s%s%s%s%s%s%s%s !!\n",
 		smc_host->mmc->index, cmd->opcode,
 		data ? (data->flags & MMC_DATA_WRITE ? " WR" : " RD") : "",
 		smc_host->int_sum & SDXC_RespErr     ? " RE"     : "",
@@ -280,9 +272,9 @@ static void sunxi_mmc_dump_errinfo(struct sunxi_mmc_host* smc_host)
 		);
 }
 
-static int sunxi_mmc_resource_request(struct sunxi_mmc_host *host)
+static int sunxi_mmc_resource_request(struct sunxi_mmc_host *host,
+				      struct platform_device *pdev)
 {
-	struct platform_device *pdev = host->pdev;
 	struct device_node *np = pdev->dev.of_node;
 	struct resource *regs;
 	int ret = 0;
@@ -307,8 +299,6 @@ static int sunxi_mmc_resource_request(struct sunxi_mmc_host *host)
 		dev_err(&pdev->dev, "Couldn't get AHB gate\n");
 		ret = PTR_ERR(host->clk_ahb);
 		goto resource_request_out;
-	} else {
-		SMC_DBG(host,"%s: got ahb_gate, name is %s\n", __FUNCTION__, __clk_get_name(host->clk_ahb));
 	}
 
 	host->clk_mod = of_clk_get(np, OF_MOD_CLK_POSITION); // Module 0
@@ -316,8 +306,6 @@ static int sunxi_mmc_resource_request(struct sunxi_mmc_host *host)
 		dev_err(&pdev->dev, "Couldn't get module clock\n");
 		ret = PTR_ERR(host->clk_mod);
  		goto free_ahb_clk;
-	} else {
-		SMC_DBG(host,"%s: got clk_mod, name is %s\n", __FUNCTION__, __clk_get_name(host->clk_mod));
 	}
 
 	host->sg_cpu = dma_alloc_coherent(mmc_dev(host->mmc), PAGE_SIZE,
@@ -343,8 +331,6 @@ static int sunxi_mmc_resource_request(struct sunxi_mmc_host *host)
 	of_property_read_u32(np, "bus-width", &host->bus_width);
 	of_property_read_u32(np, "idma-des-size-bits",
 			     &host->idma_des_size_bits);
-
-	SMC_DBG(host,"%s: WP-GPIO=%i,CD-GPIO=%i",__FUNCTION__,host->wp_pin,host->cd_pin);
 
 	goto resource_request_out;
 
@@ -445,8 +431,6 @@ static s32 sunxi_mmc_get_ro(struct mmc_host *mmc)
 	if (gpio_is_valid(host->wp_pin)) {
 		pinctrl_request_gpio(host->wp_pin);
 		read_only = gpio_get_value(host->wp_pin);
-	} else {
-		SMC_DBG(host,"WP pin not found. Assuming RW\n");
 	}
 
 	return read_only;
@@ -571,29 +555,29 @@ static void sunxi_mmc_clk_set_rate(struct sunxi_mmc_host *smc_host, unsigned int
 	struct sunxi_mmc_clk_dly* dly = NULL;
 
 	newrate = clk_round_rate(smc_host->clk_mod, rate);
-
-	if((smc_host->clk_mod_rate)==newrate) {
-		SMC_DBG(smc_host,"%s: frequency of mod0 clock already %i, rounded %i\n",__FUNCTION__,rate,newrate);
+	if (smc_host->clk_mod_rate == newrate) {
+		dev_dbg(mmc_dev(smc_host->mmc), "clk already %d, rounded %d\n",
+			rate, newrate);
 		return;
 	}
 
-	SMC_DBG(smc_host,"%s: setting mod0 clock to %i, rounded %i\n",__FUNCTION__,rate,newrate);
+	dev_dbg(mmc_dev(smc_host->mmc), "setting clk to %d, rounded %d\n",
+		rate, newrate);
 
 	/* setting clock rate */
 	clk_disable(smc_host->clk_mod);
-	clk_set_rate(smc_host->clk_mod,newrate);
+	clk_set_rate(smc_host->clk_mod, newrate);
 	clk_enable(smc_host->clk_mod);
 	smc_host->clk_mod_rate = newrate = clk_get_rate(smc_host->clk_mod);
-	SMC_DBG(smc_host,"%s: mod0 clock is now: %i\n",__FUNCTION__,newrate);
+	dev_dbg(mmc_dev(smc_host->mmc), "clk is now %d\n", newrate);
 
-	sunxi_mmc_oclk_onoff(smc_host, 0); // disabling SDn-CLK output
+	sunxi_mmc_oclk_onoff(smc_host, 0);
 	/* clear internal divider */
 	temp = mci_readl(smc_host, REG_CLKCR);
 	temp &= ~0xff;
 	mci_writel(smc_host, REG_CLKCR, temp);
-	sunxi_mmc_oclk_onoff(smc_host, 0); // disabling SDn-CLK output
 
-	/* determing right delay */
+	/* determine delays */
 	if (rate <= 400000) {
 		dly = &mmc_clk_dly[MMC_CLK_400K];
 	} else if (rate <= 25000000) {
@@ -865,46 +849,39 @@ static struct mmc_host_ops sunxi_mmc_ops = {
 
 static int sunxi_mmc_probe(struct platform_device *pdev)
 {
-	struct sunxi_mmc_host *smc_host = NULL;
-	struct mmc_host *mmc = NULL;
+	struct sunxi_mmc_host *host;
+	struct mmc_host *mmc;
 	int ret = 0;
 
 	mmc = mmc_alloc_host(sizeof(struct sunxi_mmc_host), &pdev->dev);
 	if (!mmc) {
-		SMC_ERR(smc_host, "mmc alloc host failed\n");
+		dev_err(&pdev->dev, "mmc alloc host failed\n");
 		ret = -ENOMEM;
 		goto sunxi_mmc_probe_out;
 	}
 
-	smc_host = mmc_priv(mmc);
-#ifdef CONFIG_MMC_DEBUG
-	smc_host->debuglevel=CONFIG_MMC_DEBUG_LEVEL;
-#endif
-	smc_host->mmc	= mmc;
-	smc_host->pdev	= pdev;
-	spin_lock_init(&smc_host->lock);
-	tasklet_init(&smc_host->tasklet, sunxi_mmc_tasklet, (unsigned long) smc_host);
+	host = mmc_priv(mmc);
+	host->mmc = mmc;
+	spin_lock_init(&host->lock);
+	tasklet_init(&host->tasklet, sunxi_mmc_tasklet, (unsigned long)host);
 
-	if (sunxi_mmc_resource_request(smc_host)) {
-		SMC_ERR(smc_host, "%s: Failed to get resouce.\n", dev_name(&pdev->dev));
+	if (sunxi_mmc_resource_request(host, pdev)) {
+		dev_err(&pdev->dev, "Failed to get resouces\n");
 		goto probe_free_host;
 	}
 
-	smc_host->irq=platform_get_irq(pdev, 0);
-	if (request_irq(smc_host->irq, sunxi_mmc_irq, 0, DRIVER_NAME, smc_host)) {
-		SMC_DBG(smc_host, "%s: Failed to request smc card interrupt %i\n",__FUNCTION__,smc_host->irq);
+	host->irq=platform_get_irq(pdev, 0);
+	if (request_irq(host->irq, sunxi_mmc_irq, 0, DRIVER_NAME, host)) {
+		dev_err(&pdev->dev, "Failed to get interrupt\n");
 		ret = -ENOENT;
 		goto probe_free_resource;
-	} else {
-		SMC_DBG(smc_host, "%s: Registered smc card interrupt %i\n",__FUNCTION__,smc_host->irq);
 	}
-	disable_irq(smc_host->irq);
+	disable_irq(host->irq);
 
-	SMC_DBG(smc_host, "%s: Card detect mode %i\n",__FUNCTION__,smc_host->cd_mode);
-	switch (smc_host->cd_mode) {
+	switch (host->cd_mode) {
 	case CARD_DETECT_BY_GPIO_POLL:
-		if (!gpio_is_valid(smc_host->cd_pin)) {
-			dev_err(mmc_dev(smc_host->mmc), "Invalid cd-gpios\n");
+		if (!gpio_is_valid(host->cd_pin)) {
+			dev_err(&pdev->dev, "Invalid cd-gpios\n");
 			ret = -EINVAL;
 			goto probe_free_irq;
 		}
@@ -912,8 +889,7 @@ static int sunxi_mmc_probe(struct platform_device *pdev)
 	case CARD_ALWAYS_PRESENT:
 		break;
 	default:
-		dev_err(mmc_dev(smc_host->mmc), "Invalid cd-mode %d\n",
-			smc_host->cd_mode);
+		dev_err(&pdev->dev, "Invalid cd-mode %d\n", host->cd_mode);
 		ret = -EINVAL;
 		goto probe_free_irq;
 	}
@@ -928,7 +904,7 @@ static int sunxi_mmc_probe(struct platform_device *pdev)
 	mmc->f_min			=   400000;
 	mmc->f_max			= 50000000;
 	//available voltages
-	mmc->ocr_avail = mmc_regulator_get_ocrmask(smc_host->regulator);
+	mmc->ocr_avail = mmc_regulator_get_ocrmask(host->regulator);
 	mmc->caps = MMC_CAP_4_BIT_DATA | MMC_CAP_MMC_HIGHSPEED |
 		MMC_CAP_SD_HIGHSPEED | MMC_CAP_UHS_SDR12 | MMC_CAP_UHS_SDR25 |
 		MMC_CAP_UHS_SDR50 | MMC_CAP_UHS_DDR50 | MMC_CAP_SDIO_IRQ |
@@ -937,21 +913,19 @@ static int sunxi_mmc_probe(struct platform_device *pdev)
 
 	ret = mmc_add_host(mmc);
 	if (ret) {
-		SMC_ERR(smc_host, "Failed to add mmc host.\n");
+		dev_err(&pdev->dev, "Failed to add mmc host.\n");
 		goto probe_free_irq;
 	}
 	platform_set_drvdata(pdev, mmc);
 
-	SMC_MSG(smc_host, "sdc%d Probe: base:0x%p irq:%u sg_cpu:%p(%x) ret %d.\n",
-		mmc->index, smc_host->reg_base, smc_host->irq,
-		smc_host->sg_cpu, smc_host->sg_dma, ret);
+	dev_info(&pdev->dev, "base:0x%p irq:%u\n", host->reg_base, host->irq);
 	goto sunxi_mmc_probe_out;
 
 probe_free_irq:
-	if (smc_host->irq)
-		free_irq(smc_host->irq, smc_host);
+	if (host->irq)
+		free_irq(host->irq, host);
 probe_free_resource:
-	sunxi_mmc_resource_release(smc_host);
+	sunxi_mmc_resource_release(host);
 probe_free_host:
 	mmc_free_host(mmc);
 sunxi_mmc_probe_out:
@@ -962,8 +936,6 @@ static int sunxi_mmc_remove(struct platform_device *pdev)
 {
 	struct mmc_host    	*mmc  = platform_get_drvdata(pdev);
 	struct sunxi_mmc_host	*smc_host = mmc_priv(mmc);
-
-	SMC_MSG(smc_host, "%s: Remove.\n", dev_name(&pdev->dev));
 
 	sunxi_mmc_exit_host(smc_host);
 

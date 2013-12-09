@@ -15,19 +15,10 @@
  * the License, or (at your option) any later version.
  *
  */
-#ifndef _SW_HOST_OP_H_
-#define _SW_HOST_OP_H_ "host_op.h"
-
-#if defined CONFIG_AW_FPGA_V4_PLATFORM || defined CONFIG_AW_FPGA_V7_PLATFORM
-#define MMC_FPGA
-#endif
+#ifndef __SUNXI_MCI_H__
+#define __SUNXI_MCI_H__
 
 #define DRIVER_NAME "sunxi-mmc"
-/*========== platform define ==========*/
-/* SDXC register operation */
-#define SMC0_BASE	(0x01C0f000)
-#define SMC_BASE_OS	(0x1000)
-#define SMC_BASE(x)	(SMC0_BASE + 0x1000 * (x))
 
 /* register offset define */
 #define SDXC_REG_GCTRL	( 0x00 ) // SMC Global Control Register
@@ -205,7 +196,6 @@ struct sunxi_mmc_idma_des {
 };
 
 struct sunxi_mmc_host {
-	struct platform_device *pdev;
 	struct mmc_host *mmc;
 
 	/* IO mapping base */
@@ -248,24 +238,8 @@ struct sunxi_mmc_host {
 
 	struct mmc_request *mrq;
 	u32		ferror;
-
-	u32 debuglevel;
 };
 
-#define SMC_MSG(d, ...) do { printk("[mmc]: "__VA_ARGS__); } while(0)
-#define SMC_ERR(d, ...) do { printk("[mmc]: *** %s(L%d): ", __FUNCTION__, __LINE__); printk(__VA_ARGS__);} while(0)
-#define SMC_DEBUG_INFO	BIT(0)
-#define SMC_DEBUG_DBG	BIT(1)
-#ifdef CONFIG_MMC_DEBUG
-#define SMC_INFO(d, ...) do {if ((d)->debuglevel & SMC_DEBUG_INFO) SMC_MSG(d, __VA_ARGS__); } while(0)
-#define SMC_DBG(d, ...) do {if ((d)->debuglevel & SMC_DEBUG_DBG) SMC_MSG(d, __VA_ARGS__); } while(0)
-#else
-#define SMC_INFO(d, ...)
-#define SMC_DBG(d, ...)
-#endif
-#endif
-
-//Clock inidices:
 #define MMC_CLK_400K            0
 #define MMC_CLK_25M             1
 #define MMC_CLK_50M             2
@@ -280,3 +254,5 @@ struct sunxi_mmc_clk_dly {
 	u32 oclk_dly;
 	u32 sclk_dly;
 };
+
+#endif
