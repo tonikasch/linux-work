@@ -765,10 +765,15 @@ static void sunxi_mmc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		break;
 	}
 
-	/* disable ddr mode */
+	/* set ddr mode */
 	temp = mci_readl(smc_host, REG_GCTRL);
-	temp &= ~SDXC_DDR_MODE;
-	smc_host->ddr = 0;
+	if (ios->timing == MMC_TIMING_UHS_DDR50) {
+		temp |= SDXC_DDR_MODE;
+		smc_host->ddr = 1;
+	} else {
+		temp &= ~SDXC_DDR_MODE;
+		smc_host->ddr = 0;
+	}
 	mci_writel(smc_host, REG_GCTRL, temp);
 
 	/* set up clock */
