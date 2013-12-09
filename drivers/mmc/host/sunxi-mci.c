@@ -513,36 +513,31 @@ static void sunxi_mmc_tasklet(unsigned long data)
 	sunxi_mmc_finalize_request(smc_host);
 }
 
-static void sunxi_mmc_update_clk(struct sunxi_mmc_host* smc_host)
+static void sunxi_mmc_oclk_onoff(struct sunxi_mmc_host *host, u32 oclk_en)
 {
-	u32 rval;
 	unsigned long expire = jiffies + msecs_to_jiffies(2000);
+	u32 rval;
 
-	rval = SDXC_Start|SDXC_UPCLKOnly|SDXC_WaitPreOver;
-	if (smc_host->voltage_switching)
-		rval |= SDXC_VolSwitch;
-	mci_writel(smc_host, REG_CMDR, rval);
-
-	do {
-		rval = mci_readl(smc_host, REG_CMDR);
-	} while (jiffies < expire && (rval & SDXC_Start));
-
-	if (rval & SDXC_Start) {
-		smc_host->ferror = 1;
-		SMC_ERR(smc_host, "update clock timeout, fatal error!!!\n");
-	}
-}
-
-static void sunxi_mmc_oclk_onoff(struct sunxi_mmc_host* smc_host, u32 oclk_en)
-{
-	u32 rval = mci_readl(smc_host, REG_CLKCR);
+	rval = mci_readl(host, REG_CLKCR);
 	rval &= ~(SDXC_CardClkOn | SDXC_LowPowerOn);
 	if (oclk_en)
 		rval |= SDXC_CardClkOn;
-	if (!smc_host->io_flag)
+	if (!host->io_flag)
 		rval |= SDXC_LowPowerOn;
-	mci_writel(smc_host, REG_CLKCR, rval);
-	sunxi_mmc_update_clk(smc_host);
+	mci_writel(host, REG_CLKCR, rval);
+
+	rval = SDXC_Start | SDXC_UPCLKOnly | SDXC_WaitPreOver;
+	if (host->voltage_switching)
+		rval |= SDXC_VolSwitch;
+	mci_writel(host, REG_CMDR, rval);
+	do {
+		rval = mci_readl(host, REG_CMDR);
+	} while (jiffies < expire && (rval & SDXC_Start));
+
+	if (rval & SDXC_Start) {
+		dev_err(mmc_dev(host->mmc), "fatal err update clk timeout\n");
+		host->ferror = 1;
+	}
 }
 
 static void sunxi_mmc_set_clk_dly(struct sunxi_mmc_host* smc_host,
