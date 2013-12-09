@@ -886,7 +886,7 @@ static struct mmc_host_ops sunxi_mmc_ops = {
 	.hw_reset	 = sunxi_mmc_hw_reset,
 };
 
-static int __init sunxi_mmc_probe(struct platform_device *pdev)
+static int sunxi_mmc_probe(struct platform_device *pdev)
 {
 	struct sunxi_mmc_host *smc_host = NULL;
 	struct mmc_host *mmc = NULL;
@@ -980,7 +980,7 @@ sunxi_mmc_probe_out:
 	return ret;
 }
 
-static int __exit sunxi_mmc_remove(struct platform_device *pdev)
+static int sunxi_mmc_remove(struct platform_device *pdev)
 {
 	struct mmc_host    	*mmc  = platform_get_drvdata(pdev);
 	struct sunxi_mmc_host	*smc_host = mmc_priv(mmc);
@@ -1008,7 +1008,7 @@ static struct platform_driver sunxi_mmc_driver = {
 		.of_match_table = of_match_ptr(sunxi_mmc_of_match),
 	},
 	.probe		= sunxi_mmc_probe,
-	.remove		= __exit_p(sunxi_mmc_remove),
+	.remove		= sunxi_mmc_remove,
 };
 module_platform_driver(sunxi_mmc_driver);
 
