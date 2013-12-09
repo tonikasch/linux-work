@@ -124,69 +124,6 @@ static void sunxi_mmc_exit_host(struct sunxi_mmc_host* smc_host)
 /*  * 200M     5ns     600M    1.67ns  1.4ns   0.8ns   1     3.33ns    1.67ns */
 /*  *\/ */
 
-static void sunxi_mmc_oclk_onoff(struct sunxi_mmc_host* smc_host, u32 oclk_en);
-
-static void sunxi_mmc_send_cmd(struct sunxi_mmc_host *host,
-			       struct mmc_request *mrq)
-{
-	struct mmc_command *cmd = mrq->cmd;
-	u32 imask = SDXC_IntErrBit;
-	u32 cmd_val = SDXC_Start|(cmd->opcode&0x3f);
-	unsigned long iflags;
-
-	if (cmd->opcode == MMC_GO_IDLE_STATE) {
-		cmd_val |= SDXC_SendInitSeq;
-		imask |= SDXC_CmdDone;
-	}
-
-	if (cmd->opcode == SD_SWITCH_VOLTAGE) {
-		cmd_val |= SDXC_VolSwitch;
-		imask |= SDXC_VolChgDone;
-		host->voltage_switching = 1;
-		sunxi_mmc_oclk_onoff(host, 1);
-	}
-
-	if (cmd->flags & MMC_RSP_PRESENT) {
-		cmd_val |= SDXC_RspExp;
-		if (cmd->flags & MMC_RSP_136)
-			cmd_val |= SDXC_LongRsp;
-		if (cmd->flags & MMC_RSP_CRC)
-			cmd_val |= SDXC_CheckRspCRC;
-
-		if ((cmd->flags & MMC_CMD_MASK) == MMC_CMD_ADTC) {
-			cmd_val |= SDXC_DataExp | SDXC_WaitPreOver;
-			if (cmd->data->flags & MMC_DATA_STREAM) {
-				imask |= SDXC_AutoCMDDone;
-				cmd_val |= SDXC_Seqmod | SDXC_SendAutoStop;
-			}
-			if (cmd->data->stop) {
-				imask |= SDXC_AutoCMDDone;
-				cmd_val |= SDXC_SendAutoStop;
-			} else
-				imask |= SDXC_DataOver;
-
-			if (cmd->data->flags & MMC_DATA_WRITE)
-				cmd_val |= SDXC_Write;
-			else
-				host->wait_dma = 1;
-		} else
-			imask |= SDXC_CmdDone;
-	} else
-		imask |= SDXC_CmdDone;
-
-	dev_dbg(mmc_dev(host->mmc), "cmd %d(%08x) arg %x ie 0x%08x len %d\n",
-		cmd_val & 0x3f, cmd_val, cmd->arg, imask,
-		mrq->data ? mrq->data->blksz * mrq->data->blocks : 0);
-
-	spin_lock_irqsave(&host->lock, iflags);
-	host->mrq = mrq;
-	mci_writel(host, REG_IMASK, host->sdio_imask | imask);
-	spin_unlock_irqrestore(&host->lock, iflags);
-
-	mci_writel(host, REG_CARG, cmd->arg);
-	mci_writel(host, REG_CMDR, cmd_val);
-}
-
 static void sunxi_mmc_init_idma_des(struct sunxi_mmc_host* host, struct mmc_data* data)
 {
 	struct sunxi_mmc_idma_des* pdes = (struct sunxi_mmc_idma_des*)host->sg_cpu;
@@ -828,16 +765,17 @@ static int sunxi_mmc_card_present(struct mmc_host *mmc)
 
 static void sunxi_mmc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 {
-	struct sunxi_mmc_host *smc_host = mmc_priv(mmc);
+	struct sunxi_mmc_host *host = mmc_priv(mmc);
 	struct mmc_command* cmd = mrq->cmd;
 	struct mmc_data* data = mrq->data;
+	unsigned long iflags;
+	u32 imask = SDXC_IntErrBit;
+	u32 cmd_val = SDXC_Start | (cmd->opcode & 0x3f);
 	u32 byte_cnt = 0;
 	int ret;
 
-	SMC_DBG(smc_host, "%s: mrq: %i\n",__FUNCTION__,mrq->cmd->opcode);
-
-	if (sunxi_mmc_card_present(mmc) == 0 || smc_host->ferror || !smc_host->power_on) {
-		SMC_DBG(smc_host, "no medium present, ferr %d, pwd %d\n", smc_host->ferror, smc_host->power_on);
+	if (!sunxi_mmc_card_present(mmc) || host->ferror) {
+		dev_dbg(mmc_dev(host->mmc), "no medium present\n");
 		mrq->cmd->error = -ENOMEDIUM;
 		mmc_request_done(mmc, mrq);
 		return;
@@ -845,18 +783,69 @@ static void sunxi_mmc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 
 	if (data) {
 		byte_cnt = data->blksz * data->blocks;
-		mci_writel(smc_host, REG_BLKSZ, data->blksz);
-		mci_writel(smc_host, REG_BCNTR, byte_cnt);
-		ret = sunxi_mmc_prepare_dma(smc_host, data);
+		mci_writel(host, REG_BLKSZ, data->blksz);
+		mci_writel(host, REG_BCNTR, byte_cnt);
+		ret = sunxi_mmc_prepare_dma(host, data);
 		if (ret < 0) {
-			SMC_ERR(smc_host, "smc %d prepare DMA failed\n", smc_host->mmc->index);
+			dev_err(mmc_dev(host->mmc), "prepare DMA failed\n");
 			cmd->error = ret;
 			cmd->data->error = ret;
-			mmc_request_done(smc_host->mmc, mrq);
+			mmc_request_done(host->mmc, mrq);
 			return;
 		}
 	}
-	sunxi_mmc_send_cmd(smc_host, mrq);
+
+	if (cmd->opcode == MMC_GO_IDLE_STATE) {
+		cmd_val |= SDXC_SendInitSeq;
+		imask |= SDXC_CmdDone;
+	}
+
+	if (cmd->opcode == SD_SWITCH_VOLTAGE) {
+		cmd_val |= SDXC_VolSwitch;
+		imask |= SDXC_VolChgDone;
+		host->voltage_switching = 1;
+		sunxi_mmc_oclk_onoff(host, 1);
+	}
+
+	if (cmd->flags & MMC_RSP_PRESENT) {
+		cmd_val |= SDXC_RspExp;
+		if (cmd->flags & MMC_RSP_136)
+			cmd_val |= SDXC_LongRsp;
+		if (cmd->flags & MMC_RSP_CRC)
+			cmd_val |= SDXC_CheckRspCRC;
+
+		if ((cmd->flags & MMC_CMD_MASK) == MMC_CMD_ADTC) {
+			cmd_val |= SDXC_DataExp | SDXC_WaitPreOver;
+			if (cmd->data->flags & MMC_DATA_STREAM) {
+				imask |= SDXC_AutoCMDDone;
+				cmd_val |= SDXC_Seqmod | SDXC_SendAutoStop;
+			}
+			if (cmd->data->stop) {
+				imask |= SDXC_AutoCMDDone;
+				cmd_val |= SDXC_SendAutoStop;
+			} else
+				imask |= SDXC_DataOver;
+
+			if (cmd->data->flags & MMC_DATA_WRITE)
+				cmd_val |= SDXC_Write;
+			else
+				host->wait_dma = 1;
+		} else
+			imask |= SDXC_CmdDone;
+	} else
+		imask |= SDXC_CmdDone;
+
+	dev_dbg(mmc_dev(host->mmc), "cmd %d(%08x) arg %x ie 0x%08x len %d\n",
+		cmd_val & 0x3f, cmd_val, cmd->arg, imask,
+		mrq->data ? mrq->data->blksz * mrq->data->blocks : 0);
+
+	spin_lock_irqsave(&host->lock, iflags);
+	host->mrq = mrq;
+	mci_writel(host, REG_IMASK, host->sdio_imask | imask);
+	spin_unlock_irqrestore(&host->lock, iflags);
+
+	mci_writel(host, REG_CARG, cmd->arg);
+	mci_writel(host, REG_CMDR, cmd_val);
 }
 
 static const struct platform_device_id sunxi_mmc_devtype[] = {
