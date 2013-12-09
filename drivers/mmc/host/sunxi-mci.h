@@ -232,7 +232,6 @@ struct sunxi_mmc_host {
 	u32 		ddr;
 	u32 		voltage_switching;
 	struct regulator *regulator;
-	u32 		present;
 
 	/* irq */
 	int 		irq;
@@ -250,7 +249,6 @@ struct sunxi_mmc_host {
 	struct mmc_request *mrq;
 	u32		ferror;
 
-	struct timer_list cd_timer;
 	u32 debuglevel;
 };
 

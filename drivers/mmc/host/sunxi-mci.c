@@ -859,25 +859,6 @@ static void sunxi_mmc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	sunxi_mmc_send_cmd(smc_host, mrq);
 }
 
-static void sunxi_mmc_timer_function(u_long arg)
-{
-	struct sunxi_mmc_host *smc_host = (struct sunxi_mmc_host *)arg;
-
-	del_timer(&smc_host->cd_timer);
-
-	if(smc_host->present != sunxi_mmc_card_present(smc_host->mmc)) {
-		smc_host->present = sunxi_mmc_card_present(smc_host->mmc);
-		mmc_detect_change(smc_host->mmc,1);
-		SMC_DBG(smc_host, "%s: state changed present = %i\n",__FUNCTION__,smc_host->present);
-	}
-
-	init_timer(&smc_host->cd_timer);
-	smc_host->cd_timer.expires = jiffies + 1*HZ;
-	smc_host->cd_timer.data = (unsigned long)smc_host;
-	smc_host->cd_timer.function = sunxi_mmc_timer_function;
-	add_timer(&smc_host->cd_timer);
-}
-
 static const struct platform_device_id sunxi_mmc_devtype[] = {
 	{
 		.name = "sunxi-mci",
@@ -950,15 +931,8 @@ static int __init sunxi_mmc_probe(struct platform_device *pdev)
 			ret = -EINVAL;
 			goto probe_free_irq;
 		}
-		init_timer(&smc_host->cd_timer);
-		smc_host->cd_timer.expires = jiffies + 1*HZ;
-		smc_host->cd_timer.data = (unsigned long)smc_host;
-		smc_host->cd_timer.function = sunxi_mmc_timer_function;
-		add_timer(&smc_host->cd_timer);
-		smc_host->present = 0;
 		break;
 	case CARD_ALWAYS_PRESENT:
-		smc_host->present = 1;
 		break;
 	default:
 		dev_err(mmc_dev(smc_host->mmc), "Invalid cd-mode %d\n",
@@ -981,8 +955,7 @@ static int __init sunxi_mmc_probe(struct platform_device *pdev)
 	mmc->caps = MMC_CAP_4_BIT_DATA | MMC_CAP_MMC_HIGHSPEED |
 		MMC_CAP_SD_HIGHSPEED | MMC_CAP_UHS_SDR12 | MMC_CAP_UHS_SDR25 |
 		MMC_CAP_UHS_SDR50 | MMC_CAP_UHS_DDR50 | MMC_CAP_SDIO_IRQ |
-		MMC_CAP_DRIVER_TYPE_A;
-/*		MMC_CAP_NEEDS_POLL */
+		MMC_CAP_NEEDS_POLL | MMC_CAP_DRIVER_TYPE_A;
 
 	ret = mmc_add_host(mmc);
 	if (ret) {
@@ -1020,8 +993,6 @@ static int __exit sunxi_mmc_remove(struct platform_device *pdev)
 
 	tasklet_disable(&smc_host->tasklet);
 	free_irq(smc_host->irq, smc_host);
-	if (smc_host->cd_mode == CARD_DETECT_BY_GPIO_POLL)
-		del_timer(&smc_host->cd_timer);
 
 	sunxi_mmc_resource_release(smc_host);
 
