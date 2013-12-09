@@ -71,7 +71,7 @@ static void sunxi_mmc_init_host(struct mmc_host* mmc)
 
 	mci_writel(smc_host, REG_FTRGL, 0x20070008);
 	mci_writel(smc_host, REG_TMOUT, 0xffffffff);
-	mci_writel(smc_host, REG_IMASK, 0);
+	mci_writel(smc_host, REG_IMASK, smc_host->sdio_imask);
 	mci_writel(smc_host, REG_RINTR, 0xffffffff);
 	mci_writel(smc_host, REG_DBGC, 0xdeb);
 	mci_writel(smc_host, REG_FUNS, 0xceaa0000);
@@ -180,9 +180,9 @@ static void sunxi_mmc_send_cmd(struct sunxi_mmc_host *host,
 
 	spin_lock_irqsave(&host->lock, iflags);
 	host->mrq = mrq;
+	mci_writel(host, REG_IMASK, host->sdio_imask | imask);
 	spin_unlock_irqrestore(&host->lock, iflags);
 
-	mci_writel(host, REG_IMASK, imask);
 	mci_writel(host, REG_CARG, cmd->arg);
 	mci_writel(host, REG_CMDR, cmd_val);
 }
@@ -540,14 +540,15 @@ static irqreturn_t sunxi_mmc_irq(int irq, void *dev_id)
 		/* Wait for CmdDone on RespTimeout before finishing the req */
 		if ((host->int_sum & SDXC_RespTimeout) &&
 				!(host->int_sum & SDXC_CmdDone))
-			mci_writel(host, REG_IMASK, SDXC_CmdDone);
+			mci_writel(host, REG_IMASK,
+				   host->sdio_imask | SDXC_CmdDone);
 		else if (host->int_sum & SDXC_IntErrBit)
 			finalize = 1; /* Don't wait for dma on error */
 		else if (host->int_sum & SDXC_IntDoneBit && !host->wait_dma)
 			finalize = 1; /* Done */
 
 		if (finalize) {
-			mci_writel(host, REG_IMASK, 0);
+			mci_writel(host, REG_IMASK, host->sdio_imask);
 			mci_writel(host, REG_IDIE, 0);
 		}
 	}
@@ -792,10 +793,13 @@ static void sunxi_mmc_enable_sdio_irq(struct mmc_host *mmc, int enable)
 
 	spin_lock_irqsave(&smc_host->lock, flags);
 	imask = mci_readl(smc_host, REG_IMASK);
-	if (enable)
+	if (enable) {
+		smc_host->sdio_imask = SDXC_SDIOInt;
 		imask |= SDXC_SDIOInt;
-	else
+	} else {
+		smc_host->sdio_imask = 0;
 		imask &= ~SDXC_SDIOInt;
+	}
 	mci_writel(smc_host, REG_IMASK, imask);
 	spin_unlock_irqrestore(&smc_host->lock, flags);
 }
@@ -895,12 +899,12 @@ static const struct of_device_id sunxi_mmc_of_match[] = {
 MODULE_DEVICE_TABLE(of, sunxi_mmc_of_match);
 
 static struct mmc_host_ops sunxi_mmc_ops = {
-	.request	= sunxi_mmc_request,
-	.set_ios	= sunxi_mmc_set_ios,
-	.get_ro		= sunxi_mmc_get_ro,
-	.get_cd		= sunxi_mmc_card_present,
-// 	.enable_sdio_irq= sunxi_mmc_enable_sdio_irq,
-	.hw_reset	= sunxi_mmc_hw_reset,
+	.request	 = sunxi_mmc_request,
+	.set_ios	 = sunxi_mmc_set_ios,
+	.get_ro		 = sunxi_mmc_get_ro,
+	.get_cd		 = sunxi_mmc_card_present,
+	.enable_sdio_irq = sunxi_mmc_enable_sdio_irq,
+	.hw_reset	 = sunxi_mmc_hw_reset,
 };
 
 static int __init sunxi_mmc_probe(struct platform_device *pdev)
@@ -968,8 +972,9 @@ static int __init sunxi_mmc_probe(struct platform_device *pdev)
 	mmc->ocr_avail = mmc_regulator_get_ocrmask(smc_host->regulator);
 	mmc->caps = MMC_CAP_4_BIT_DATA | MMC_CAP_MMC_HIGHSPEED |
 		MMC_CAP_SD_HIGHSPEED | MMC_CAP_UHS_SDR12 | MMC_CAP_UHS_SDR25 |
-		MMC_CAP_UHS_SDR50 | MMC_CAP_UHS_DDR50 | MMC_CAP_DRIVER_TYPE_A;
-/*		MMC_CAP_NEEDS_POLL | MMC_CAP_SDIO_IRQ */
+		MMC_CAP_UHS_SDR50 | MMC_CAP_UHS_DDR50 | MMC_CAP_SDIO_IRQ |
+		MMC_CAP_DRIVER_TYPE_A;
+/*		MMC_CAP_NEEDS_POLL */
 
 	ret = mmc_add_host(mmc);
 	if (ret) {

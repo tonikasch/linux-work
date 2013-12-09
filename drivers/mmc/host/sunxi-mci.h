@@ -234,6 +234,7 @@ struct sunxi_mmc_host {
 	/* irq */
 	int 		irq;
 	u32		int_sum;
+	u32		sdio_imask;
 
 	/* flags */
 	u32		power_on:1;
