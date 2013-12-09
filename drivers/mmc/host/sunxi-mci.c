@@ -635,7 +635,7 @@ static void sunxi_mmc_clk_set_rate(struct sunxi_mmc_host *smc_host, unsigned int
 
 static void sunxi_mmc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 {
-	struct sunxi_mmc_host *smc_host = mmc_priv(mmc);
+	struct sunxi_mmc_host *host = mmc_priv(mmc);
 	u32 temp;
 	s32 err;
 
@@ -645,74 +645,67 @@ static void sunxi_mmc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		break;
 
 	case MMC_POWER_UP:
-		if (!smc_host->power_on) {
-			err =  clk_prepare_enable(smc_host->clk_ahb);
-			if (err) {
-				dev_err(&smc_host->pdev->dev, "Failed to enable AHB gate\n");
-				return;
-			} else {
-				SMC_DBG(smc_host,"%s: enabled ahb clock\n",__FUNCTION__);
-			}
-			err =  clk_prepare_enable(smc_host->clk_mod);
-			if (err) {
-				dev_err(&smc_host->pdev->dev, "Failed to enable module clock\n");
-				return;
-			} else {
-				SMC_DBG(smc_host,"%s: enabled module clock\n",__FUNCTION__);
-			}
-
-			sunxi_mmc_init_host(mmc);
-			enable_irq(smc_host->irq);
-			SMC_DBG(smc_host, "sdc%d power on!\n", smc_host->mmc->index);
-			smc_host->power_on = 1;
-			smc_host->ferror = 0;
+		err =  clk_prepare_enable(host->clk_ahb);
+		if (err) {
+			dev_err(mmc_dev(host->mmc), "AHB clk err %d\n", err);
+			host->ferror = 1;
+			return;
 		}
+		err =  clk_prepare_enable(host->clk_mod);
+		if (err) {
+			dev_err(mmc_dev(host->mmc), "MOD clk err %d\n", err);
+			host->ferror = 1;
+			return;
+		}
+
+		sunxi_mmc_init_host(mmc);
+		enable_irq(host->irq);
+
+		dev_dbg(mmc_dev(host->mmc), "power on!\n");
+		host->ferror = 0;
 		break;
 
 	case MMC_POWER_OFF:
-		if (smc_host->power_on) {
-			SMC_DBG(smc_host, "sdc%d power off !!\n", smc_host->mmc->index);
-			disable_irq(smc_host->irq);
-			sunxi_mmc_exit_host(smc_host);
-			clk_disable_unprepare(smc_host->clk_ahb);
-			clk_disable_unprepare(smc_host->clk_mod);
-			smc_host->power_on = 0;
-			smc_host->ferror = 0;
-		}
+		dev_dbg(mmc_dev(host->mmc), "power off!\n");
+		disable_irq(host->irq);
+		sunxi_mmc_exit_host(host);
+		clk_disable_unprepare(host->clk_ahb);
+		clk_disable_unprepare(host->clk_mod);
+		host->ferror = 0;
 		break;
 	}
 
 	/* set bus width */
 	switch (ios->bus_width) {
 	case MMC_BUS_WIDTH_1:
-		mci_writel(smc_host, REG_WIDTH, SDXC_WIDTH1);
-		smc_host->bus_width = 1;
+		mci_writel(host, REG_WIDTH, SDXC_WIDTH1);
+		host->bus_width = 1;
 		break;
 	case MMC_BUS_WIDTH_4:
-		mci_writel(smc_host, REG_WIDTH, SDXC_WIDTH4);
-		smc_host->bus_width = 4;
+		mci_writel(host, REG_WIDTH, SDXC_WIDTH4);
+		host->bus_width = 4;
 		break;
 	case MMC_BUS_WIDTH_8:
-		mci_writel(smc_host, REG_WIDTH, SDXC_WIDTH8);
-		smc_host->bus_width = 8;
+		mci_writel(host, REG_WIDTH, SDXC_WIDTH8);
+		host->bus_width = 8;
 		break;
 	}
 
 	/* set ddr mode */
-	temp = mci_readl(smc_host, REG_GCTRL);
+	temp = mci_readl(host, REG_GCTRL);
 	if (ios->timing == MMC_TIMING_UHS_DDR50) {
 		temp |= SDXC_DDR_MODE;
-		smc_host->ddr = 1;
+		host->ddr = 1;
 	} else {
 		temp &= ~SDXC_DDR_MODE;
-		smc_host->ddr = 0;
+		host->ddr = 0;
 	}
-	mci_writel(smc_host, REG_GCTRL, temp);
+	mci_writel(host, REG_GCTRL, temp);
 
 	/* set up clock */
-	if (ios->clock && smc_host->power_on) {
-		SMC_DBG(smc_host, "%s, ios->clock: %i\n", __FUNCTION__, ios->clock);
-		sunxi_mmc_clk_set_rate(smc_host,ios->clock);
+	if (ios->clock && ios->power_mode) {
+		dev_dbg(mmc_dev(host->mmc), "ios->clock: %d\n", ios->clock);
+		sunxi_mmc_clk_set_rate(host, ios->clock);
 		usleep_range(50000, 55000);
 	}
 }
