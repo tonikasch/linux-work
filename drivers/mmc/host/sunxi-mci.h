@@ -221,6 +221,9 @@ struct sunxi_mmc_host {
 	/* indicator pins */
 	int wp_pin;
 	int cd_pin;
+	int cd_mode;
+#define CARD_DETECT_BY_GPIO_POLL (1)	/* mmc detected by gpio check */
+#define CARD_ALWAYS_PRESENT      (2)	/* mmc always present */
 
 	/* ios information */
 	u32 		clk_mod_rate;
@@ -248,12 +251,6 @@ struct sunxi_mmc_host {
 	u32		ferror;
 
 	struct timer_list cd_timer;
-	s32 cd_mode;
-#define CARD_DETECT_BY_GPIO_POLL (1)	/* mmc detected by gpio check */
-#define CARD_DETECT_BY_GPIO_IRQ  (2)	/* mmc detected by gpio irq */
-#define CARD_ALWAYS_PRESENT      (3)	/* mmc always present, without detect pin */
-#define CARD_DETECT_BY_FS        (4)	/* mmc insert/remove by fs, /proc/sunxi-mmc.x/insert node */
-
 	u32 debuglevel;
 };
 

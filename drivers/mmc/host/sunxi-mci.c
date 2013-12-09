@@ -813,19 +813,17 @@ static void sunxi_mmc_hw_reset(struct mmc_host *mmc)
 	udelay(300);
 }
 
-static int sunxi_mmc_card_present(struct mmc_host* mmc)
+static int sunxi_mmc_card_present(struct mmc_host *mmc)
 {
-	struct sunxi_mmc_host *smc_host = mmc_priv(mmc);
+	struct sunxi_mmc_host *host = mmc_priv(mmc);
 
-	int present = 1;
-
-	if (gpio_is_valid(smc_host->cd_pin)) {
-		present = !gpio_get_value(smc_host->cd_pin); // Signal inverted "SDn-DET#"!
-	} else {
-		SMC_ERR(smc_host,"Could not allocate CD pin. Check your device tree for cd_pin entry!\n");
+	switch (host->cd_mode) {
+	case CARD_DETECT_BY_GPIO_POLL:
+		return !gpio_get_value(host->cd_pin); /* Signal inverted */
+	case CARD_ALWAYS_PRESENT:
+		return 1;
 	}
-
-	return present;
+	return 0; /* Never reached */
 }
 
 static void sunxi_mmc_request(struct mmc_host *mmc, struct mmc_request *mrq)
@@ -945,18 +943,28 @@ static int __init sunxi_mmc_probe(struct platform_device *pdev)
 	disable_irq(smc_host->irq);
 
 	SMC_DBG(smc_host, "%s: Card detect mode %i\n",__FUNCTION__,smc_host->cd_mode);
-	if (smc_host->cd_mode == CARD_ALWAYS_PRESENT) {
-		smc_host->present = 1;
-	} else if (smc_host->cd_mode == CARD_DETECT_BY_GPIO_IRQ) {
-		SMC_ERR(smc_host, "Failed to get gpio irq for card detection\n");
-		request_irq(gpio_to_irq(smc_host->cd_pin), sunxi_mmc_irq, IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING, "mmc-detect", smc_host);
-	} else if (smc_host->cd_mode == CARD_DETECT_BY_GPIO_POLL) {
+	switch (smc_host->cd_mode) {
+	case CARD_DETECT_BY_GPIO_POLL:
+		if (!gpio_is_valid(smc_host->cd_pin)) {
+			dev_err(mmc_dev(smc_host->mmc), "Invalid cd-gpios\n");
+			ret = -EINVAL;
+			goto probe_free_irq;
+		}
 		init_timer(&smc_host->cd_timer);
 		smc_host->cd_timer.expires = jiffies + 1*HZ;
 		smc_host->cd_timer.data = (unsigned long)smc_host;
 		smc_host->cd_timer.function = sunxi_mmc_timer_function;
 		add_timer(&smc_host->cd_timer);
 		smc_host->present = 0;
+		break;
+	case CARD_ALWAYS_PRESENT:
+		smc_host->present = 1;
+		break;
+	default:
+		dev_err(mmc_dev(smc_host->mmc), "Invalid cd-mode %d\n",
+			smc_host->cd_mode);
+		ret = -EINVAL;
+		goto probe_free_irq;
 	}
 
 	mmc->ops			= &sunxi_mmc_ops;
