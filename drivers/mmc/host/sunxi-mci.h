@@ -18,8 +18,6 @@
 #ifndef __SUNXI_MCI_H__
 #define __SUNXI_MCI_H__
 
-#define DRIVER_NAME "sunxi-mmc"
-
 /* register offset define */
 #define SDXC_REG_GCTRL	( 0x00 ) // SMC Global Control Register
 #define SDXC_REG_CLKCR	( 0x04 ) // SMC Clock Control Register
@@ -221,7 +219,6 @@ struct sunxi_mmc_host {
 	u32		idma_des_size_bits;
 	u32 		ddr;
 	u32 		voltage_switching;
-	struct regulator *regulator;
 
 	/* irq */
 	int 		irq;

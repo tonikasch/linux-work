@@ -272,85 +272,6 @@ static void sunxi_mmc_dump_errinfo(struct sunxi_mmc_host* smc_host)
 		);
 }
 
-static int sunxi_mmc_resource_request(struct sunxi_mmc_host *host,
-				      struct platform_device *pdev)
-{
-	struct device_node *np = pdev->dev.of_node;
-	struct resource *regs;
-	int ret = 0;
-
-	host->regulator = devm_regulator_get(&pdev->dev, "vmmc");
-	if (IS_ERR(host->regulator)) {
-			if (PTR_ERR(host->regulator) == -EPROBE_DEFER)
-				return -EPROBE_DEFER;
-			else
-				dev_info(&pdev->dev, "no regulator found\n");
-	}
-	host->mmc->supply.vmmc = host->regulator;
-	host->mmc->supply.vqmmc = NULL;
-
-	regs = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	if (!regs)
-		return -ENXIO;
-	host->reg_base = ioremap(regs->start, resource_size(regs));
-
-	host->clk_ahb = of_clk_get(np, OF_AHB_CLK_POSITION); // AHB gate
-	if (IS_ERR(host->clk_ahb)) {
-		dev_err(&pdev->dev, "Couldn't get AHB gate\n");
-		ret = PTR_ERR(host->clk_ahb);
-		goto resource_request_out;
-	}
-
-	host->clk_mod = of_clk_get(np, OF_MOD_CLK_POSITION); // Module 0
-	if (IS_ERR(host->clk_mod)) {
-		dev_err(&pdev->dev, "Couldn't get module clock\n");
-		ret = PTR_ERR(host->clk_mod);
- 		goto free_ahb_clk;
-	}
-
-	host->sg_cpu = dma_alloc_coherent(mmc_dev(host->mmc), PAGE_SIZE,
-					  &host->sg_dma, GFP_KERNEL);
-	if (!host->sg_cpu) {
-		dev_err(&pdev->dev, "Failed to allocate DMA descriptor\n");
-		ret = -ENOMEM;
-		goto free_mod_clk;
-	}
-
-	host->wp_pin=of_get_named_gpio(np, "wp-gpios", 0);
-	if (gpio_is_valid(host->wp_pin)) {
-		gpio_request(host->wp_pin,"sdc0_wp");
-		gpio_direction_input(host->wp_pin);
-	}
-	host->cd_pin=of_get_named_gpio(np, "cd-gpios", 0);
-	if (gpio_is_valid(host->cd_pin)) {
-		gpio_request(host->cd_pin,"sdc0_cd");
-		gpio_direction_input(host->cd_pin);
-	}
-
-	of_property_read_u32(np, "cd-mode", &host->cd_mode);
-	of_property_read_u32(np, "bus-width", &host->bus_width);
-	of_property_read_u32(np, "idma-des-size-bits",
-			     &host->idma_des_size_bits);
-
-	goto resource_request_out;
-
-free_mod_clk:
-	clk_put(host->clk_mod);
-free_ahb_clk:
-	clk_put(host->clk_ahb);
-resource_request_out:
-	return ret;
-}
-
-static int sunxi_mmc_resource_release(struct sunxi_mmc_host *host)
-{
-	dma_free_coherent(mmc_dev(host->mmc), PAGE_SIZE,
-			  host->sg_cpu, host->sg_dma);
-	clk_put(host->clk_ahb);
-	clk_put(host->clk_mod);
-	return 0;
-}
-
 static void sunxi_mmc_finalize_request(struct sunxi_mmc_host *host)
 {
 	struct mmc_request *mrq;
@@ -847,17 +768,103 @@ static struct mmc_host_ops sunxi_mmc_ops = {
 	.hw_reset	 = sunxi_mmc_hw_reset,
 };
 
+static int sunxi_mmc_resource_request(struct sunxi_mmc_host *host,
+				      struct platform_device *pdev)
+{
+	struct device_node *np = pdev->dev.of_node;
+	struct regulator *regulator;
+	int ret;
+
+	regulator = devm_regulator_get(&pdev->dev, "vmmc");
+	if (IS_ERR(regulator))
+			return PTR_ERR(regulator);
+
+	host->mmc->supply.vmmc = regulator;
+	host->mmc->supply.vqmmc = NULL;
+
+	host->reg_base = devm_ioremap_resource(&pdev->dev,
+			      platform_get_resource(pdev, IORESOURCE_MEM, 0));
+	if (IS_ERR(host->reg_base))
+		return PTR_ERR(host->reg_base);
+
+	host->irq = platform_get_irq(pdev, 0);
+	ret = devm_request_irq(&pdev->dev, host->irq, sunxi_mmc_irq, 0,
+			       "sunxi-mci", host);
+	if (ret)
+		return ret;
+	disable_irq(host->irq);
+
+	host->clk_ahb = devm_clk_get(&pdev->dev, "ahb");
+	if (IS_ERR(host->clk_ahb)) {
+		dev_err(&pdev->dev, "Could not get ahb clock\n");
+		return PTR_ERR(host->clk_ahb);
+	}
+
+	host->clk_mod = devm_clk_get(&pdev->dev, "mod");
+	if (IS_ERR(host->clk_mod)) {
+		dev_err(&pdev->dev, "Could not get mod clock\n");
+		return PTR_ERR(host->clk_mod);
+	}
+
+	of_property_read_u32(np, "cd-mode", &host->cd_mode);
+	switch (host->cd_mode) {
+	case CARD_DETECT_BY_GPIO_POLL:
+		host->cd_pin = of_get_named_gpio(np, "cd-gpios", 0);
+		if (!gpio_is_valid(host->cd_pin)) {
+			dev_err(&pdev->dev, "Invalid cd-gpios\n");
+			return -EINVAL;
+		}
+		ret = devm_gpio_request(&pdev->dev, host->cd_pin, "mmc_cd");
+		if (ret) {
+			dev_err(&pdev->dev, "Could not get cd-gpios\n");
+			return ret;
+		}
+		gpio_direction_input(host->cd_pin);
+		break;
+	case CARD_ALWAYS_PRESENT:
+		break;
+	default:
+		dev_err(&pdev->dev, "Invalid cd-mode %d\n", host->cd_mode);
+		return -EINVAL;
+	}
+
+	of_property_read_u32(np, "bus-width", &host->bus_width);
+	if (host->bus_width != 1 && host->bus_width != 4) {
+		dev_err(&pdev->dev, "Invalid bus-width %d\n", host->bus_width);
+		return -EINVAL;
+	}
+
+	of_property_read_u32(np, "idma-des-size-bits",
+			     &host->idma_des_size_bits);
+	if (host->idma_des_size_bits != 13 && host->idma_des_size_bits != 16) {
+		dev_err(&pdev->dev, "Invalid idma-des-size-bits %d\n",
+			host->idma_des_size_bits);
+		return -EINVAL;
+	}
+
+	host->wp_pin = of_get_named_gpio(np, "wp-gpios", 0);
+	if (gpio_is_valid(host->wp_pin)) {
+		ret = devm_gpio_request(&pdev->dev, host->wp_pin, "mmc_wp");
+		if (ret) {
+			dev_err(&pdev->dev, "Could not get wp-gpios\n");
+			return ret;
+		}
+		gpio_direction_input(host->wp_pin);
+	}
+
+	return 0;
+}
+
 static int sunxi_mmc_probe(struct platform_device *pdev)
 {
 	struct sunxi_mmc_host *host;
 	struct mmc_host *mmc;
-	int ret = 0;
+	int ret;
 
 	mmc = mmc_alloc_host(sizeof(struct sunxi_mmc_host), &pdev->dev);
 	if (!mmc) {
 		dev_err(&pdev->dev, "mmc alloc host failed\n");
-		ret = -ENOMEM;
-		goto sunxi_mmc_probe_out;
+		return -ENOMEM;
 	}
 
 	host = mmc_priv(mmc);
@@ -865,46 +872,29 @@ static int sunxi_mmc_probe(struct platform_device *pdev)
 	spin_lock_init(&host->lock);
 	tasklet_init(&host->tasklet, sunxi_mmc_tasklet, (unsigned long)host);
 
-	if (sunxi_mmc_resource_request(host, pdev)) {
-		dev_err(&pdev->dev, "Failed to get resouces\n");
-		goto probe_free_host;
+	ret = sunxi_mmc_resource_request(host, pdev);
+	if (ret)
+		goto error_free_host;
+
+	host->sg_cpu = dma_alloc_coherent(&pdev->dev, PAGE_SIZE,
+					  &host->sg_dma, GFP_KERNEL);
+	if (!host->sg_cpu) {
+		dev_err(&pdev->dev, "Failed to allocate DMA descriptor mem\n");
+		ret = -ENOMEM;
+		goto error_free_host;
 	}
 
-	host->irq=platform_get_irq(pdev, 0);
-	if (request_irq(host->irq, sunxi_mmc_irq, 0, DRIVER_NAME, host)) {
-		dev_err(&pdev->dev, "Failed to get interrupt\n");
-		ret = -ENOENT;
-		goto probe_free_resource;
-	}
-	disable_irq(host->irq);
-
-	switch (host->cd_mode) {
-	case CARD_DETECT_BY_GPIO_POLL:
-		if (!gpio_is_valid(host->cd_pin)) {
-			dev_err(&pdev->dev, "Invalid cd-gpios\n");
-			ret = -EINVAL;
-			goto probe_free_irq;
-		}
-		break;
-	case CARD_ALWAYS_PRESENT:
-		break;
-	default:
-		dev_err(&pdev->dev, "Invalid cd-mode %d\n", host->cd_mode);
-		ret = -EINVAL;
-		goto probe_free_irq;
-	}
-
-	mmc->ops			= &sunxi_mmc_ops;
+	mmc->ops		= &sunxi_mmc_ops;
 	mmc->max_blk_count	= 8192;
 	mmc->max_blk_size	= 4096;
 	mmc->max_req_size	= mmc->max_blk_size * mmc->max_blk_count;
 	mmc->max_seg_size	= mmc->max_req_size;
-	mmc->max_segs	    = 128;
-	//400kHz ~ 50MHz
-	mmc->f_min			=   400000;
-	mmc->f_max			= 50000000;
-	//available voltages
-	mmc->ocr_avail = mmc_regulator_get_ocrmask(host->regulator);
+	mmc->max_segs		= 128;
+	/* 400kHz ~ 50MHz */
+	mmc->f_min		=   400000;
+	mmc->f_max		= 50000000;
+	/* available voltages */
+	mmc->ocr_avail = mmc_regulator_get_ocrmask(host->mmc->supply.vmmc);
 	mmc->caps = MMC_CAP_4_BIT_DATA | MMC_CAP_MMC_HIGHSPEED |
 		MMC_CAP_SD_HIGHSPEED | MMC_CAP_UHS_SDR12 | MMC_CAP_UHS_SDR25 |
 		MMC_CAP_UHS_SDR50 | MMC_CAP_UHS_DDR50 | MMC_CAP_SDIO_IRQ |
@@ -912,40 +902,29 @@ static int sunxi_mmc_probe(struct platform_device *pdev)
 	mmc->caps2 = MMC_CAP2_NO_PRESCAN_POWERUP;
 
 	ret = mmc_add_host(mmc);
-	if (ret) {
-		dev_err(&pdev->dev, "Failed to add mmc host.\n");
-		goto probe_free_irq;
-	}
-	platform_set_drvdata(pdev, mmc);
+	if (ret)
+		goto error_free_dma;
 
 	dev_info(&pdev->dev, "base:0x%p irq:%u\n", host->reg_base, host->irq);
-	goto sunxi_mmc_probe_out;
+	platform_set_drvdata(pdev, mmc);
+	return 0;
 
-probe_free_irq:
-	if (host->irq)
-		free_irq(host->irq, host);
-probe_free_resource:
-	sunxi_mmc_resource_release(host);
-probe_free_host:
+error_free_dma:
+	dma_free_coherent(&pdev->dev, PAGE_SIZE, host->sg_cpu, host->sg_dma);
+error_free_host:
 	mmc_free_host(mmc);
-sunxi_mmc_probe_out:
 	return ret;
 }
 
 static int sunxi_mmc_remove(struct platform_device *pdev)
 {
-	struct mmc_host    	*mmc  = platform_get_drvdata(pdev);
-	struct sunxi_mmc_host	*smc_host = mmc_priv(mmc);
-
-	sunxi_mmc_exit_host(smc_host);
+	struct mmc_host	*mmc = platform_get_drvdata(pdev);
+	struct sunxi_mmc_host *host = mmc_priv(mmc);
 
 	mmc_remove_host(mmc);
-
-	tasklet_disable(&smc_host->tasklet);
-	free_irq(smc_host->irq, smc_host);
-
-	sunxi_mmc_resource_release(smc_host);
-
+	sunxi_mmc_exit_host(host);
+	tasklet_disable(&host->tasklet);
+	dma_free_coherent(&pdev->dev, PAGE_SIZE, host->sg_cpu, host->sg_dma);
 	mmc_free_host(mmc);
 
 	return 0;
