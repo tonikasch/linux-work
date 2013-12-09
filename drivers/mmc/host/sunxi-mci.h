@@ -74,6 +74,7 @@
 #define SDXC_INTEnb		BIT(4)
 #define SDXC_DMAEnb		BIT(5)
 #define SDXC_DebounceEnb	BIT(8)
+#define SDXC_PosedgeLatchData	BIT(9)
 #define SDXC_DDR_MODE		BIT(10)
 #define SDXC_MemAccessDone	BIT(29)
 #define SDXC_AccessDoneDirect	BIT(30)
@@ -131,7 +132,7 @@
 #define SDXC_CardRemove		BIT(31) //0x80000000
 #define SDXC_IntErrBit		(SDXC_RespErr | SDXC_RespCRCErr | SDXC_DataCRCErr \
 				| SDXC_RespTimeout | SDXC_DataTimeout | SDXC_FIFORunErr \
-				| SDXC_HardWLocked | SDXC_StartBitErr | SDXC_EndBitErr)  //0xbfc2
+				| SDXC_HardWLocked | SDXC_StartBitErr | SDXC_EndBitErr)  /* 0xbbc2 */
 #define SDXC_IntDoneBit		(SDXC_AutoCMDDone | SDXC_DataOver \
 				| SDXC_CmdDone | SDXC_VolChgDone)
 /* status */

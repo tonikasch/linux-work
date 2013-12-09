@@ -694,6 +694,10 @@ static void sunxi_mmc_clk_set_rate(struct sunxi_mmc_host *smc_host, unsigned int
 
 	sunxi_mmc_set_clk_dly(smc_host, oclk_dly, sclk_dly);
 	sunxi_mmc_oclk_onoff(smc_host, 1);
+
+	/* oclk_onoff sets various irq status bits, clear these */
+	mci_writel(smc_host, REG_RINTR,
+		   mci_readl(smc_host, REG_RINTR) & ~SDXC_SDIOInt);
 }
 
 static void sunxi_mmc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
