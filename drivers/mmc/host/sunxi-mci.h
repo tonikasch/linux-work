@@ -171,7 +171,7 @@
 #define SDXC_IDMA_ERR (SDXC_IDMACFatalBusErr|SDXC_IDMACDesInvalid \
 			|SDXC_IDMACCardErrSum|SDXC_IDMACAbnormalIntSum)
 
-struct sunxi_mmc_idma_des {
+struct sunxi_idma_des {
 	u32	config;
 #define SDXC_IDMAC_DES0_DIC	BIT(1) // disable interrupt on completion
 #define SDXC_IDMAC_DES0_LD	BIT(2) // last descriptor

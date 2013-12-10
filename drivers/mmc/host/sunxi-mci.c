@@ -123,45 +123,25 @@ static void sunxi_mmc_exit_host(struct sunxi_mmc_host* smc_host)
 
 static void sunxi_mmc_init_idma_des(struct sunxi_mmc_host* host, struct mmc_data* data)
 {
-	struct sunxi_mmc_idma_des* pdes = (struct sunxi_mmc_idma_des*)host->sg_cpu;
-	struct sunxi_mmc_idma_des* pdes_pa = (struct sunxi_mmc_idma_des*)host->sg_dma;
-	u32 des_idx = 0;
-	u32 buff_frag_num = 0;
-	u32 remain;
-	u32 i, j;
-	u32 config;
-	const int max_len = (1 << host->idma_des_size_bits);
+	struct sunxi_idma_des *pdes = (struct sunxi_idma_des *)host->sg_cpu;
+	struct sunxi_idma_des *pdes_pa = (struct sunxi_idma_des *)host->sg_dma;
+	int i, max_len = (1 << host->idma_des_size_bits);
 
-	for (i=0; i<data->sg_len; i++) {
-		buff_frag_num = data->sg[i].length >> host->idma_des_size_bits;
-		remain = data->sg[i].length & (max_len - 1);
-		if (remain)
-			buff_frag_num ++;
+	for (i = 0; i < data->sg_len; i++) {
+		pdes[i].config = SDXC_IDMAC_DES0_CH | SDXC_IDMAC_DES0_OWN |
+				 SDXC_IDMAC_DES0_DIC;
 
-		for (j=0; j < buff_frag_num; j++, des_idx++) {
-			memset((void*)&pdes[des_idx], 0, sizeof(struct sunxi_mmc_idma_des));
-			config = SDXC_IDMAC_DES0_CH|SDXC_IDMAC_DES0_OWN|SDXC_IDMAC_DES0_DIC;
+		if (data->sg[i].length == max_len)
+			pdes[i].buf_size = 0; /* 0 == max_len */
+		else
+			pdes[i].buf_size = data->sg[i].length;
 
-		    	if (j < (buff_frag_num - 1))
-				pdes[des_idx].buf_size = 0; /* 0 == max_len */
-		    	else
-				pdes[des_idx].buf_size = remain;
-
-			pdes[des_idx].buf_addr_ptr1 = sg_dma_address(&data->sg[i])
-							+ j * max_len;
-			if (i==0 && j==0)
-				config |= SDXC_IDMAC_DES0_FD;
-
-			if ((i == data->sg_len-1) && (j == buff_frag_num-1)) {
-				config &= ~SDXC_IDMAC_DES0_DIC;
-				config |= SDXC_IDMAC_DES0_LD|SDXC_IDMAC_DES0_ER;
-				pdes[des_idx].buf_addr_ptr2 = 0;
-			} else {
-				pdes[des_idx].buf_addr_ptr2 = (u32)&pdes_pa[des_idx+1];
-			}
-			pdes[des_idx].config = config;
-		}
+		pdes[i].buf_addr_ptr1 = sg_dma_address(&data->sg[i]);
+		pdes[i].buf_addr_ptr2 = (u32)&pdes_pa[i + 1];
 	}
+	pdes[0].config |= SDXC_IDMAC_DES0_FD;
+	pdes[i - 1].config = SDXC_IDMAC_DES0_OWN | SDXC_IDMAC_DES0_LD;
+
 	wmb(); /* Ensure idma_des hit main mem before we start the idmac */
 }
 
@@ -887,9 +867,9 @@ static int sunxi_mmc_probe(struct platform_device *pdev)
 	mmc->ops		= &sunxi_mmc_ops;
 	mmc->max_blk_count	= 8192;
 	mmc->max_blk_size	= 4096;
-	mmc->max_req_size	= mmc->max_blk_size * mmc->max_blk_count;
-	mmc->max_seg_size	= mmc->max_req_size;
-	mmc->max_segs		= 128;
+	mmc->max_segs		= PAGE_SIZE / sizeof(struct sunxi_idma_des);
+	mmc->max_seg_size	= (1 << host->idma_des_size_bits);
+	mmc->max_req_size	= mmc->max_seg_size * mmc->max_segs;
 	/* 400kHz ~ 50MHz */
 	mmc->f_min		=   400000;
 	mmc->f_max		= 50000000;
