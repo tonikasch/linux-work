@@ -1,6 +1,6 @@
 /*
  * Allwinner sunxi AHCI SATA platform driver
- * Copyright 2013 Olliver Schinagl <oliver@schinagl.nl>
+ * Copyright 2013 Oliver Schinagl <oliver@schinagl.nl>
  *
  * Based on the AHCI SATA platform driver by Freescale and Allwinner
  * Based on code from
@@ -35,7 +35,7 @@
 #include <linux/ahci_platform.h>
 #include "ahci.h"
 
-#define DRV_NAME "sunxi-sata"
+#define DRV_NAME "sunxi-ahci"
 
 #define AHCI_BISTAFR 0x00a0
 #define AHCI_BISTCR 0x00a4
@@ -100,7 +100,7 @@ static u32 sunxi_getbits(void __iomem *reg, u8 mask, u8 shift)
 	return (readl(reg) >> shift) & mask;
 }
 
-static int sunxi_ahci_phy_init(struct device *dev, void __iomem *reg_base)
+static int sunxi_ahci_phy_init(void __iomem *reg_base)
 {
 	u32 reg_val;
 	int timeout;
@@ -131,7 +131,7 @@ static int sunxi_ahci_phy_init(struct device *dev, void __iomem *reg_base)
 		reg_val = sunxi_getbits(reg_base + AHCI_PHYCS0R, 0x7, 28);
 	} while (--timeout && (reg_val != 0x2));
 	if (!timeout)
-		dev_err(dev, "PHY power up failed.\n");
+		printk(KERN_ERR "Sunxi: SATA AHCI PHY power up failed.\n");
 
 	sunxi_setbits(reg_base + AHCI_PHYCS2R, (0x1 << 24));
 
@@ -140,7 +140,7 @@ static int sunxi_ahci_phy_init(struct device *dev, void __iomem *reg_base)
 		reg_val = sunxi_getbits(reg_base + AHCI_PHYCS2R, 0x1, 24);
 	} while (--timeout && reg_val);
 	if (!timeout)
-		dev_err(dev, "PHY calibration failed.\n");
+		printk(KERN_ERR "Sunxi: SATA AHCI PHY calibration failed.\n");
 	mdelay(15);
 
 	writel(0x7, reg_base + AHCI_RWCR);
@@ -148,7 +148,7 @@ static int sunxi_ahci_phy_init(struct device *dev, void __iomem *reg_base)
 	return 0;
 }
 
-static int sunxi_ahci_init(struct device *dev, void __iomem *reg_base)
+static int sunxi_sata_init(struct device *dev, void __iomem *reg_base)
 {
 	struct sunxi_ahci_data *ahci_data;
 	int ret;
@@ -167,10 +167,10 @@ static int sunxi_ahci_init(struct device *dev, void __iomem *reg_base)
 	if (ret)
 		return ret;
 
-	return sunxi_ahci_phy_init(dev, reg_base);
+	return sunxi_ahci_phy_init(reg_base);
 }
 
-static void sunxi_ahci_exit(struct device *dev)
+static void sunxi_sata_exit(struct device *dev)
 {
 	struct sunxi_ahci_data *ahci_data;
 
@@ -182,9 +182,9 @@ static void sunxi_ahci_exit(struct device *dev)
 	clk_disable_unprepare(ahci_data->sata_clk);
 }
 
-static struct ahci_platform_data sunxi_ahci_pdata = {
-	.init = sunxi_ahci_init,
-	.exit = sunxi_ahci_exit,
+static struct ahci_platform_data sunxi_sata_pdata = {
+	.init = sunxi_sata_init,
+	.exit = sunxi_sata_exit,
 };
 
 static int sunxi_ahci_remove(struct platform_device *pdev)
@@ -200,7 +200,7 @@ static int sunxi_ahci_remove(struct platform_device *pdev)
 }
 
 static const struct of_device_id sunxi_ahci_of_match[] = {
-	{ .compatible = "allwinner,sun4i-a10-ahci", .data = &sunxi_ahci_pdata},
+	{ .compatible = "allwinner,sun4i-a10-ahci", .data = &sunxi_sata_pdata},
 	{/* sentinel */},
 };
 MODULE_DEVICE_TABLE(of, sunxi_ahci_of_match);
@@ -214,6 +214,8 @@ static int sunxi_ahci_probe(struct platform_device *pdev)
 	struct sunxi_ahci_data *ahci_data;
 	struct regulator *regulator;
 	int ret;
+
+	printk("Lets probe!\n");
 
 	regulator = devm_regulator_get(&pdev->dev, "pwr");
 	if (IS_ERR(regulator)) {
@@ -230,6 +232,8 @@ static int sunxi_ahci_probe(struct platform_device *pdev)
 	ahci_pdev = platform_device_alloc("sunxi-ahci", -1);
 	if (!ahci_pdev)
 		return -ENODEV;
+	printk("device ahci allocated\n");
+
 
 	ahci_pdev->dev.parent = &pdev->dev;
 
@@ -239,12 +243,14 @@ static int sunxi_ahci_probe(struct platform_device *pdev)
 		ret = PTR_ERR(ahci_data->ahb_clk);
 		goto err_out;
 	}
+	printk("got ahb_sata clk\n");
 
 	ahci_data->sata_clk = devm_clk_get(&pdev->dev, "pll6_sata");
 	if (IS_ERR(ahci_data->sata_clk)) {
 		ret = PTR_ERR(ahci_data->sata_clk);
 		goto err_out;
 	}
+	printk("got pll6_sata clk\n");
 
 	ahci_data->ahci_pdev = ahci_pdev;
 	platform_set_drvdata(pdev, ahci_data);
@@ -260,9 +266,12 @@ static int sunxi_ahci_probe(struct platform_device *pdev)
 		ret = -EINVAL;
 		goto err_out;
 	}
+	printk("device matched %s\n", of_dev_id->name);
 
 	mem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	printk("got mem res\n");
 	irq = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
+	printk("got irq res\n");
 	if (!mem || !irq) {
 		ret = -ENOMEM;
 		goto err_out;
@@ -272,18 +281,22 @@ static int sunxi_ahci_probe(struct platform_device *pdev)
 	ret = platform_device_add_resources(ahci_pdev, res, 2);
 	if (ret)
 		goto err_out;
+	printk("registered resources\n");
 
 	ret = platform_device_add_data(ahci_pdev, pdata, sizeof(*pdata));
 	if (ret)
 		goto err_out;
+	printk("added data\n");
 
 	ret = platform_device_add(ahci_pdev);
 	if (ret)
 		goto err_out;
+	printk("added device\n");
 
 	return 0;
 
 err_out:
+	printk("remove device\n");
 	platform_device_put(ahci_pdev);
 	return ret;
 }
@@ -300,6 +313,6 @@ static struct platform_driver sunxi_ahci_driver = {
 module_platform_driver(sunxi_ahci_driver);
 
 MODULE_DESCRIPTION("Allwinner sunxi AHCI SATA platform driver");
-MODULE_AUTHOR("Olliver Schinagl <oliver@schinagl.nl>");
+MODULE_AUTHOR("Oliver Schinagl <oliver@schinagl.nl>");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("ahci:sunxi");

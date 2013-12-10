@@ -90,6 +90,14 @@
 			pinctrl-0 = <&i2c2_pins_a>;
 			status = "okay";
 		};
+
+		gmac: ethernet@01c50000 {
+			pinctrl-names = "default";
+			pinctrl-0 = <&gmac_pins_mii>;
+			snps,phy-addr = <1>;
+			phy-mode = "mii";
+			status = "okay";
+		};
 	};
 
 	leds {
