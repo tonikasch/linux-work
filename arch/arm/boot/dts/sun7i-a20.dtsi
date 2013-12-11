@@ -595,6 +595,7 @@
 			snps,fixed-burst;
 			snps,force_sf_dma_mode;
 			status = "disabled";
+		};
 
 		hstimer@01c60000 {
 			compatible = "allwinner,sun7i-a20-hstimer";
