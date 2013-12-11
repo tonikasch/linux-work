@@ -15,6 +15,8 @@ next/soc
 		ARM: ep93xx: use soc bus
 	soc/sched_clock
 		local branch: rebased onto tip/timers-core-for-linus for dependencies
+	patch
+		ARM: at91: sama5d3: add support for sama5d36 chip
 
 next/dt
 	ux500/dt
@@ -23,6 +25,12 @@ next/dt
 		git://git.infradead.org/linux-mvebu.git tags/mvebu-dt-3.14
 	sti/dt
 		http://git.stlinux.com/devel/kernel/linux-sti.git tags/DT-for-v3.14-part-1
+	mvebu/dt-2
+		git://git.infradead.org/linux-mvebu.git tags/mvebu-dt-3.14-2		
+	patch
+		ARM: at91: sama5d3/dt: add sama5d36ek dts files (based on next/cleanup for dependencies)
+	at91/dt
+		git://github.com/at91linux/linux-at91.git tags/at91-dt
 
 next/boards
 	renesas/defconfig
