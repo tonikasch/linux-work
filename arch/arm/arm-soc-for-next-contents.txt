@@ -8,6 +8,12 @@ next/cleanup
 		git://git.infradead.org/linux-mvebu.git tags/mvebu-soc-3.14
 	at91/sama5-ccf
 		git://github.com/at91linux/linux-at91.git tags/at91-cleanup
+	patches
+		ARM: at91: remove redundant dependency
+		ARM: clean up cache handling in platform code
+		ARM: pxa: Remove unused variables
+		ARM: pxa: remove IRQF_DISABLED
+		ARM: mmp: build sram driver alone
 
 next/soc
 	patches
@@ -31,6 +37,10 @@ next/dt
 		ARM: at91: sama5d3/dt: add sama5d36ek dts files (based on next/cleanup for dependencies)
 	at91/dt
 		git://github.com/at91linux/linux-at91.git tags/at91-dt
+	integrator/dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-integrator.git tags/integrator-v3.14-1
+	patches
+		ARM: pxa: add PWM nodes to pxa27x.dtsi
 
 next/boards
 	renesas/defconfig
