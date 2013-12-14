@@ -39,7 +39,23 @@
 			};
 		};
 
+		mmc0: mmc@01c0f000 {
+			pinctrl-names = "default";
+			pinctrl-0 = <&mmc0_pins_a>;
+			pinctrl-1 = <&mmc0_cd_pin_a1000>;
+			cd-gpios = <&pio 7 1 0>; /* PH1 */
+			cd-mode = <1>;
+			status = "okay";
+		};
+
 		pinctrl@01c20800 {
+			mmc0_cd_pin_a1000: mmc0_cd_pin@0 {
+				allwinner,pins = "PH1";
+				allwinner,function = "gpio_in";
+				allwinner,drive = <0>;
+				allwinner,pull = <0>;
+			};
+
 			emac_power_pin_a1000: emac_power_pin@0 {
 				allwinner,pins = "PH15";
 				allwinner,function = "gpio_out";
