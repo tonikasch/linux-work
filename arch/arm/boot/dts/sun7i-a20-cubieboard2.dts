@@ -33,15 +33,6 @@
 			status = "okay";
 		};
 
-		sdc0: sdc@01c0f000 {
-			pinctrl-names = "default";
-			pinctrl-0 = <&sdc0_pins_a>;
-			cd-gpios = <&pio 7 1 0>; /* PH1 */
-			cd-mode = <1>;
-			vmmc-supply = <&vcc_3v3_reg>;
-			status = "okay";
-		};
-
 		sata: ahci@01c18000 {
 			pwr-supply = <&reg_ahci_5v>;
 			status = "okay";
