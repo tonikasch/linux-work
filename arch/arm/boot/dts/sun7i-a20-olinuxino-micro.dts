@@ -19,19 +19,27 @@
 	compatible = "olimex,a20-olinuxino-micro", "allwinner,sun7i-a20";
 
 	soc@01c00000 {
-		emac: ethernet@01c0b000 {
+		sdc0: sdc@01c0f000 {
 			pinctrl-names = "default";
-			pinctrl-0 = <&emac_pins_a>;
-			phy = <&phy1>;
+			pinctrl-0 = <&sdc0_pins_a>;
+			pinctrl-1 = <&mmc0_cd_pin_olinuxinom>;
+			cd-gpios = <&pio 7 1 0>; /* PH1 */
+			cd-mode = <1>;
 			status = "okay";
 		};
 
-		mdio@01c0b080 {
+		sdc3: sdc@01c12000 {
+			pinctrl-names = "default";
+			pinctrl-0 = <&sdc3_pins_a>;
+			pinctrl-1 = <&mmc3_cd_pin_olinuxinom>;
+			cd-gpios = <&pio 7 11 0>; /* PH11 */
+			cd-mode = <1>;
 			status = "okay";
+		};
 
-			phy1: ethernet-phy@1 {
-				reg = <1>;
-			};
+		sata: ahci@01c18000 {
+			pwr-supply = <&reg_ahci_5v>;
+			status = "okay";
 		};
 
 		sata: ahci@01c18000 {
@@ -43,6 +51,20 @@
 			ahci_pwr_pin: ahci_pwr_pin@0 {
 				allwinner,pins = "PB8";
 				allwinner,function = "gpio_out";
+				allwinner,drive = <0>;
+				allwinner,pull = <0>;
+			};
+
+			mmc0_cd_pin_olinuxinom: mmc0_cd_pin@0 {
+				allwinner,pins = "PH1";
+				allwinner,function = "gpio_in";
+				allwinner,drive = <0>;
+				allwinner,pull = <0>;
+			};
+
+			mmc3_cd_pin_olinuxinom: mmc3_cd_pin@0 {
+				allwinner,pins = "PH11";
+				allwinner,function = "gpio_in";
 				allwinner,drive = <0>;
 				allwinner,pull = <0>;
 			};

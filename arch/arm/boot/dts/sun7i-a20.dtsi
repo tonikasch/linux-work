@@ -312,13 +312,22 @@
 		};
 
 		sdc0: sdc@01c0f000 {
-			compatible = "allwinner,sunxi-mmc";
+			compatible = "allwinner,sun5i-mmc";
 			reg = <0x01c0f000 0x1000>;
 			clocks = <&ahb_gates 8>, <&mmc0>;
 			clock-names = "ahb", "mod";
 			interrupts = <0 32 4>;
 			bus-width = <4>;
-			idma-des-size-bits = <16>;
+			status = "disabled";
+		};
+
+		sdc3: sdc@01c12000 {
+			compatible = "allwinner,sun5i-mmc";
+			reg = <0x01c12000 0x1000>;
+			clocks = <&ahb_gates 11>, <&mmc3>;
+			clock-names = "ahb", "mod";
+			interrupts = <0 35 4>;
+			bus-width = <4>;
 			status = "disabled";
 		};
 
@@ -412,7 +421,14 @@
 				allwinner,pins = "PF0","PF1","PF2","PF3","PF4","PF5";
 				allwinner,function = "mmc0";
 				allwinner,drive = <3>;
-				allwinner,pull = <0>;
+				allwinner,pull = <1>;
+			};
+
+			sdc3_pins_a: sdc3@0 {
+				allwinner,pins = "PI4","PI5","PI6","PI7","PI8","PI9";
+				allwinner,function = "mmc3";
+				allwinner,drive = <3>;
+				allwinner,pull = <1>;
 			};
 		};
 
@@ -595,16 +611,6 @@
 			snps,fixed-burst;
 			snps,force_sf_dma_mode;
 			status = "disabled";
-		};
-
-		hstimer@01c60000 {
-			compatible = "allwinner,sun7i-a20-hstimer";
-			reg = <0x01c60000 0x1000>;
-			interrupts = <0 81 1>,
-				     <0 82 1>,
-				     <0 83 1>,
-				     <0 84 1>;
-			clocks = <&ahb_gates 28>;
 		};
 
 		gic: interrupt-controller@01c81000 {

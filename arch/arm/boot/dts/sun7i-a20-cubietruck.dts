@@ -22,9 +22,9 @@
 		sdc0: sdc@01c0f000 {
 			pinctrl-names = "default";
 			pinctrl-0 = <&sdc0_pins_a>;
+			pinctrl-1 = <&mmc0_cd_pin_cubietruck>;
 			cd-gpios = <&pio 7 1 0>; /* PH1 */
 			cd-mode = <1>;
-			vmmc-supply = <&vcc_3v3_reg>;
 			status = "okay";
 		};
 
@@ -34,12 +34,20 @@
 		};
 
 		pinctrl@01c20800 {
+			mmc0_cd_pin_cubietruck: mmc0_cd_pin@0 {
+				allwinner,pins = "PH1";
+				allwinner,function = "gpio_in";
+				allwinner,drive = <0>;
+				allwinner,pull = <0>;
+			};
+
 			ahci_pwr_pin: ahci_pwr_pin@0 {
 				allwinner,pins = "PH12";
 				allwinner,function = "gpio_out";
 				allwinner,drive = <0>;
 				allwinner,pull = <0>;
 			};
+
 			led_pins_cubietruck: led_pins@0 {
 				allwinner,pins = "PH7", "PH11", "PH20", "PH21";
 				allwinner,function = "gpio_out";
@@ -101,14 +109,6 @@
 			pinctrl-0 = <&ahci_pwr_pin>;
 			gpio = <&pio 7 12 0>;
 			enable-active-high;
-		};
-
-		vcc_3v3_reg: regulator@0 {
-			compatible = "regulator-fixed";
-			regulator-name = "vcc_3v3";
-			regulator-min-microvolt = <3300000>;
-			regulator-max-microvolt = <3300000>;
-			regulator-always-on;
 		};
 	};
 };
