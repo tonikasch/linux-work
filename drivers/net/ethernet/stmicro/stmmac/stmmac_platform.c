@@ -140,9 +140,16 @@ static int stmmac_pltfr_probe(struct platform_device *pdev)
 		}
 	}
 
+	/* Custom setup (if needed) */
+	if (plat_dat->setup) {
+		plat_dat->bsp_priv = plat_dat->setup(pdev);
+		if (IS_ERR(plat_dat->bsp_priv))
+			return PTR_ERR(plat_dat->bsp_priv);
+	}
+
 	/* Custom initialisation (if needed)*/
 	if (plat_dat->init) {
-		ret = plat_dat->init(pdev);
+		ret = plat_dat->init(pdev, plat_dat->bsp_priv);
 		if (unlikely(ret))
 			return ret;
 	}
@@ -199,7 +206,10 @@ static int stmmac_pltfr_remove(struct platform_device *pdev)
 	int ret = stmmac_dvr_remove(ndev);
 
 	if (priv->plat->exit)
-		priv->plat->exit(pdev);
+		priv->plat->exit(pdev, priv->plat->bsp_priv);
+
+	if (priv->plat->free)
+		priv->plat->free(pdev, priv->plat->bsp_priv);
 
 	return ret;
 }
@@ -228,7 +238,7 @@ int stmmac_pltfr_freeze(struct device *dev)
 
 	ret = stmmac_freeze(ndev);
 	if (plat_dat->exit)
-		plat_dat->exit(pdev);
+		plat_dat->exit(pdev, plat_dat->bsp_priv);
 
 	return ret;
 }
@@ -240,7 +250,7 @@ int stmmac_pltfr_restore(struct device *dev)
 	struct platform_device *pdev = to_platform_device(dev);
 
 	if (plat_dat->init)
-		plat_dat->init(pdev);
+		plat_dat->init(pdev, plat_dat->bsp_priv);
 
 	return stmmac_restore(ndev);
 }
