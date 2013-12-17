@@ -332,7 +332,8 @@ static int sunxi_ehci_probe(struct platform_device *pdev)
 	if (pdev->resource[0].flags != IORESOURCE_MEM
 			|| pdev->resource[1].flags != IORESOURCE_MEM
 			|| pdev->resource[2].flags != IORESOURCE_MEM
-			|| pdev->resource[3].flags != IORESOURCE_IRQ) {
+			|| (pdev->resource[3].flags & IORESOURCE_TYPE_BITS)
+				!= IORESOURCE_IRQ) {
 		dev_err(&pdev->dev, "invalid resource type\n");
 		return -ENODEV;
 	}
