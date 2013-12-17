@@ -138,7 +138,7 @@ void __init sun6i_reset_init(void)
  * device model.
  */
 static const struct of_device_id sunxi_reset_dt_ids[] = {
-	 { .compatible = "allwinner,sun6i-a31-clock-reset", },
+	 { .compatible = "allwinner,sun4i-clock-reset", },
 	 { /* sentinel */ },
 };
 MODULE_DEVICE_TABLE(of, sunxi_reset_dt_ids);
