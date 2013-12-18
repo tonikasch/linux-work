@@ -18,6 +18,8 @@
 
 	aliases {
 		ethernet0 = &gmac;
+		ehci1 = &ehci0;
+		ehci2 = &ehci1;
 	};
 
 	cpus {
@@ -87,6 +89,14 @@
 			reg = <0x01c20028 0x4>;
 			clocks = <&osc24M>;
 			clock-output-names = "pll6_sata", "pll6_other", "pll6";
+		};
+
+		usb:usb@0x01c200cc {
+			#clock-cells = <1>;
+			compatible = "allwinner,sun47i-usb-gates-clk";
+			reg = <0x01c200cc 0x4>;
+			clocks = <&pll6 1>;
+			clock-output-names = "usb_ohci0", "usb_ohci1", "usb_phy";
 		};
 
 		cpu: cpu@01c20054 {
@@ -613,6 +623,16 @@
 			status = "disabled";
 		};
 
+		hstimer@01c60000 {
+			compatible = "allwinner,sun7i-a20-hstimer";
+			reg = <0x01c60000 0x1000>;
+			interrupts = <0 81 1>,
+				     <0 82 1>,
+				     <0 83 1>,
+				     <0 84 1>;
+			clocks = <&ahb_gates 28>;
+		};
+
 		gic: interrupt-controller@01c81000 {
 			compatible = "arm,cortex-a7-gic", "arm,cortex-a15-gic";
 			reg = <0x01c81000 0x1000>,
@@ -622,6 +642,34 @@
 			interrupt-controller;
 			#interrupt-cells = <3>;
 			interrupts = <1 9 0xf04>;
+		};
+
+		usb_rst: reset@0x01c200cc {
+		        #reset-cells = <1>;
+		        compatible = "allwinner,sun4i-clock-reset";
+		        reg = <0x01c200cc 0x4>;
+		};
+
+		ehci0: ehci0@0x01c14000 {
+			compatible = "allwinner,sunxi-ehci";
+			reg = <0x01c14000 0x400 0x01c14800 0x4 0x01c13404 0x4>;
+			interrupts = <0 39 4>;
+			resets = <&usb_rst 1>;
+			reset-names = "ehci_reset";
+			clocks = <&usb 8>, <&ahb_gates 1>;
+			clock-names = "usb_phy", "ahb_ehci";
+			status = "disabled";
+		};
+
+		ehci1: ehci1@0x01c1c000 {
+			compatible = "allwinner,sunxi-ehci";
+			reg = <0x01c1c000 0x400 0x01c1c800 0x4 0x01c13404 0x4>;
+			interrupts = <0 40 4>;
+			resets = <&usb_rst 2>;
+			reset-names = "ehci_reset";
+			clocks = <&usb 8>, <&ahb_gates 3>;
+			clock-names = "usb_phy", "ahb_ehci";
+			status = "disabled";
 		};
 	};
 };
