@@ -28,6 +28,8 @@ next/soc
 	hi3xxx/soc
 		local branch: fixed several checkpatch errors; originally from:
 		git://git.kernel.org/pub/scm/linux/kernel/git/hzhuang1/linux.git tags/hisilicon-basic
+	berlin/soc
+		https://github.com/shesselba/linux-berlin.git tags/berlin-3.14
 
 next/dt
 	ux500/dt
@@ -46,6 +48,10 @@ next/dt
 		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-integrator.git tags/integrator-v3.14-1
 	patches
 		ARM: pxa: add PWM nodes to pxa27x.dtsi
+	nomadik/dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-nomadik.git tags/nomadik-dt-v3.14
+	mvebu/dt-3
+		git://git.infradead.org/linux-mvebu.git tags/mvebu-dt-3.14-3
 
 next/boards
 	renesas/defconfig
