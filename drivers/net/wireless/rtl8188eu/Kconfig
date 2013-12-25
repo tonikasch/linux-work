@@ -1,0 +1,11 @@
+config RTL8188EU
+	tristate "Realtek 8188EU from Larry Finger git tree"
+	depends on USB
+	  select WIRELESS_EXT
+	  select WEXT_PRIV
+	  select CFG80211
+          select MAC80211
+	---help---
+	  Realtek driver from git://github.com/lwfinger/rtl8188eu
+
+
