@@ -1,7 +1,7 @@
 /*
  * An RTC driver for Allwinner A10/A20
  *
- * Copyright (c) 2013, Carlo Caione <carlo.caione@xxxxxxxxx>
+ * Copyright (c) 2013, Carlo Caione <carlo.caione@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -519,5 +519,5 @@ static struct platform_driver sunxi_rtc_driver = {
 module_platform_driver(sunxi_rtc_driver);
 
 MODULE_DESCRIPTION("sunxi RTC driver");
-MODULE_AUTHOR("Carlo Caione <carlo.caione@xxxxxxxxx>");
+MODULE_AUTHOR("Carlo Caione <carlo.caione@gmail.com>");
 MODULE_LICENSE("GPL");
