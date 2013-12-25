@@ -1165,7 +1165,7 @@ static int rk_request_fb_buffer(struct fb_info *fbi,int fb_id)
 	struct rk_fb_inf *fb_inf = platform_get_drvdata(g_fb_pdev);
 	if (!strcmp(fbi->fix.id,"fb0"))
 	{
-#if defined(OLEGK0_CHANGED) && defined(CONFIG_MALI)
+#if defined(OLEGK0_CHANGED) && defined(CONFIG_MALI) && 0
       res = platform_get_resource_byname(g_fb_pdev, IORESOURCE_MEM, "ipp buf");
 #else
 		res = platform_get_resource_byname(g_fb_pdev, IORESOURCE_MEM, "fb0 buf");
