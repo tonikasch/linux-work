@@ -23,14 +23,9 @@
 static int num_heaps;
 static struct ion_heap **heaps;
 
-static long rockchip_custom_ioctl (struct ion_client *client, unsigned int cmd,
-			      unsigned long arg)
-{
-	return 0;
-}
 static int rockchip_ion_probe(struct platform_device *pdev)
 {
-    struct ion_device *idev;
+	struct ion_device *idev;
 	struct ion_platform_data *pdata = pdev->dev.platform_data;
 	int err;
 	int i;
@@ -38,7 +33,7 @@ static int rockchip_ion_probe(struct platform_device *pdev)
 	num_heaps = pdata->nr;
 	heaps = kzalloc(sizeof(struct ion_heap *) * pdata->nr, GFP_KERNEL);
 
-	idev = ion_device_create(rockchip_custom_ioctl);
+	idev = ion_device_create(NULL);
 	if (IS_ERR_OR_NULL(idev)) {
 		kfree(heaps);
 		return PTR_ERR(idev);
@@ -55,7 +50,6 @@ static int rockchip_ion_probe(struct platform_device *pdev)
 		ion_device_add_heap(idev, heaps[i]);
 	}
 	platform_set_drvdata(pdev, idev);
-        pr_info("Rockchip ion module is successfully loaded\n");
 	return 0;
 err:
 	for (i = 0; i < num_heaps; i++) {
