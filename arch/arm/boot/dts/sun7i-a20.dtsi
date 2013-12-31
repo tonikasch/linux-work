@@ -320,9 +320,9 @@
 		};
 
 		sdc0: sdc@01c0f000 {
-			compatible = "allwinner,sun5i-mmc";
+			compatible = "allwinner,sun7i-a20-mmc";
 			reg = <0x01c0f000 0x1000>;
-			clocks = <&ahb_gates 8>, <&mmc0>;
+			clocks = <&ahb_gates 8>, <&mmc0_clk>;
 			clock-names = "ahb", "mod";
 			interrupts = <0 32 4>;
 			bus-width = <4>;
@@ -332,7 +332,7 @@
 		sdc3: sdc@01c12000 {
 			compatible = "allwinner,sun5i-mmc";
 			reg = <0x01c12000 0x1000>;
-			clocks = <&ahb_gates 11>, <&mmc3>;
+			clocks = <&ahb_gates 11>, <&mmc3_clk>;
 			clock-names = "ahb", "mod";
 			interrupts = <0 35 4>;
 			bus-width = <4>;

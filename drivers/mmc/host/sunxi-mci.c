@@ -715,8 +715,10 @@ static void sunxi_mmc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 }
 
 static const struct of_device_id sunxi_mmc_of_match[] = {
-	{ .compatible = "allwinner,sun4i-mmc", },
-	{ .compatible = "allwinner,sun5i-mmc", },
+	{ .compatible = "allwinner,sun4i-a10-mmc", },
+	{ .compatible = "allwinner,sun5i-a10s-mmc", },
+	{ .compatible = "allwinner,sun5i-a13-mmc", },
+	{ .compatible = "allwinner,sun7i-a20-mmc", },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, sunxi_mmc_of_match);
