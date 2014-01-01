@@ -1,5 +1,5 @@
 /*
- * sun4i-ts.c Allwinner sunxi resistive touchscreen controller driver
+ * Allwinner sunxi resistive touchscreen controller driver
  *
  * Copyright (C) 2013 - 2014 Hans de Goede <hdegoede@redhat.com>
  *
@@ -32,7 +32,6 @@
  * touch functionality only.
  */
 
-#include <linux/delay.h>
 #include <linux/err.h>
 #include <linux/hwmon.h>
 #include <linux/init.h>
@@ -94,12 +93,12 @@
 #define TP_DOWN_IRQ_EN(x)	((x) << 0)
 
 /* TP_INT_FIFOS irq and fifo status bits */
-#define TEMP_DATA_PENDING	(1 << 18)
-#define FIFO_OVERRUN_PENDING	(1 << 17)
-#define FIFO_DATA_PENDING	(1 << 16)
-#define TP_IDLE_FLG		(1 << 2)
-#define TP_UP_PENDING		(1 << 1)
-#define TP_DOWN_PENDING		(1 << 0)
+#define TEMP_DATA_PENDING	BIT(18)
+#define FIFO_OVERRUN_PENDING	BIT(17)
+#define FIFO_DATA_PENDING	BIT(16)
+#define TP_IDLE_FLG		BIT(2)
+#define TP_UP_PENDING		BIT(1)
+#define TP_DOWN_PENDING		BIT(0)
 
 /* TP_TPR bits */
 #define TEMP_ENABLE(x)		((x) << 16)
@@ -107,25 +106,16 @@
 
 struct sun4i_ts_data {
 	struct device *dev;
-	void __iomem *base;
 	struct input_dev *input;
-	struct device *hwmon;
-	atomic_t temp_data;
-	int ignore_fifo_data;
+	void __iomem *base;
+	unsigned int irq;
+	bool ignore_fifo_data;
+	int temp_data;
 };
 
-static irqreturn_t sun4i_ts_irq(int irq, void *dev_id)
+static void sun4i_ts_irq_handle_input(struct sun4i_ts_data *ts, u32 reg_val)
 {
-	struct sun4i_ts_data *ts = dev_id;
-	u32 reg_val, x, y;
-
-	reg_val  = readl(ts->base + TP_INT_FIFOS);
-
-	if (reg_val & TEMP_DATA_PENDING)
-		atomic_set(&ts->temp_data, readl(ts->base + TEMP_DATA));
-
-	if (!ts->input)
-		goto leave;
+	u32 x, y;
 
 	if (reg_val & FIFO_DATA_PENDING) {
 		x = readl(ts->base + TP_DATA);
@@ -141,70 +131,65 @@ static irqreturn_t sun4i_ts_irq(int irq, void *dev_id)
 			 */
 			input_report_key(ts->input, BTN_TOUCH, 1);
 			input_sync(ts->input);
-		} else
-			ts->ignore_fifo_data = 0;
+		} else {
+			ts->ignore_fifo_data = false;
+		}
 	}
 
 	if (reg_val & TP_UP_PENDING) {
-		ts->ignore_fifo_data = 1;
+		ts->ignore_fifo_data = true;
 		input_report_key(ts->input, BTN_TOUCH, 0);
 		input_sync(ts->input);
 	}
+}
 
-leave:
+static irqreturn_t sun4i_ts_irq(int irq, void *dev_id)
+{
+	struct sun4i_ts_data *ts = dev_id;
+	u32 reg_val;
+
+	reg_val  = readl(ts->base + TP_INT_FIFOS);
+
+	if (reg_val & TEMP_DATA_PENDING)
+		ts->temp_data = readl(ts->base + TEMP_DATA);
+
+	if (ts->input)
+		sun4i_ts_irq_handle_input(ts, reg_val);
+
 	writel(reg_val, ts->base + TP_INT_FIFOS);
 
 	return IRQ_HANDLED;
 }
 
-static int sun4i_ts_register_input(struct sun4i_ts_data *ts,
-					     const char *name)
+static int sun4i_ts_open(struct input_dev *dev)
 {
-	int ret;
-	struct input_dev *input;
+	struct sun4i_ts_data *ts = input_get_drvdata(dev);
 
-	input = devm_input_allocate_device(ts->dev);
-	if (!input)
-		return -ENOMEM;
+	/* Flush, set trig level to 1, enable temp, data and up irqs */
+	writel(TEMP_IRQ_EN(1) | DATA_IRQ_EN(1) | FIFO_TRIG(1) | FIFO_FLUSH(1) |
+		TP_UP_IRQ_EN(1), ts->base + TP_INT_FIFOC);
 
-	input->name = name;
-	input->phys = "sun4i_ts/input0";
-	input->id.bustype = BUS_HOST;
-	input->id.vendor = 0x0001;
-	input->id.product = 0x0001;
-	input->id.version = 0x0100;
-	input->dev.parent = ts->dev;
-	input->evbit[0] =  BIT(EV_SYN) | BIT(EV_KEY) | BIT(EV_ABS);
-	set_bit(BTN_TOUCH, input->keybit);
-	input_set_abs_params(input, ABS_X, 0, 4095, 0, 0);
-	input_set_abs_params(input, ABS_Y, 0, 4095, 0, 0);
-
-	ret = input_register_device(input);
-	if (ret)
-		return ret;
-
-	ts->input = input;
 	return 0;
 }
 
-static ssize_t show_name(struct device *dev, struct device_attribute *devattr,
-			 char *buf)
+static void sun4i_ts_close(struct input_dev *dev)
 {
-	return sprintf(buf, "sun4i_ts\n");
+	struct sun4i_ts_data *ts = input_get_drvdata(dev);
+
+	/* Deactivate all input IRQs */
+	writel(TEMP_IRQ_EN(1), ts->base + TP_INT_FIFOC);
 }
 
 static ssize_t show_temp(struct device *dev, struct device_attribute *devattr,
 			 char *buf)
 {
 	struct sun4i_ts_data *ts = dev_get_drvdata(dev);
-	int temp_data;
 
-	temp_data = atomic_read(&ts->temp_data);
 	/* No temp_data until the first irq */
-	if (temp_data == -1)
+	if (ts->temp_data == -1)
 		return -EAGAIN;
 
-	return sprintf(buf, "%d\n", (temp_data - 1447) * 100);
+	return sprintf(buf, "%d\n", (ts->temp_data - 1447) * 100);
 }
 
 static ssize_t show_temp_label(struct device *dev,
@@ -213,97 +198,64 @@ static ssize_t show_temp_label(struct device *dev,
 	return sprintf(buf, "SoC temperature\n");
 }
 
-static DEVICE_ATTR(name, S_IRUGO, show_name, NULL);
 static DEVICE_ATTR(temp1_input, S_IRUGO, show_temp, NULL);
 static DEVICE_ATTR(temp1_label, S_IRUGO, show_temp_label, NULL);
 
-static struct attribute *sun4i_ts_attributes[] = {
-	&dev_attr_name.attr,
+static struct attribute *sun4i_ts_attrs[] = {
 	&dev_attr_temp1_input.attr,
 	&dev_attr_temp1_label.attr,
 	NULL
 };
-
-static const struct attribute_group sun4i_ts_attr_group = {
-	.attrs = sun4i_ts_attributes,
-};
-
-static int sun4i_ts_register_hwmon(struct sun4i_ts_data *ts)
-{
-	int ret;
-
-	atomic_set(&ts->temp_data, -1);
-
-	ret = sysfs_create_group(&ts->dev->kobj, &sun4i_ts_attr_group);
-	if (ret)
-		return ret;
-
-	ts->hwmon = hwmon_device_register(ts->dev);
-	if (IS_ERR(ts->hwmon)) {
-		ret = PTR_ERR(ts->hwmon);
-		ts->hwmon = NULL;
-	}
-
-	return ret;
-}
-
-static int sun4i_ts_remove(struct platform_device *pdev)
-{
-	struct sun4i_ts_data *ts = platform_get_drvdata(pdev);
-
-	/* Deactivate all IRQs */
-	writel(0, ts->base + TP_INT_FIFOC);
-	msleep(20);
-
-	if (ts->hwmon)
-		hwmon_device_unregister(ts->hwmon);
-
-	if (ts->input)
-		input_unregister_device(ts->input);
-
-	sysfs_remove_group(&ts->dev->kobj, &sun4i_ts_attr_group);
-	kfree(ts);
-
-	return 0;
-}
+ATTRIBUTE_GROUPS(sun4i_ts);
 
 static int sun4i_ts_probe(struct platform_device *pdev)
 {
 	struct sun4i_ts_data *ts;
-	struct device_node *np = pdev->dev.of_node;
-	int ret = -ENOMEM;
-	u32 ts_attached = 0;
+	struct device *dev = &pdev->dev;
+	struct device_node *np = dev->of_node;
+	struct device *hwmon;
+	int ret;
+	bool ts_attached;
 
-	of_property_read_u32(np, "ts-attached", &ts_attached);
+	ts_attached = of_property_read_bool(np, "allwinner,ts-attached");
 
-	ts = kzalloc(sizeof(struct sun4i_ts_data), GFP_KERNEL);
+	ts = devm_kzalloc(dev, sizeof(struct sun4i_ts_data), GFP_KERNEL);
 	if (!ts)
 		return -ENOMEM;
 
-	platform_set_drvdata(pdev, ts);
-
-	ts->dev = &pdev->dev;
-	ts->base = devm_ioremap_resource(&pdev->dev,
-			      platform_get_resource(pdev, IORESOURCE_MEM, 0));
-	if (IS_ERR(ts->base)) {
-		ret = PTR_ERR(ts->base);
-		goto error;
-	}
-
-	ret = devm_request_irq(&pdev->dev, platform_get_irq(pdev, 0),
-			       sun4i_ts_irq, 0, "sun4i-ts", ts);
-	if (ret)
-		goto error;
+	ts->dev = dev;
+	ts->ignore_fifo_data = true;
+	ts->temp_data = -1;
 
 	if (ts_attached) {
-		ret = sun4i_ts_register_input(ts, pdev->name);
-		if (ret)
-			goto error;
+		ts->input = devm_input_allocate_device(dev);
+		if (!ts->input)
+			return -ENOMEM;
+
+		ts->input->name = pdev->name;
+		ts->input->phys = "sun4i_ts/input0";
+		ts->input->open = sun4i_ts_open;
+		ts->input->close = sun4i_ts_close;
+		ts->input->id.bustype = BUS_HOST;
+		ts->input->id.vendor = 0x0001;
+		ts->input->id.product = 0x0001;
+		ts->input->id.version = 0x0100;
+		ts->input->evbit[0] =  BIT(EV_SYN) | BIT(EV_KEY) | BIT(EV_ABS);
+		set_bit(BTN_TOUCH, ts->input->keybit);
+		input_set_abs_params(ts->input, ABS_X, 0, 4095, 0, 0);
+		input_set_abs_params(ts->input, ABS_Y, 0, 4095, 0, 0);
+		input_set_drvdata(ts->input, ts);
 	}
 
-	ret = sun4i_ts_register_hwmon(ts);
+	ts->base = devm_ioremap_resource(dev,
+			      platform_get_resource(pdev, IORESOURCE_MEM, 0));
+	if (IS_ERR(ts->base))
+		return PTR_ERR(ts->base);
+
+	ts->irq = platform_get_irq(pdev, 0);
+	ret = devm_request_irq(dev, ts->irq, sun4i_ts_irq, 0, "sun4i-ts", ts);
 	if (ret)
-		goto error;
+		return ret;
 
 	/*
 	 * Select HOSC clk, clkin = clk / 6, adc samplefreq = clkin / 8192,
@@ -322,14 +274,6 @@ static int sun4i_ts_probe(struct platform_device *pdev)
 	/* Enable median filter, type 1 : 5/3 */
 	writel(FILTER_EN(1) | FILTER_TYPE(1), ts->base + TP_CTRL3);
 
-	if (ts_attached) {
-		/* Flush, set trig level to 1, enable temp, data and up irqs */
-		writel(TEMP_IRQ_EN(1) | DATA_IRQ_EN(1) | FIFO_TRIG(1) |
-			FIFO_FLUSH(1) | TP_UP_IRQ_EN(1),
-		       ts->base + TP_INT_FIFOC);
-	} else
-		writel(TEMP_IRQ_EN(1), ts->base + TP_INT_FIFOC);
-
 	/* Enable temperature measurement, period 1953 (2 seconds) */
 	writel(TEMP_ENABLE(1) | TEMP_PERIOD(1953), ts->base + TP_TPR);
 
@@ -340,11 +284,37 @@ static int sun4i_ts_probe(struct platform_device *pdev)
 	writel(STYLUS_UP_DEBOUN(5) | STYLUS_UP_DEBOUN_EN(1) | TP_MODE_EN(1),
 	       ts->base + TP_CTRL1);
 
-	return 0;
+	hwmon = devm_hwmon_device_register_with_groups(ts->dev, "sun4i_ts",
+						       ts, sun4i_ts_groups);
+	if (IS_ERR(hwmon))
+		return PTR_ERR(hwmon);
 
-error:
-	sun4i_ts_remove(pdev);
-	return ret;
+	writel(TEMP_IRQ_EN(1), ts->base + TP_INT_FIFOC);
+
+	if (ts_attached) {
+		ret = input_register_device(ts->input);
+		if (ret) {
+			writel(0, ts->base + TP_INT_FIFOC);
+			return ret;
+		}
+	}
+
+	platform_set_drvdata(pdev, ts);
+	return 0;
+}
+
+static int sun4i_ts_remove(struct platform_device *pdev)
+{
+	struct sun4i_ts_data *ts = platform_get_drvdata(pdev);
+
+	/* Explicit unregister to avoid open/close changing the imask later */
+	if (ts->input)
+		input_unregister_device(ts->input);
+
+	/* Deactivate all IRQs */
+	writel(0, ts->base + TP_INT_FIFOC);
+
+	return 0;
 }
 
 static const struct of_device_id sun4i_ts_of_match[] = {
