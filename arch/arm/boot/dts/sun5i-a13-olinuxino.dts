@@ -13,6 +13,7 @@
 
 /dts-v1/;
 /include/ "sun5i-a13.dtsi"
+#include <dt-bindings/input/input.h>
 
 / {
 	model = "Olimex A13-Olinuxino";
@@ -23,9 +24,9 @@
 	};
 
 	soc@01c00000 {
-		sdc0: sdc@01c0f000 {
+		mmc0: mmc@01c0f000 {
 			pinctrl-names = "default";
-			pinctrl-0 = <&sdc0_pins_a>;
+			pinctrl-0 = <&mmc0_pins_a>;
 			pinctrl-1 = <&mmc0_cd_pin_olinuxino>;
 			cd-gpios = <&pio 6 0 0>; /* PG0 */
 			cd-mode = <1>;
@@ -53,6 +54,13 @@
 				allwinner,drive = <0>;
 				allwinner,pull = <2>;
 			};
+		};
+
+		lradc: lradc@01c22800 {
+			allwinner,chan0-step = <200>;
+			linux,chan0-keycodes = <KEY_VOLUMEUP KEY_VOLUMEDOWN
+						KEY_MENU KEY_ENTER KEY_HOME>;
+			status = "okay";
 		};
 
 		uart1: serial@01c28400 {

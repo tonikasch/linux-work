@@ -13,6 +13,7 @@
 
 /dts-v1/;
 /include/ "sun5i-a10s.dtsi"
+#include <dt-bindings/input/input.h>
 
 / {
 	model = "Olimex A10s-Olinuxino Micro";
@@ -34,18 +35,18 @@
 			};
 		};
 
-		sdc0: sdc@01c0f000 {
+		mmc0: mmc@01c0f000 {
 			pinctrl-names = "default";
-			pinctrl-0 = <&sdc0_pins_a>;
+			pinctrl-0 = <&mmc0_pins_a>;
 			pinctrl-1 = <&mmc0_cd_pin_olinuxino_micro>;
 			cd-gpios = <&pio 6 1 0>; /* PG1 */
 			cd-mode = <1>;
 			status = "okay";
 		};
 
-		sdc1: sdc@01c10000 {
+		mmc1: mmc@01c10000 {
 			pinctrl-names = "default";
-			pinctrl-0 = <&sdc1_pins_a>;
+			pinctrl-0 = <&mmc1_pins_a>;
 			pinctrl-1 = <&mmc1_cd_pin_olinuxino_micro>;
 			cd-gpios = <&pio 6 13 0>; /* PG13 */
 			cd-mode = <1>;
@@ -73,6 +74,13 @@
 				allwinner,drive = <1>;
 				allwinner,pull = <0>;
 			};
+		};
+
+		lradc: lradc@01c22800 {
+			allwinner,chan0-step = <200>;
+			linux,chan0-keycodes = <KEY_VOLUMEUP KEY_VOLUMEDOWN
+						KEY_MENU KEY_ENTER KEY_HOME>;
+			status = "okay";
 		};
 
 		uart0: serial@01c28000 {

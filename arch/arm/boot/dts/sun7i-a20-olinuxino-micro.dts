@@ -13,24 +13,25 @@
 
 /dts-v1/;
 /include/ "sun7i-a20.dtsi"
+#include <dt-bindings/input/input.h>
 
 / {
 	model = "Olimex A20-Olinuxino Micro";
 	compatible = "olimex,a20-olinuxino-micro", "allwinner,sun7i-a20";
 
 	soc@01c00000 {
-		sdc0: sdc@01c0f000 {
+		mmc0: mmc@01c0f000 {
 			pinctrl-names = "default";
-			pinctrl-0 = <&sdc0_pins_a>;
+			pinctrl-0 = <&mmc0_pins_a>;
 			pinctrl-1 = <&mmc0_cd_pin_olinuxinom>;
 			cd-gpios = <&pio 7 1 0>; /* PH1 */
 			cd-mode = <1>;
 			status = "okay";
 		};
 
-		sdc3: sdc@01c12000 {
+		mmc3: mmc@01c12000 {
 			pinctrl-names = "default";
-			pinctrl-0 = <&sdc3_pins_a>;
+			pinctrl-0 = <&mmc3_pins_a>;
 			pinctrl-1 = <&mmc3_cd_pin_olinuxinom>;
 			cd-gpios = <&pio 7 11 0>; /* PH11 */
 			cd-mode = <1>;
@@ -84,6 +85,14 @@
 					allwinner,drive = <0>;
 					allwinner,pull = <2>;
 			};
+		};
+
+		lradc: lradc@01c22800 {
+			allwinner,chan0-step = <200>;
+			linux,chan0-keycodes = <KEY_VOLUMEUP KEY_VOLUMEDOWN
+						KEY_MENU KEY_SEARCH KEY_HOME
+						KEY_ESC KEY_ENTER>;
+			status = "okay";
 		};
 
 		uart0: serial@01c28000 {
