@@ -738,7 +738,7 @@ static int sunxi_mmc_resource_request(struct sunxi_mmc_host *host,
 	struct device_node *np = pdev->dev.of_node;
 	int ret;
 
-	if (of_device_is_compatible(np, "allwinner,sun4i-mmc"))
+	if (of_device_is_compatible(np, "allwinner,sun4i-a10-mmc"))
 		host->idma_des_size_bits = 13;
 	else
 		host->idma_des_size_bits = 16;
