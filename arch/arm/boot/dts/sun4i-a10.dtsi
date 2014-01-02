@@ -321,7 +321,7 @@
 			#size-cells = <0>;
 		};
 
-		sdc0: sdc@01c0f000 {
+		mmc0: mmc@01c0f000 {
 			compatible = "allwinner,sun4i-a10-mmc";
 			reg = <0x01c0f000 0x1000>;
 			clocks = <&ahb_gates 8>, <&mmc0_clk>;
@@ -401,7 +401,7 @@
 				allwinner,pull = <0>;
 			};
 
-			sdc0_pins_a: sdc0@0 {
+			mmc0_pins_a: mmc0@0 {
 				allwinner,pins = "PF0","PF1","PF2","PF3","PF4","PF5";
 				allwinner,function = "mmc0";
 				allwinner,drive = <3>;

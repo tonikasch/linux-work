@@ -286,7 +286,7 @@
 			#size-cells = <0>;
 		};
 
-		sdc0: sdc@01c0f000 {
+		mmc0: mmc@01c0f000 {
 			compatible = "allwinner,sun5i-a10s-mmc";
 			reg = <0x01c0f000 0x1000>;
 			clocks = <&ahb_gates 8>, <&mmc0_clk>;
@@ -296,7 +296,7 @@
 			status = "disabled";
 		};
 
-		sdc1: sdc@01c10000 {
+		mmc1: mmc@01c10000 {
 			compatible = "allwinner,sun5i-mmc";
 			reg = <0x01c10000 0x1000>;
 			clocks = <&ahb_gates 9>, <&mmc1_clk>;
@@ -377,14 +377,14 @@
 				allwinner,pull = <0>;
 			};
 
-			sdc0_pins_a: sdc0@0 {
+			mmc0_pins_a: mmc0@0 {
 				allwinner,pins = "PF0","PF1","PF2","PF3","PF4","PF5";
 				allwinner,function = "mmc0";
 				allwinner,drive = <3>;
 				allwinner,pull = <1>;
 			};
 
-			sdc1_pins_a: sdc1@0 {
+			mmc1_pins_a: mmc1@0 {
 				allwinner,pins = "PG3","PG4","PG5","PG6","PG7","PG8";
 				allwinner,function = "mmc1";
 				allwinner,drive = <3>;

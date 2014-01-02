@@ -34,18 +34,18 @@
 			};
 		};
 
-		sdc0: sdc@01c0f000 {
+		mmc0: mmc@01c0f000 {
 			pinctrl-names = "default";
-			pinctrl-0 = <&sdc0_pins_a>;
+			pinctrl-0 = <&mmc0_pins_a>;
 			pinctrl-1 = <&mmc0_cd_pin_olinuxinom>;
 			cd-gpios = <&pio 7 1 0>; /* PH1 */
 			cd-mode = <1>;
 			status = "okay";
 		};
 
-		sdc3: sdc@01c12000 {
+		mmc3: mmc@01c12000 {
 			pinctrl-names = "default";
-			pinctrl-0 = <&sdc3_pins_a>;
+			pinctrl-0 = <&mmc3_pins_a>;
 			pinctrl-1 = <&mmc3_cd_pin_olinuxinom>;
 			cd-gpios = <&pio 7 11 0>; /* PH11 */
 			cd-mode = <1>;
