@@ -37,7 +37,19 @@
 			status = "okay";
 		};
 
+		sata: ahci@01c18000 {
+			pwr-supply = <&reg_ahci_5v>;
+			status = "okay";
+		};
+
 		pinctrl@01c20800 {
+			ahci_pwr_pin_olinuxinom: ahci_pwr_pin@0 {
+				allwinner,pins = "PB8";
+				allwinner,function = "gpio_out";
+				allwinner,drive = <0>;
+				allwinner,pull = <0>;
+			};
+
 			mmc0_cd_pin_olinuxinom: mmc0_cd_pin@0 {
 				allwinner,pins = "PH1";
 				allwinner,function = "gpio_in";
@@ -114,6 +126,20 @@
 			label = "a20-olinuxino-micro:green:usr";
 			gpios = <&pio 7 2 0>;
 			default-state = "on";
+		};
+	};
+
+	regulators {
+		compatible = "simple-bus";
+
+		reg_ahci_5v: ahci-5v {
+			compatible = "regulator-fixed";
+			regulator-name = "ahci-5v";
+			regulator-min-microvolt = <5000000>;
+			regulator-max-microvolt = <5000000>;
+			pinctrl-0 = <&ahci_pwr_pin_olinuxinom>;
+			gpio = <&pio 1 8 0>;
+			enable-active-high;
 		};
 	};
 };
