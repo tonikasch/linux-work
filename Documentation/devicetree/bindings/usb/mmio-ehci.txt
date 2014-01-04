@@ -1,0 +1,22 @@
+Generic MMIO EHCI controller
+
+Required properties:
+- compatible : "via,vt8500-ehci", "wm,prizm-ehci", or "mmio-ehci"
+- reg : ehci controller register range (address and length)
+- interrupts : ehci controller interrupt
+
+Optional properties:
+- clocks : a list of phandle + clock specifier pairs
+- phys : phandle + phy specifier pair
+- phy-names : "usb"
+
+Example:
+
+	ehci@d8007900 {
+		compatible = "via,vt8500-ehci", "mmio-ehci";
+		reg = <0xd8007900 0x200>;
+		interrupts = <43>;
+		clocks = <&usb_clk 6>, <&ahb_gates 2>;
+		phys = <&usbphy 1>;
+		phy-names = "usb";
+	};
