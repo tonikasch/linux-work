@@ -346,7 +346,7 @@
 				allwinner,pins = "PF0","PF1","PF2","PF3","PF4","PF5";
 				allwinner,function = "mmc0";
 				allwinner,drive = <3>;
-				allwinner,pull = <1>;
+				allwinner,pull = <0>;
 			};
 		};
 

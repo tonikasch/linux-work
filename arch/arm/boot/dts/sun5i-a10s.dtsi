@@ -287,7 +287,7 @@
 		};
 
 		mmc0: mmc@01c0f000 {
-			compatible = "allwinner,sun5i-a10s-mmc";
+			compatible = "allwinner,sun5i-a13-mmc";
 			reg = <0x01c0f000 0x1000>;
 			clocks = <&ahb_gates 8>, <&mmc0_clk>;
 			clock-names = "ahb", "mod";
@@ -297,7 +297,7 @@
 		};
 
 		mmc1: mmc@01c10000 {
-			compatible = "allwinner,sun5i-mmc";
+			compatible = "allwinner,sun5i-a13-mmc";
 			reg = <0x01c10000 0x1000>;
 			clocks = <&ahb_gates 9>, <&mmc1_clk>;
 			clock-names = "ahb", "mod";
@@ -381,14 +381,14 @@
 				allwinner,pins = "PF0","PF1","PF2","PF3","PF4","PF5";
 				allwinner,function = "mmc0";
 				allwinner,drive = <3>;
-				allwinner,pull = <1>;
+				allwinner,pull = <0>;
 			};
 
 			mmc1_pins_a: mmc1@0 {
 				allwinner,pins = "PG3","PG4","PG5","PG6","PG7","PG8";
 				allwinner,function = "mmc1";
 				allwinner,drive = <3>;
-				allwinner,pull = <1>;
+				allwinner,pull = <0>;
 			};
 		};
 

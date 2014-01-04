@@ -108,7 +108,7 @@ config AHCI_IMX
 
 config AHCI_SUNXI
 	tristate "Allwinner sunxi AHCI SATA support"
-	depends on SATA_AHCI_PLATFORM && ARCH_SUNXI
+	depends on ARCH_SUNXI
 	help
 	  This option enables support for the Allwinner sunxi SoC's
 	  onboard AHCI SATA.
