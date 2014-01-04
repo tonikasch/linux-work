@@ -371,16 +371,14 @@ struct phy *phy_get(struct device *dev, const char *string)
 		index = of_property_match_string(dev->of_node, "phy-names",
 			string);
 		phy = of_phy_get(dev, index);
-		if (IS_ERR(phy)) {
-			dev_err(dev, "unable to find phy\n");
-			return phy;
-		}
 	} else {
 		phy = phy_lookup(dev, string);
-		if (IS_ERR(phy)) {
-			dev_err(dev, "unable to find phy\n");
-			return phy;
-		}
+	}
+	if (IS_ERR(phy)) {
+		int err = PTR_ERR(phy);
+		if (err != -EPROBE_DEFER && err != -ENODATA)
+			dev_err(dev, "unable to get phy\n");
+		return phy;
 	}
 
 	if (!try_module_get(phy->ops->owner))
