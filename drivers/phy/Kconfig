@@ -51,4 +51,15 @@ config PHY_EXYNOS_DP_VIDEO
 	help
 	  Support for Display Port PHY found on Samsung EXYNOS SoCs.
 
+config PHY_SUN4I_USB
+	tristate "Allwinner sunxi SoC USB PHY driver"
+	depends on ARCH_SUNXI
+	select GENERIC_PHY
+	help
+	  Enable this to support the transceiver that is part of Allwinner
+	  sunxi SoCs.
+
+	  This driver controls the entire USB PHY block, both the USB OTG
+	  parts, as well as the 2 regular USB 2 host PHYs.
+
 endmenu
