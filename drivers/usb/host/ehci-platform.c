@@ -18,6 +18,7 @@
  *
  * Licensed under the GNU/GPL. See COPYING for details.
  */
+#include <linux/clk.h>
 #include <linux/dma-mapping.h>
 #include <linux/err.h>
 #include <linux/kernel.h>
@@ -25,6 +26,7 @@
 #include <linux/io.h>
 #include <linux/module.h>
 #include <linux/of.h>
+#include <linux/phy/phy.h>
 #include <linux/platform_device.h>
 #include <linux/usb.h>
 #include <linux/usb/hcd.h>
@@ -33,6 +35,11 @@
 #include "ehci.h"
 
 #define DRIVER_DESC "EHCI generic platform driver"
+
+struct ehci_platform_priv {
+	struct clk *clk;
+	struct phy *phy;
+};
 
 static const char hcd_name[] = "ehci-platform";
 
@@ -64,13 +71,65 @@ static int ehci_platform_reset(struct usb_hcd *hcd)
 	return 0;
 }
 
+static int ehci_platform_power_on(struct platform_device *dev)
+{
+	struct usb_hcd *hcd = platform_get_drvdata(dev);
+	struct ehci_platform_priv *priv =
+		(struct ehci_platform_priv *)hcd_to_ehci(hcd)->priv;
+	int ret;
+
+	if (!IS_ERR(priv->clk)) {
+		ret = clk_prepare_enable(priv->clk);
+		if (ret)
+			return ret;
+	}
+
+	if (!IS_ERR(priv->phy)) {
+		ret = phy_init(priv->phy);
+		if (ret)
+			goto err_disable_clk;
+
+		ret = phy_power_on(priv->phy);
+		if (ret)
+			goto err_exit_phy;
+	}
+
+	return 0;
+
+err_exit_phy:
+	phy_exit(priv->phy);
+err_disable_clk:
+	if (!IS_ERR(priv->clk))
+		clk_disable_unprepare(priv->clk);
+
+	return ret;
+}
+
+static void ehci_platform_power_off(struct platform_device *dev)
+{
+	struct usb_hcd *hcd = platform_get_drvdata(dev);
+	struct ehci_platform_priv *priv =
+		(struct ehci_platform_priv *)hcd_to_ehci(hcd)->priv;
+
+	if (!IS_ERR(priv->phy)) {
+		phy_power_off(priv->phy);
+		phy_exit(priv->phy);
+	}
+	if (!IS_ERR(priv->clk))
+		clk_disable_unprepare(priv->clk);
+}
+
 static struct hc_driver __read_mostly ehci_platform_hc_driver;
 
 static const struct ehci_driver_overrides platform_overrides __initconst = {
-	.reset =	ehci_platform_reset,
+	.reset =		ehci_platform_reset,
+	.extra_priv_size =	sizeof(struct ehci_platform_priv),
 };
 
-static struct usb_ehci_pdata ehci_platform_defaults;
+static struct usb_ehci_pdata ehci_platform_defaults = {
+	.power_on = 		ehci_platform_power_on,
+	.power_off = 		ehci_platform_power_off,
+};
 
 static int ehci_platform_probe(struct platform_device *dev)
 {
@@ -107,17 +166,27 @@ static int ehci_platform_probe(struct platform_device *dev)
 		return -ENXIO;
 	}
 
+	hcd = usb_create_hcd(&ehci_platform_hc_driver, &dev->dev,
+			     dev_name(&dev->dev));
+	if (!hcd)
+		return -ENOMEM;
+
+	if (pdata == &ehci_platform_defaults) {
+		struct ehci_platform_priv *priv = (struct ehci_platform_priv *)
+						  hcd_to_ehci(hcd)->priv;
+
+		priv->phy = devm_phy_get(&dev->dev, "usb_phy");
+		if (IS_ERR(priv->phy) && PTR_ERR(priv->phy) == -EPROBE_DEFER)
+			return -EPROBE_DEFER;
+
+		priv->clk = devm_clk_get(&dev->dev, "ehci_clk");
+	}
+
+	platform_set_drvdata(dev, hcd);
 	if (pdata->power_on) {
 		err = pdata->power_on(dev);
 		if (err < 0)
-			return err;
-	}
-
-	hcd = usb_create_hcd(&ehci_platform_hc_driver, &dev->dev,
-			     dev_name(&dev->dev));
-	if (!hcd) {
-		err = -ENOMEM;
-		goto err_power;
+			goto err_put_hcd;
 	}
 
 	hcd->rsrc_start = res_mem->start;
@@ -126,21 +195,19 @@ static int ehci_platform_probe(struct platform_device *dev)
 	hcd->regs = devm_ioremap_resource(&dev->dev, res_mem);
 	if (IS_ERR(hcd->regs)) {
 		err = PTR_ERR(hcd->regs);
-		goto err_put_hcd;
+		goto err_power;
 	}
 	err = usb_add_hcd(hcd, irq, IRQF_SHARED);
 	if (err)
-		goto err_put_hcd;
-
-	platform_set_drvdata(dev, hcd);
+		goto err_power;
 
 	return err;
 
-err_put_hcd:
-	usb_put_hcd(hcd);
 err_power:
 	if (pdata->power_off)
 		pdata->power_off(dev);
+err_put_hcd:
+	usb_put_hcd(hcd);
 
 	return err;
 }
@@ -203,9 +270,10 @@ static int ehci_platform_resume(struct device *dev)
 #define ehci_platform_resume	NULL
 #endif /* CONFIG_PM */
 
-static const struct of_device_id vt8500_ehci_ids[] = {
+static const struct of_device_id ehci_platform_ids[] = {
 	{ .compatible = "via,vt8500-ehci", },
 	{ .compatible = "wm,prizm-ehci", },
+	{ .compatible = "platform-ehci", },
 	{}
 };
 
@@ -229,7 +297,7 @@ static struct platform_driver ehci_platform_driver = {
 		.owner	= THIS_MODULE,
 		.name	= "ehci-platform",
 		.pm	= &ehci_platform_pm_ops,
-		.of_match_table = vt8500_ehci_ids,
+		.of_match_table = ehci_platform_ids,
 	}
 };
 
