@@ -404,6 +404,17 @@
 			status = "disabled";
 		};
 
+		ohci0: ohci@0x01c14400 {
+			compatible = "platform-ohci";
+			reg = <0x01c14400 0x100>;
+			interrupts = <0 64 4>;
+			clocks = <&ahb_gates 2>, <&usb_clk 6>;
+			clock-names = "ahb", "ohci";
+			phys = <&usbphy 1>;
+			phy-names = "usb_phy";
+			status = "disabled";
+		};
+
 		sata: ahci@01c18000 {
 			compatible = "allwinner,sun4i-a10-ahci";
 			reg = <0x01c18000 0x1000>;
@@ -419,6 +430,17 @@
 			interrupts = <0 40 4>;
 			clocks = <&ahb_gates 3>;
 			clock-names = "ahb";
+			phys = <&usbphy 2>;
+			phy-names = "usb_phy";
+			status = "disabled";
+		};
+
+		ohci1: ohci@0x01c1c400 {
+			compatible = "platform-ohci";
+			reg = <0x01c1c400 0x100>;
+			interrupts = <0 65 4>;
+			clocks = <&ahb_gates 4>, <&usb_clk 7>;
+			clock-names = "ahb", "ohci";
 			phys = <&usbphy 2>;
 			phy-names = "usb_phy";
 			status = "disabled";
