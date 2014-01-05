@@ -3,6 +3,7 @@
  *
  * Copyright 2007 Michael Buesch <m@bues.ch>
  * Copyright 2011-2012 Hauke Mehrtens <hauke@hauke-m.de>
+ * Copyright 2014 Hans de Goede <hdegoede@redhat.com>
  *
  * Derived from the OCHI-SSB driver
  * Derived from the OHCI-PCI driver
@@ -14,11 +15,14 @@
  * Licensed under the GNU/GPL. See COPYING for details.
  */
 
+#include <linux/clk.h>
+#include <linux/dma-mapping.h>
 #include <linux/hrtimer.h>
 #include <linux/io.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/err.h>
+#include <linux/phy/phy.h>
 #include <linux/platform_device.h>
 #include <linux/usb/ohci_pdriver.h>
 #include <linux/usb.h>
@@ -27,6 +31,12 @@
 #include "ohci.h"
 
 #define DRIVER_DESC "OHCI generic platform driver"
+
+#define OHCI_MAX_CLKS 3
+struct ohci_platform_priv {
+	struct clk *clks[OHCI_MAX_CLKS];
+	struct phy *phy;
+};
 
 static const char hcd_name[] = "ohci-platform";
 
@@ -48,11 +58,69 @@ static int ohci_platform_reset(struct usb_hcd *hcd)
 	return ohci_setup(hcd);
 }
 
+static int ohci_platform_power_on(struct platform_device *dev)
+{
+	struct usb_hcd *hcd = platform_get_drvdata(dev);
+	struct ohci_platform_priv *priv =
+		(struct ohci_platform_priv *)hcd_to_ohci(hcd)->priv;
+	int clk, ret;
+
+	for (clk = 0; priv->clks[clk] && clk < OHCI_MAX_CLKS; clk++) {
+		ret = clk_prepare_enable(priv->clks[clk]);
+		if (ret)
+			goto err_disable_clks;
+	}
+
+	if (priv->phy) {
+		ret = phy_init(priv->phy);
+		if (ret)
+			goto err_disable_clks;
+
+		ret = phy_power_on(priv->phy);
+		if (ret)
+			goto err_exit_phy;
+	}
+
+	return 0;
+
+err_exit_phy:
+	phy_exit(priv->phy);
+err_disable_clks:
+	while (--clk >= 0)
+		clk_disable_unprepare(priv->clks[clk]);
+
+	return ret;
+}
+
+static void ohci_platform_power_off(struct platform_device *dev)
+{
+	struct usb_hcd *hcd = platform_get_drvdata(dev);
+	struct ohci_platform_priv *priv =
+		(struct ohci_platform_priv *)hcd_to_ohci(hcd)->priv;
+	int clk;
+
+	if (priv->phy) {
+		phy_power_off(priv->phy);
+		phy_exit(priv->phy);
+	}
+
+	for (clk = OHCI_MAX_CLKS - 1; clk >= 0; clk--)
+		if (priv->clks[clk])
+			clk_disable_unprepare(priv->clks[clk]);
+}
+
 static struct hc_driver __read_mostly ohci_platform_hc_driver;
 
 static const struct ohci_driver_overrides platform_overrides __initconst = {
-	.product_desc =	"Generic Platform OHCI controller",
-	.reset =	ohci_platform_reset,
+	.product_desc =		"Generic Platform OHCI controller",
+	.reset =		ohci_platform_reset,
+	.extra_priv_size =	sizeof(struct ohci_platform_priv),
+};
+
+static struct usb_ohci_pdata ohci_platform_defaults = {
+	.power_on =		ohci_platform_power_on,
+	.power_suspend =	ohci_platform_power_off,
+	.power_off =		ohci_platform_power_off,
 };
 
 static int ohci_platform_probe(struct platform_device *dev)
@@ -60,12 +128,24 @@ static int ohci_platform_probe(struct platform_device *dev)
 	struct usb_hcd *hcd;
 	struct resource *res_mem;
 	struct usb_ohci_pdata *pdata = dev_get_platdata(&dev->dev);
-	int irq;
-	int err = -ENOMEM;
+	int clk, irq, err;
+	char name[8];
 
+	/*
+	 * Use reasonable defaults so platforms don't have to provide these
+	 * with DT probing on ARM.
+	 */
 	if (!pdata) {
-		WARN_ON(1);
-		return -ENODEV;
+		pdata = dev->dev.platform_data = &ohci_platform_defaults;
+		/*
+		 * Right now device-tree probed devices don't get dma_mask set.
+		 * Since shared usb code relies on it, set it here for now.
+		 * Once we have dma capability bindings this can go away.
+		 */
+		err = dma_coerce_mask_and_coherent(&dev->dev,
+						   DMA_BIT_MASK(32));
+		if (err)
+			return err;
 	}
 
 	if (usb_disabled())
@@ -83,17 +163,40 @@ static int ohci_platform_probe(struct platform_device *dev)
 		return -ENXIO;
 	}
 
+	hcd = usb_create_hcd(&ohci_platform_hc_driver, &dev->dev,
+			dev_name(&dev->dev));
+	if (!hcd)
+		return -ENOMEM;
+
+	if (pdata == &ohci_platform_defaults) {
+		struct ohci_platform_priv *priv = (struct ohci_platform_priv *)
+						  hcd_to_ohci(hcd)->priv;
+
+		priv->phy = devm_phy_get(&dev->dev, "phy0");
+		if (IS_ERR(priv->phy)) {
+			err = PTR_ERR(priv->phy);
+			if (err == -EPROBE_DEFER)
+				goto err_put_hcd;
+			priv->phy = NULL;
+		}
+
+		for (clk = 0; clk < OHCI_MAX_CLKS; clk++) {
+			snprintf(name, sizeof(name), "clk%d", clk);
+			priv->clks[clk] = devm_clk_get(&dev->dev, name);
+			if (IS_ERR(priv->clks[clk])) {
+				err = PTR_ERR(priv->clks[clk]);
+				if (err == -EPROBE_DEFER)
+					goto err_put_hcd;
+				priv->clks[clk] = NULL;
+			}
+		}
+	}
+
+	platform_set_drvdata(dev, hcd);
 	if (pdata->power_on) {
 		err = pdata->power_on(dev);
 		if (err < 0)
-			return err;
-	}
-
-	hcd = usb_create_hcd(&ohci_platform_hc_driver, &dev->dev,
-			dev_name(&dev->dev));
-	if (!hcd) {
-		err = -ENOMEM;
-		goto err_power;
+			goto err_put_hcd;
 	}
 
 	hcd->rsrc_start = res_mem->start;
@@ -102,21 +205,19 @@ static int ohci_platform_probe(struct platform_device *dev)
 	hcd->regs = devm_ioremap_resource(&dev->dev, res_mem);
 	if (IS_ERR(hcd->regs)) {
 		err = PTR_ERR(hcd->regs);
-		goto err_put_hcd;
+		goto err_power;
 	}
 	err = usb_add_hcd(hcd, irq, IRQF_SHARED);
 	if (err)
-		goto err_put_hcd;
-
-	platform_set_drvdata(dev, hcd);
+		goto err_power;
 
 	return err;
 
-err_put_hcd:
-	usb_put_hcd(hcd);
 err_power:
 	if (pdata->power_off)
 		pdata->power_off(dev);
+err_put_hcd:
+	usb_put_hcd(hcd);
 
 	return err;
 }
@@ -178,6 +279,12 @@ static int ohci_platform_resume(struct device *dev)
 #define ohci_platform_resume	NULL
 #endif /* CONFIG_PM */
 
+static const struct of_device_id ohci_platform_ids[] = {
+	{ .compatible = "allwinner,sun4i-ohci", },
+	{ }
+};
+MODULE_DEVICE_TABLE(of, ohci_platform_ids);
+
 static const struct platform_device_id ohci_platform_table[] = {
 	{ "ohci-platform", 0 },
 	{ }
@@ -198,6 +305,7 @@ static struct platform_driver ohci_platform_driver = {
 		.owner	= THIS_MODULE,
 		.name	= "ohci-platform",
 		.pm	= &ohci_platform_pm_ops,
+		.of_match_table = ohci_platform_ids,
 	}
 };
 
