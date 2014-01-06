@@ -95,11 +95,6 @@
 			pinctrl-0 = <&i2c2_pins_a>;
 			status = "okay";
 		};
-
-		ehci0: ehci0@0x01c14000 {
-			vbus-supply = <&reg_usb1_vbus>;
-			status = "okay";
-		};
 	};
 
 	leds {
