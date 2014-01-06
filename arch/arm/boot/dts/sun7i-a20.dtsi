@@ -282,6 +282,7 @@
 
 		usb_clk: clk@0x01c200cc {
 			#clock-cells = <1>;
+		        #reset-cells = <1>;
 			compatible = "allwinner,sun47i-usb-gates-clk";
 			reg = <0x01c200cc 0x4>;
 			clocks = <&pll6 1>;
@@ -388,7 +389,7 @@
 			reg = <0x01c13400 0x10 0x01c14800 0x4 0x01c1c800 0x4>;
 			clocks = <&usb_clk 8>;
 			clock-names = "usb_phy";
-			resets = <&usb_rst 1>, <&usb_rst 2>;
+			resets = <&usb_clk 1>, <&usb_clk 2>;
 			reset-names = "usb1_reset", "usb2_reset";
 			status = "disabled";
 		};
@@ -444,12 +445,6 @@
 			phys = <&usbphy 2>;
 			phy-names = "phy0";
 			status = "disabled";
-		};
-
-		usb_rst: reset@0x01c200cc {
-		        #reset-cells = <1>;
-		        compatible = "allwinner,sun4i-clock-reset";
-		        reg = <0x01c200cc 0x4>;
 		};
 
 		pio: pinctrl@01c20800 {
