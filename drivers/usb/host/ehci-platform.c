@@ -37,7 +37,8 @@
 #define DRIVER_DESC "EHCI generic platform driver"
 
 struct ehci_platform_priv {
-	struct clk *clk;
+	struct clk *ahb_clk;
+	struct clk *ehci_clk;
 	struct phy *phy;
 };
 
@@ -78,16 +79,22 @@ static int ehci_platform_power_on(struct platform_device *dev)
 		(struct ehci_platform_priv *)hcd_to_ehci(hcd)->priv;
 	int ret;
 
-	if (!IS_ERR(priv->clk)) {
-		ret = clk_prepare_enable(priv->clk);
+	if (!IS_ERR(priv->ehci_clk)) {
+		ret = clk_prepare_enable(priv->ehci_clk);
 		if (ret)
 			return ret;
+	}
+
+	if (!IS_ERR(priv->ahb_clk)) {
+		ret = clk_prepare_enable(priv->ahb_clk);
+		if (ret)
+			goto err_disable_ehci_clk;
 	}
 
 	if (!IS_ERR(priv->phy)) {
 		ret = phy_init(priv->phy);
 		if (ret)
-			goto err_disable_clk;
+			goto err_disable_ahb_clk;
 
 		ret = phy_power_on(priv->phy);
 		if (ret)
@@ -98,9 +105,12 @@ static int ehci_platform_power_on(struct platform_device *dev)
 
 err_exit_phy:
 	phy_exit(priv->phy);
-err_disable_clk:
-	if (!IS_ERR(priv->clk))
-		clk_disable_unprepare(priv->clk);
+err_disable_ahb_clk:
+	if (!IS_ERR(priv->ahb_clk))
+		clk_disable_unprepare(priv->ahb_clk);
+err_disable_ehci_clk:
+	if (!IS_ERR(priv->ehci_clk))
+		clk_disable_unprepare(priv->ehci_clk);
 
 	return ret;
 }
@@ -115,8 +125,12 @@ static void ehci_platform_power_off(struct platform_device *dev)
 		phy_power_off(priv->phy);
 		phy_exit(priv->phy);
 	}
-	if (!IS_ERR(priv->clk))
-		clk_disable_unprepare(priv->clk);
+
+	if (!IS_ERR(priv->ahb_clk))
+		clk_disable_unprepare(priv->ahb_clk);
+
+	if (!IS_ERR(priv->ehci_clk))
+		clk_disable_unprepare(priv->ehci_clk);
 }
 
 static struct hc_driver __read_mostly ehci_platform_hc_driver;
@@ -127,8 +141,9 @@ static const struct ehci_driver_overrides platform_overrides __initconst = {
 };
 
 static struct usb_ehci_pdata ehci_platform_defaults = {
-	.power_on = 		ehci_platform_power_on,
-	.power_off = 		ehci_platform_power_off,
+	.power_on =		ehci_platform_power_on,
+	.power_suspend =	ehci_platform_power_off,
+	.power_off =		ehci_platform_power_off,
 };
 
 static int ehci_platform_probe(struct platform_device *dev)
@@ -144,7 +159,7 @@ static int ehci_platform_probe(struct platform_device *dev)
 
 	/*
 	 * use reasonable defaults so platforms don't have to provide these.
-	 * with DT probing on ARM, none of these are set.
+	 * with DT probing on ARM.
 	 */
 	if (!dev_get_platdata(&dev->dev))
 		dev->dev.platform_data = &ehci_platform_defaults;
@@ -176,10 +191,13 @@ static int ehci_platform_probe(struct platform_device *dev)
 						  hcd_to_ehci(hcd)->priv;
 
 		priv->phy = devm_phy_get(&dev->dev, "usb_phy");
-		if (IS_ERR(priv->phy) && PTR_ERR(priv->phy) == -EPROBE_DEFER)
-			return -EPROBE_DEFER;
+		if (IS_ERR(priv->phy) && PTR_ERR(priv->phy) == -EPROBE_DEFER) {
+			err = -EPROBE_DEFER;
+			goto err_put_hcd;
+		}
 
-		priv->clk = devm_clk_get(&dev->dev, "ehci_clk");
+		priv->ehci_clk = devm_clk_get(&dev->dev, "ehci");
+		priv->ahb_clk = devm_clk_get(&dev->dev, "ahb");
 	}
 
 	platform_set_drvdata(dev, hcd);
@@ -276,6 +294,7 @@ static const struct of_device_id ehci_platform_ids[] = {
 	{ .compatible = "platform-ehci", },
 	{}
 };
+MODULE_DEVICE_TABLE(of, ehci_platform_ids);
 
 static const struct platform_device_id ehci_platform_table[] = {
 	{ "ehci-platform", 0 },

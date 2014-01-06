@@ -161,7 +161,8 @@ int phy_init(struct phy *phy)
 			dev_err(&phy->dev, "phy init failed --> %d\n", ret);
 			goto out;
 		}
-	}
+	} else
+		ret = 0; /* Override possible ret == -ENOTSUPP */
 
 out:
 	mutex_unlock(&phy->mutex);
@@ -209,7 +210,8 @@ int phy_power_on(struct phy *phy)
 			dev_err(&phy->dev, "phy poweron failed --> %d\n", ret);
 			goto out;
 		}
-	}
+	} else
+		ret = 0; /* Override possible ret == -ENOTSUPP */
 
 out:
 	mutex_unlock(&phy->mutex);

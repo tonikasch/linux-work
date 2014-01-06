@@ -1,0 +1,25 @@
+Generic Platform OHCI controller
+
+Required properties:
+ - compatible: Should be "platform-ohci"
+ - reg: Address range of the ohci registers.
+ - interrupts: Should contain the ohci interrupt.
+
+Optional properties:
+ - clocks: array of clocks
+ - clock-names: clock names "ahb" and/or "ohci"
+ - phys: phy
+ - phy-names: "usb_phy"
+
+Example:
+
+	ohci0: ohci@0x01c14400 {
+		compatible = "platform-ohci";
+		reg = <0x01c14400 0x100>;
+		interrupts = <0 64 4>;
+		clocks = <&ahb_gates 2>, <&usb_clk 6>;
+		clock-names = "ahb", "ohci";
+		phys = <&usbphy 1>;
+		phy-names = "usb_phy";
+		status = "disabled";
+	};

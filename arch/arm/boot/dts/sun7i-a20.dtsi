@@ -290,6 +290,14 @@
 			clock-output-names = "ir1";
 		};
 
+		usb_clk: clk@0x01c200cc {
+			#clock-cells = <1>;
+			compatible = "allwinner,sun47i-usb-gates-clk";
+			reg = <0x01c200cc 0x4>;
+			clocks = <&pll6 1>;
+			clock-output-names = "usb_ohci0", "usb_ohci1", "usb_phy";
+		};
+
 		spi3_clk: clk@01c200d4 {
 			#clock-cells = <0>;
 			compatible = "allwinner,sun4i-mod0-clk";
@@ -382,6 +390,76 @@
 			interrupts = <0 35 4>;
 			bus-width = <4>;
 			status = "disabled";
+		};
+
+		usbphy: phy@0x01c13400 {
+			#phy-cells = <1>;
+			compatible = "allwinner,sun7i-usb-phy";
+			reg = <0x01c13400 0x10 0x01c14800 0x4 0x01c1c800 0x4>;
+			clocks = <&usb_clk 8>;
+			clock-names = "usb_phy";
+			resets = <&usb_rst 1>, <&usb_rst 2>;
+			reset-names = "usb1_reset", "usb2_reset";
+			status = "disabled";
+		};
+
+		ehci0: ehci@0x01c14000 {
+			compatible = "platform-ehci";
+			reg = <0x01c14000 0x100>;
+			interrupts = <0 39 4>;
+			clocks = <&ahb_gates 1>;
+			clock-names = "ahb";
+			phys = <&usbphy 1>;
+			phy-names = "usb_phy";
+			status = "disabled";
+		};
+
+		ohci0: ohci@0x01c14400 {
+			compatible = "platform-ohci";
+			reg = <0x01c14400 0x100>;
+			interrupts = <0 64 4>;
+			clocks = <&ahb_gates 2>, <&usb_clk 6>;
+			clock-names = "ahb", "ohci";
+			phys = <&usbphy 1>;
+			phy-names = "usb_phy";
+			status = "disabled";
+		};
+
+		sata: ahci@01c18000 {
+			compatible = "allwinner,sun4i-a10-ahci";
+			reg = <0x01c18000 0x1000>;
+			interrupts = <0 56 1>;
+			clocks = <&ahb_gates 25>, <&pll6 0>;
+			clock-names = "ahb_sata", "pll6_sata";
+			status = "disabled";
+		};
+
+		ehci1: ehci@0x01c1c000 {
+			compatible = "platform-ehci";
+			reg = <0x01c1c000 0x100>;
+			interrupts = <0 40 4>;
+			clocks = <&ahb_gates 3>;
+			clock-names = "ahb";
+			phys = <&usbphy 2>;
+			phy-names = "usb_phy";
+			status = "disabled";
+		};
+
+		ohci1: ohci@0x01c1c400 {
+			compatible = "platform-ohci";
+			reg = <0x01c1c400 0x100>;
+			interrupts = <0 65 4>;
+			clocks = <&ahb_gates 4>, <&usb_clk 7>;
+			clock-names = "ahb", "ohci";
+			phys = <&usbphy 2>;
+			phy-names = "usb_phy";
+			status = "disabled";
+		};
+
+		usb_rst: reset@0x01c200cc {
+		        #reset-cells = <1>;
+		        compatible = "allwinner,sun4i-clock-reset";
+		        reg = <0x01c200cc 0x4>;
 		};
 
 		pio: pinctrl@01c20800 {
@@ -497,15 +575,6 @@
 				allwinner,drive = <0>;
 				allwinner,pull = <0>;
 			};
-		};
-
-		sata: ahci@01c18000 {
-			compatible = "allwinner,sun4i-a10-ahci";
-			reg = <0x01c18000 0x1000>;
-			interrupts = <0 56 1>;
-			clocks = <&ahb_gates 25>, <&pll6 0>;
-			clock-names = "ahb_sata", "pll6_sata";
-			status = "disabled";
 		};
 
 		timer@01c20c00 {
