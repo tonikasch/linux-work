@@ -614,10 +614,9 @@ static struct rk610_codec_platform_data rk610_codec_pdata = {
 
 #ifdef CONFIG_RK_HDMI
 #define RK_HDMI_RST_PIN 			RK30_PIN3_PB2
+#if 0
 static int rk_hdmi_power_init(void)
 {
-	int ret;
-
 	if(RK_HDMI_RST_PIN != INVALID_GPIO)
 	{
 		if (gpio_request(RK_HDMI_RST_PIN, NULL)) {
@@ -635,6 +634,7 @@ static int rk_hdmi_power_init(void)
 static struct rk_hdmi_platform_data rk_hdmi_pdata = {
 	//.io_init = rk_hdmi_power_init,
 };
+#endif
 #endif
 #ifdef CONFIG_ION
 #define ION_RESERVE_SIZE        (120 * SZ_1M)
@@ -665,7 +665,9 @@ static struct platform_device device_ion = {
 #ifdef CONFIG_SDMMC_RK29
 #include "board-rk3188-ds1006h-sdmmc-config.c"
 #include "../plat-rk/rk-sdmmc-ops.c"
+#if 0
 #include "../plat-rk/rk-sdmmc-wifi.c"
+#endif
 #endif //endif ---#ifdef CONFIG_SDMMC_RK29
 
 #ifdef CONFIG_SDMMC0_RK29

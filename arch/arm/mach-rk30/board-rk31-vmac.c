@@ -3,8 +3,9 @@
 static int rk30_vmac_register_set(void)
 {
 	//config rk30 vmac as rmii
+	int val;
 	writel_relaxed(0x3 << 16 | 0x2, RK30_GRF_BASE + GRF_SOC_CON1);
-	int val = readl_relaxed(RK30_GRF_BASE + GRF_IO_CON3);
+	val = readl_relaxed(RK30_GRF_BASE + GRF_IO_CON3);
 	writel_relaxed(val | 0xf << 16 | 0xf, RK30_GRF_BASE + GRF_IO_CON3);
 	return 0;
 }
@@ -127,10 +128,11 @@ static int rk29_vmac_speed_switch(int speed)
 {
 	//printk("%s--speed=%d\n", __FUNCTION__, speed);
 	if (10 == speed) {
-	    writel_relaxed(readl_relaxed(RK30_GRF_BASE + GRF_SOC_CON1) & (~BIT_EMAC_SPEED) | (BIT_EMAC_SPEED << 16), RK30_GRF_BASE + GRF_SOC_CON1);
+	    writel_relaxed(readl_relaxed(RK30_GRF_BASE + GRF_SOC_CON1) & ((~BIT_EMAC_SPEED) | (BIT_EMAC_SPEED << 16)), RK30_GRF_BASE + GRF_SOC_CON1);
 	} else {
-	    writel_relaxed(readl_relaxed(RK30_GRF_BASE + GRF_SOC_CON1) | ( BIT_EMAC_SPEED) | (BIT_EMAC_SPEED << 16), RK30_GRF_BASE + GRF_SOC_CON1);
+	    writel_relaxed(readl_relaxed(RK30_GRF_BASE + GRF_SOC_CON1) | (( BIT_EMAC_SPEED) | (BIT_EMAC_SPEED << 16)), RK30_GRF_BASE + GRF_SOC_CON1);
 	}
+	return 0;
 }
 
 struct rk29_vmac_platform_data board_vmac_data = {
