@@ -192,7 +192,7 @@ struct rk29fb_info {
 	void (*set_screen_info)(struct rk29fb_screen *screen, struct rk29lcd_info *lcd_info );
 };
 
-#ifndef CONFIG_DISPLAY_SUPPORT
+#if !defined(CONFIG_DISPLAY_SUPPORT) && !defined(CONFIG_DISPLAY_SUPPORT_MODULE)
 static inline void set_lcd_info(struct rk29fb_screen *screen, struct rk29lcd_info *lcd_info) {}
 #else
 extern void set_lcd_info(struct rk29fb_screen *screen, struct rk29lcd_info *lcd_info);

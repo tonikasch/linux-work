@@ -925,7 +925,7 @@ static struct platform_device device_ipp = {
 	.resource	= resource_ipp,
 };
 
-#ifdef CONFIG_SND_RK29_SOC_I2S
+#if defined(CONFIG_SND_RK29_SOC_I2S) || defined(CONFIG_SND_RK29_SOC_I2S_MODULE)
 #ifdef CONFIG_SND_RK29_SOC_I2S_8CH
 static struct resource resource_iis0_8ch[] = {
 	[0] = {
