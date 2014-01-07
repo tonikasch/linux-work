@@ -1232,15 +1232,15 @@ static int __init rk30_init_devices(void)
 	rk30_init_uart();
 	rk30_init_i2c();
 	rk30_init_spim();
-#ifdef CONFIG_RGA_RK30
+#if defined(CONFIG_RGA_RK30) || defined(CONFIG_RGA_RK30_MODULE)
 	platform_device_register(&device_rga);
 #endif
 	platform_device_register(&device_ipp);
 
-#ifdef CONFIG_HDMI_RK30
+#if defined(CONFIG_HDMI_RK30) || defined(CONFIG_HDMI_RK30_MODULE)
 	platform_device_register(&device_hdmi);
 #endif
-#ifdef CONFIG_ADC_RK30
+#if defined(CONFIG_ADC_RK30) || defined(CONFIG_ADC_RK30_MODULE)
 	platform_device_register(&device_adc);
 #endif
 #ifdef CONFIG_KEYS_RK29
@@ -1254,11 +1254,11 @@ static int __init rk30_init_devices(void)
 	rk30_init_i2s();
 
 /*$_rbox_$_modify_$_huangzhibao_begin$_20120508_$*/
-#ifdef CONFIG_SND_RK_SOC_SPDIF
+#if defined(CONFIG_SND_RK_SOC_SPDIF) || defined(CONFIG_SND_RK_SOC_SPDIF_MODULE)
     platform_device_register(&rk29_device_spdif);
 #endif
 /*$_rbox_$_modify_$_huangzhibao_end$_20120508_$*/
-#ifdef CONFIG_RK29_VMAC
+#if defined(CONFIG_RK29_VMAC) || defined(CONFIG_RK29_VMAC_MODULE)
 	platform_device_register(&device_vmac);
 #endif
 #ifdef CONFIG_RK29_WATCHDOG

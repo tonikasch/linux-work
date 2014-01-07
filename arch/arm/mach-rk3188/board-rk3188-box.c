@@ -1170,7 +1170,7 @@ static struct platform_device device_mt6622 = {
 /*
  * Codec for the ASoC Rockchip HDMI machine driver
  */
-#ifdef CONFIG_SND_SOC_RK_HDMI_CODEC
+#if defined(CONFIG_SND_SOC_RK_HDMI_CODEC) || defined(CONFIG_SND_SOC_RK_HDMI_CODEC_MODULE)
 static struct platform_device rockchip_hdmi_codec = {
 	.name	= "rockchip-hdmi-codec",
 	.id	= -1,
@@ -1179,7 +1179,7 @@ static struct platform_device rockchip_hdmi_codec = {
 /*
  * Device for the ASoC Rockchip HDMI machine driver
  */
-#ifdef CONFIG_SND_RK_SOC_HDMI
+#if defined(CONFIG_SND_RK_SOC_HDMI) || defined(CONFIG_SND_RK_SOC_HDMI_MODULE)
 static struct platform_device rockchip_hdmi_audio = {
 	.name	= "rockchip-hdmi-audio",
 	.id	= -1,
@@ -1278,10 +1278,10 @@ static struct platform_device *devices[] __initdata = {
 	&rk29_device_mt6229,
 #endif
 
-#ifdef CONFIG_SND_SOC_RK_HDMI_CODEC
+#if defined(CONFIG_SND_SOC_RK_HDMI_CODEC) || defined(CONFIG_SND_SOC_RK_HDMI_CODEC_MODULE)
 	&rockchip_hdmi_codec,
 #endif
-#ifdef CONFIG_SND_RK_SOC_HDMI
+#if defined(CONFIG_SND_RK_SOC_HDMI) || defined(CONFIG_SND_RK_SOC_HDMI_MODULE)
 	&rockchip_hdmi_audio,
 #endif
 #ifdef CONFIG_LEDS_GPIO_PLATFORM
@@ -1911,7 +1911,7 @@ static struct i2c_board_info __initdata i2c4_info[] = {
 		.platform_data = &tv_data,
     },
 #endif
-#ifdef CONFIG_SND_SOC_RK1000
+#if defined(CONFIG_SND_SOC_RK1000) || defined(CONFIG_SND_SOC_RK1000_MODULE)
     {
 		.type           = "rk1000_i2c_codec",
 		.addr           = 0x60,

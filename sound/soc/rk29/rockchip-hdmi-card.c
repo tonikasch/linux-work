@@ -42,7 +42,7 @@ static int rockchip_hdmi_dai_hw_params(struct snd_pcm_substream *substream,
 	unsigned int pll_out = 0; 
 	int div_bclk,div_mclk;
 	int ret;
-	struct clk	*general_pll;
+//	struct clk	*general_pll;
 	  
     DBG("Enter::%s----%d\n",__FUNCTION__,__LINE__);    
     {

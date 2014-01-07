@@ -783,6 +783,7 @@ MODULE_DESCRIPTION("ROCKCHIP IIS ASoC Interface");
 MODULE_LICENSE("GPL");
 
 
+#if 0 // procfs should be in another module or initialized in one routine. module_init() and late_initcall() are not allowed together in module mode
 #ifdef CONFIG_PROC_FS
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
@@ -806,10 +807,10 @@ static int proc_i2s_show(struct seq_file *s, void *v)
 	printk("I2S_INTCR = 0x%08X\n", readl(&(pheadi2s->I2S_INTCR)));
 	printk("I2S_INTSR = 0x%08X\n", readl(&(pheadi2s->I2S_INTSR)));
 	printk("I2S_XFER = 0x%08X\n", readl(&(pheadi2s->I2S_XFER)));
-    printk("I2S_FIFOLR = 0x%08X\n", readl(&(pheadi2s->I2S_FIFOLR)));
-    printk("I2S_CLR = 0x%08X\n", readl(&(pheadi2s->I2S_CLR)));
-    printk("I2S_TXDR = 0x%08X\n", readl(&(pheadi2s->I2S_TXDR)));
-    printk("I2S_RXDR = 0x%08X\n", readl(&(pheadi2s->I2S_RXDR)));
+	printk("I2S_FIFOLR = 0x%08X\n", readl(&(pheadi2s->I2S_FIFOLR)));
+	printk("I2S_CLR = 0x%08X\n", readl(&(pheadi2s->I2S_CLR)));
+	printk("I2S_TXDR = 0x%08X\n", readl(&(pheadi2s->I2S_TXDR)));
+	printk("I2S_RXDR = 0x%08X\n", readl(&(pheadi2s->I2S_RXDR)));
 
 	printk("========Show I2S reg========\n");
 	return 0;
@@ -834,4 +835,5 @@ static int __init i2s_proc_init(void)
 }
 late_initcall(i2s_proc_init);
 #endif /* CONFIG_PROC_FS */
+#endif
 

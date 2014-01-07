@@ -38,19 +38,22 @@ static int hdmi_audio_hw_params(struct snd_pcm_substream *substream,
 				    struct snd_pcm_hw_params *params,
 				    struct snd_soc_dai *dai)
 {
+#if 0
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_codec *codec = rtd->codec;
 //	struct hdmi_codec_data *priv = snd_soc_codec_get_drvdata(codec);
-
+#endif
 	return 0;
 }
 
 static int hdmi_audio_trigger(struct snd_pcm_substream *substream, int cmd,
 				struct snd_soc_dai *dai)
 {
+#if 0
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_codec *codec = rtd->codec;
 	struct hdmi_codec_data *priv = snd_soc_codec_get_drvdata(codec);
+#endif
 	int err = 0;
 
 	switch (cmd) {
@@ -78,12 +81,14 @@ static int hdmi_audio_startup(struct snd_pcm_substream *substream,
 
 static int hdmi_probe(struct snd_soc_codec *codec)
 {
+#if 0
 	struct platform_device *pdev = to_platform_device(codec->dev);
 	int ret = 0;
 
 res_err:
 	return ret;
-
+#endif
+	return 0;
 }
 
 static int hdmi_remove(struct snd_soc_codec *codec)

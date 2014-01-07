@@ -467,6 +467,7 @@ int hdmi_config_audio(struct hdmi_audio	*audio)
 	}
 	return 0;
 }
+EXPORT_SYMBOL(hdmi_config_audio);
 
 static int __init hdmi_class_init(void)
 {

@@ -479,6 +479,7 @@ static int rk1000_codec_set_dai_fmt(struct snd_soc_dai *codec_dai,
 static int rk1000_codec_pcm_startup(struct snd_pcm_substream *substream,
 			      struct snd_soc_dai *dai)
 {
+#if 0
 	struct snd_soc_codec *codec = dai->codec;
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 37))
 	struct rk1000_codec_priv *rk1000_codec =snd_soc_codec_get_drvdata(codec);
@@ -500,6 +501,7 @@ static int rk1000_codec_pcm_startup(struct snd_pcm_substream *substream,
 				   SNDRV_PCM_HW_PARAM_RATE,
 				   rk1000_codec->sysclk_constraints);
 #endif
+#endif
 	return 0;
 }
 
@@ -519,7 +521,9 @@ static int rk1000_codec_pcm_hw_params(struct snd_pcm_substream *substream,
 	struct rk1000_codec_priv *rk1000_codec = codec->private_data;
 #endif
 	u16 iface = rk1000_codec_read_reg_cache(codec, ACCELCODEC_R09) & 0x1f3;
+#if 0
 	u16 srate = rk1000_codec_read_reg_cache(codec, ACCELCODEC_R00) & 0x180;
+#endif
 	int coeff;
 	
 	/*by Vincent Hsiung for EQ Vol Change*/
@@ -1030,9 +1034,6 @@ static void rk1000_codec_unregister(struct rk1000_codec_priv *rk1000_codec)
 static void rk1000_codec_reg_set(void)
 {
     struct snd_soc_codec *codec = rk1000_codec_codec;
-    int reg;
-    int i;
-    unsigned int data;
 
     rk1000_codec_write(codec,ACCELCODEC_R1D, 0x00);
     rk1000_codec_write(codec,ACCELCODEC_R17, 0xFF);  //AOL
