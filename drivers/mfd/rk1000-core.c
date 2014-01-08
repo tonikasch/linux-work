@@ -87,7 +87,7 @@ static int rk1000_control_probe(struct i2c_client *client,
     
     rk1000_control_client = client;
 
-#ifdef CONFIG_SND_SOC_RK1000
+#if defined(CONFIG_SND_SOC_RK1000) || defined(CONFIG_SND_SOC_RK1000_MODULE)
     data[1] = 0x00;
 #endif
 
@@ -154,8 +154,7 @@ static void __exit rk1000_control_exit(void)
 	i2c_del_driver(&rk1000_control_driver);
 }
 
-subsys_initcall_sync(rk1000_control_init);
-//module_init(rk1000_control_init);
+module_init(rk1000_control_init);
 module_exit(rk1000_control_exit);
 
 

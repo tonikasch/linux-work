@@ -824,8 +824,8 @@ config MFD_RK610
 	  HDMI LCD LVDS TVOUT CODEC.
 	  
 config MFD_RK1000
-	bool "Support for RockChip Multimedia RK1000"
-	depends on I2C=y && GPIOLIB
+	tristate "Support for RockChip Multimedia RK1000"
+	depends on I2C && GPIOLIB
 	select MFD_CORE
 	help
 	  if you say yes here you get support for the RK1000, with func as
