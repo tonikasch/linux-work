@@ -24,7 +24,7 @@
 #include "rk29_pcm.h"
 #include "rk29_i2s.h"
 
-#if 0
+#if 1
 #define	DBG(x...)	printk(KERN_INFO x)
 #else
 #define	DBG(x...)
@@ -285,12 +285,14 @@ static int __init audio_card_init(void)
 		ret = -ENOMEM;
 		return ret;
 	}
+	DBG("Enter::%s----%d\n",__FUNCTION__,__LINE__);
 	#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 37))
 	platform_set_drvdata(rk29_snd_device, &snd_soc_card_rk29);
 	#else
 	platform_set_drvdata(rk29_snd_device, &rk29_snd_devdata);
 	rk29_snd_devdata.dev = &rk29_snd_device->dev;
 	#endif
+	DBG("Enter::%s----%d\n",__FUNCTION__,__LINE__);
 	ret = platform_device_add(rk29_snd_device);
 	DBG("Enter::%s----%d\n",__FUNCTION__,__LINE__);
 	if (ret) {

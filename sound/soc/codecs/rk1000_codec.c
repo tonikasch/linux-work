@@ -38,7 +38,7 @@
 /*
  * Debug
  */
-#if 0
+#if 1
 #define	DBG(x...)	printk(KERN_INFO x)
 #else
 #define	DBG(x...)
@@ -521,9 +521,7 @@ static int rk1000_codec_pcm_hw_params(struct snd_pcm_substream *substream,
 	struct rk1000_codec_priv *rk1000_codec = codec->private_data;
 #endif
 	u16 iface = rk1000_codec_read_reg_cache(codec, ACCELCODEC_R09) & 0x1f3;
-#if 0
 	u16 srate = rk1000_codec_read_reg_cache(codec, ACCELCODEC_R00) & 0x180;
-#endif
 	int coeff;
 	
 	/*by Vincent Hsiung for EQ Vol Change*/
