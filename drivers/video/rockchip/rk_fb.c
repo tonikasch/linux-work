@@ -35,6 +35,10 @@
 #include "hdmi/rk_hdmi.h"
 #include <linux/linux_logo.h>
 
+#if defined(CONFIG_MALI) || defined(CONFIG_MALI_MODULE)
+#include "ump/ump_kernel_interface.h"
+#endif
+
 void rk29_backlight_set(bool on);
 bool rk29_get_backlight_status(void);
 
@@ -280,6 +284,10 @@ static int rk_pan_display(struct fb_var_screeninfo *var, struct fb_info *info)
  	#endif
 	return 0;
 }
+#if defined(CONFIG_MALI) || defined(CONFIG_MALI_MODULE)
+int (*disp_get_ump_secure_id)(struct fb_info *info, unsigned long arg, int nbuf);
+EXPORT_SYMBOL(disp_get_ump_secure_id);
+#endif
 static int rk_fb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 {
 	struct fb_fix_screeninfo *fix = &info->fix;
@@ -298,6 +306,9 @@ static int rk_fb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 	struct rk_lcdc_device_driver * dev_drv1;
 	#endif
 	//$_rbox_$_modify_$ end
+#if defined(CONFIG_MALI) || defined(CONFIG_MALI_MODULE)
+        int secure_id_buf_num = 0; //IAM
+#endif
 	switch(cmd)
 	{
  		case FBIOPUT_FBPHYADD:
@@ -369,6 +380,27 @@ static int rk_fb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				return -EFAULT;
 			dev_drv->vsync_info.active = enable;
 			break;
+#if defined(CONFIG_MALI) || defined(CONFIG_MALI_MODULE)
+#if 0 
+/* not supported by fbturbo */
+		case GET_UMP_SECURE_ID_BUFn:
+			if (copy_from_user(&secure_id_buf_num, argp, sizeof(secure_id_buf_num)))
+				return -EFAULT;
+			goto getump;
+#endif
+		case GET_UMP_SECURE_ID_BUF2:/* flow trough */
+			secure_id_buf_num++;
+		case GET_UMP_SECURE_ID_BUF1:
+getump:
+			{
+			    if (!disp_get_ump_secure_id)
+				request_module("disp_ump");
+			    if (disp_get_ump_secure_id)
+				return disp_get_ump_secure_id(info, arg, secure_id_buf_num);
+			    else
+				return -ENOTSUPP;
+			}
+#endif
         	default:
 			dev_drv->ioctl(dev_drv,cmd,arg,layer_id);
 			//$_rbox_$_modify_$ zhengyang modified for box display system

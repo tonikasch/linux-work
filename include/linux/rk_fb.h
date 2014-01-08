@@ -61,6 +61,14 @@
 #define RK_FBIOSET_VSYNC_ENABLE		0x4629
 #define RK_FBIOPUT_NUM_BUFFERS 	0x4625
 
+#define GET_UMP_SECURE_ID_BUF1 _IOWR('m', 310, unsigned int)
+#define GET_UMP_SECURE_ID_BUF2 _IOWR('m', 311, unsigned int)
+//#define GET_UMP_SECURE_ID_BUFn _IOWR('m', 312, unsigned int)
+#ifdef CONFIG_BOX_FB_1080P
+   #define FB_MAXPGSIZE 1920*1080*4
+#else
+   #define FB_MAXPGSIZE 1280*720*4
+#endif
 
 /********************************************************************
 **          display output interface supported by rockchip lcdc                       *
@@ -281,7 +289,13 @@ struct rk_fb_inf {
 	int video_mode;  //when play video set it to 1
 	struct workqueue_struct *workqueue;
 	struct delayed_work delay_work;
+#if defined(CONFIG_MALI) || defined(CONFIG_MALI_MODULE)
+	void * ump_wrapped_buffer[RK_MAX_FB_SUPPORT][2]; //IAM
+#endif
 };
+#if defined(CONFIG_MALI) || defined(CONFIG_MALI_MODULE)
+extern int (*disp_get_ump_secure_id)(struct fb_info *info, unsigned long arg, int nbuf);
+#endif
 extern int rk_fb_register(struct rk_lcdc_device_driver *dev_drv,
 	struct rk_lcdc_device_driver *def_drv,int id);
 extern int rk_fb_unregister(struct rk_lcdc_device_driver *dev_drv);
