@@ -1114,12 +1114,13 @@ static int rk30_pm_prepare(void)
 static void rk30_pm_finish(void)
 {
 	enable_hlt();
+#if  defined(CONFIG_KEYS_RK29) || defined(CONFIG_KEYS_RK29_MODULE)
 	if(rk_soc_pm_ctr_bits_check(1<<RK_PM_CTR_WAKE_UP_KEY))
 	{
 		rk28_send_wakeup_key();
 		printk("rk30_pm_finish rk28_send_wakeup_key\n");
 	}
-
+#endif
 }
 
 static struct platform_suspend_ops rk30_pm_ops = {

@@ -26,12 +26,15 @@ config MACH_RK3188_DS1006H
 
 config MACH_RK3188_BOX
 	bool "RK3188 box board"
-	
+
+config MACH_RK3188_RADXA_ROCK
+	bool "RK3188 Radxa Rock board"
+
 endchoice
 
 
 menu "RK3188 Custom Tweaks"
- 	depends on ARCH_RK3188 && MACH_RK3188_BOX
+ 	depends on ARCH_RK3188 && (MACH_RK3188_BOX || MACH_RK3188_RADXA_ROCK)
 
 config TCC_BT_DEV_POWER_PIN3_PD1
 	depends on TCC_BT_DEV

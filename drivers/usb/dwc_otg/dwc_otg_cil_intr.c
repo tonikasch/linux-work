@@ -54,7 +54,9 @@
 //$_rbox_$_modify_$_huangzhibao_20121026 for usb remote wakeup
 //$_rbox_$_modify_$_begin
 #ifdef CONFIG_DWC_REMOTE_WAKEUP
+#if  defined(CONFIG_KEYS_RK29) || defined(CONFIG_KEYS_RK29_MODULE)
 extern void rk28_send_wakeup_key(void);
+#endif
 extern suspend_state_t get_suspend_state(void);
 #endif
 //$_rbox_$_modify_$_end	
@@ -802,10 +804,12 @@ int32_t dwc_otg_handle_common_intr( dwc_otg_core_if_t *_core_if )
 //$_rbox_$_modify_$_huangzhibao_20121026 for usb remote wakeup
 //$_rbox_$_modify_$_begin        
 #ifdef CONFIG_DWC_REMOTE_WAKEUP        
+#if  defined(CONFIG_KEYS_RK29) || defined(CONFIG_KEYS_RK29_MODULE)
         if (rk29_usb_wakeup && get_suspend_state()){
             rk28_send_wakeup_key();
             rk29_usb_wakeup = 0;
         }
+#endif
 #endif 
 //$_rbox_$_modify_$_end	       
         return retval;

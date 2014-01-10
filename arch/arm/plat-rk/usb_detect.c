@@ -16,7 +16,9 @@ static void usb_detect_do_wakeup(struct work_struct *work)
 	int irq = gpio_to_irq(detect_gpio);
 	unsigned int type;
 
+#if  defined(CONFIG_KEYS_RK29) || defined(CONFIG_KEYS_RK29_MODULE)
 	rk28_send_wakeup_key();
+#endif
 	type = gpio_get_value(detect_gpio) ? IRQ_TYPE_EDGE_FALLING : IRQ_TYPE_EDGE_RISING;
 	ret = irq_set_irq_type(irq, type);
 	if (ret < 0) {

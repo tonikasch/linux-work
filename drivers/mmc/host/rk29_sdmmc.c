@@ -3279,7 +3279,9 @@ static irqreturn_t rk29_sdmmc_interrupt(int irq, void *dev_id)
         	printk(KERN_INFO "\n******************\n%s:INT_CD=0x%x,INT-En=%d,hostState=%d,  present Old=%d ==> New=%d . [%s]\n",\
                     __FUNCTION__, pending, host->mmc->re_initialized_flags, host->state, present_old, present,  host->dma_name);
 
+#if  defined(CONFIG_KEYS_RK29) || defined(CONFIG_KEYS_RK29_MODULE)
     	    rk28_send_wakeup_key(); //wake up backlight
+#endif
     	    host->error_times = 0;
 
     	    #if 1
@@ -3515,8 +3517,9 @@ static void rk29_sdmmc_detect_change_work(struct work_struct *work)
 {
 	int ret;
     struct rk29_sdmmc *host =  container_of(work, struct rk29_sdmmc, work.work);
-
+#if  defined(CONFIG_KEYS_RK29) || defined(CONFIG_KEYS_RK29_MODULE)
     rk28_send_wakeup_key();
+#endif
 	rk29_sdmmc_detect_change(host);               	 
 }
 #endif
