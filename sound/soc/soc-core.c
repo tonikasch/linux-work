@@ -1318,7 +1318,7 @@ EXPORT_SYMBOL_GPL(snd_soc_resume);
 
 static struct snd_soc_dai_ops null_dai_ops = {
 };
-#define CODEC_NAME_CMP
+//#define CODEC_NAME_CMP
 static int soc_bind_dai_link(struct snd_soc_card *card, int num)
 {
 	struct snd_soc_dai_link *dai_link = &card->dai_link[num];
@@ -1363,7 +1363,7 @@ find_codec:
 	list_for_each_entry(codec, &codec_list, list) {
 #ifdef CODEC_NAME_CMP
 		strcpy(p_codec_name,codec->name);
-		strcpy(p_dai_codec_name,dai_link->codec_name);		
+		strcpy(p_dai_codec_name,dai_link->codec_name);
 #endif		
 		if (!strcmp(codec->name, dai_link->codec_name) 
 #ifdef CODEC_NAME_CMP			
