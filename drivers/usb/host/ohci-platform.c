@@ -3,6 +3,7 @@
  *
  * Copyright 2007 Michael Buesch <m@bues.ch>
  * Copyright 2011-2012 Hauke Mehrtens <hauke@hauke-m.de>
+ * Copyright 2014 Hans de Goede <hdegoede@redhat.com>
  *
  * Derived from the OCHI-SSB driver
  * Derived from the OHCI-PCI driver
@@ -31,9 +32,9 @@
 
 #define DRIVER_DESC "OHCI generic platform driver"
 
+#define OHCI_MAX_CLKS 3
 struct ohci_platform_priv {
-	struct clk *ahb_clk;
-	struct clk *ohci_clk;
+	struct clk *clks[OHCI_MAX_CLKS];
 	struct phy *phy;
 };
 
@@ -62,24 +63,18 @@ static int ohci_platform_power_on(struct platform_device *dev)
 	struct usb_hcd *hcd = platform_get_drvdata(dev);
 	struct ohci_platform_priv *priv =
 		(struct ohci_platform_priv *)hcd_to_ohci(hcd)->priv;
-	int ret;
+	int clk, ret;
 
-	if (!IS_ERR(priv->ohci_clk)) {
-		ret = clk_prepare_enable(priv->ohci_clk);
+	for (clk = 0; priv->clks[clk] && clk < OHCI_MAX_CLKS; clk++) {
+		ret = clk_prepare_enable(priv->clks[clk]);
 		if (ret)
-			return ret;
+			goto err_disable_clks;
 	}
 
-	if (!IS_ERR(priv->ahb_clk)) {
-		ret = clk_prepare_enable(priv->ahb_clk);
-		if (ret)
-			goto err_disable_ohci_clk;
-	}
-
-	if (!IS_ERR(priv->phy)) {
+	if (priv->phy) {
 		ret = phy_init(priv->phy);
 		if (ret)
-			goto err_disable_ahb_clk;
+			goto err_disable_clks;
 
 		ret = phy_power_on(priv->phy);
 		if (ret)
@@ -90,12 +85,9 @@ static int ohci_platform_power_on(struct platform_device *dev)
 
 err_exit_phy:
 	phy_exit(priv->phy);
-err_disable_ahb_clk:
-	if (!IS_ERR(priv->ahb_clk))
-		clk_disable_unprepare(priv->ahb_clk);
-err_disable_ohci_clk:
-	if (!IS_ERR(priv->ohci_clk))
-		clk_disable_unprepare(priv->ohci_clk);
+err_disable_clks:
+	while (--clk >= 0)
+		clk_disable_unprepare(priv->clks[clk]);
 
 	return ret;
 }
@@ -105,17 +97,16 @@ static void ohci_platform_power_off(struct platform_device *dev)
 	struct usb_hcd *hcd = platform_get_drvdata(dev);
 	struct ohci_platform_priv *priv =
 		(struct ohci_platform_priv *)hcd_to_ohci(hcd)->priv;
+	int clk;
 
-	if (!IS_ERR(priv->phy)) {
+	if (priv->phy) {
 		phy_power_off(priv->phy);
 		phy_exit(priv->phy);
 	}
 
-	if (!IS_ERR(priv->ahb_clk))
-		clk_disable_unprepare(priv->ahb_clk);
-
-	if (!IS_ERR(priv->ohci_clk))
-		clk_disable_unprepare(priv->ohci_clk);
+	for (clk = OHCI_MAX_CLKS - 1; clk >= 0; clk--)
+		if (priv->clks[clk])
+			clk_disable_unprepare(priv->clks[clk]);
 }
 
 static struct hc_driver __read_mostly ohci_platform_hc_driver;
@@ -137,10 +128,11 @@ static int ohci_platform_probe(struct platform_device *dev)
 	struct usb_hcd *hcd;
 	struct resource *res_mem;
 	struct usb_ohci_pdata *pdata = dev_get_platdata(&dev->dev);
-	int irq, err;
+	int clk, irq, err;
+	char name[8];
 
 	/*
-	 * use reasonable defaults so platforms don't have to provide these.
+	 * Use reasonable defaults so platforms don't have to provide these
 	 * with DT probing on ARM.
 	 */
 	if (!pdata) {
@@ -180,14 +172,24 @@ static int ohci_platform_probe(struct platform_device *dev)
 		struct ohci_platform_priv *priv = (struct ohci_platform_priv *)
 						  hcd_to_ohci(hcd)->priv;
 
-		priv->phy = devm_phy_get(&dev->dev, "usb_phy");
-		if (IS_ERR(priv->phy) && PTR_ERR(priv->phy) == -EPROBE_DEFER) {
-			err = -EPROBE_DEFER;
-			goto err_put_hcd;
+		priv->phy = devm_phy_get(&dev->dev, "phy0");
+		if (IS_ERR(priv->phy)) {
+			err = PTR_ERR(priv->phy);
+			if (err == -EPROBE_DEFER)
+				goto err_put_hcd;
+			priv->phy = NULL;
 		}
 
-		priv->ohci_clk = devm_clk_get(&dev->dev, "ohci");
-		priv->ahb_clk = devm_clk_get(&dev->dev, "ahb");
+		for (clk = 0; clk < OHCI_MAX_CLKS; clk++) {
+			snprintf(name, sizeof(name), "clk%d", clk);
+			priv->clks[clk] = devm_clk_get(&dev->dev, name);
+			if (IS_ERR(priv->clks[clk])) {
+				err = PTR_ERR(priv->clks[clk]);
+				if (err == -EPROBE_DEFER)
+					goto err_put_hcd;
+				priv->clks[clk] = NULL;
+			}
+		}
 	}
 
 	platform_set_drvdata(dev, hcd);
@@ -278,7 +280,7 @@ static int ohci_platform_resume(struct device *dev)
 #endif /* CONFIG_PM */
 
 static const struct of_device_id ohci_platform_ids[] = {
-	{ .compatible = "platform-ohci", },
+	{ .compatible = "allwinner,sun4i-ohci", },
 	{ }
 };
 MODULE_DEVICE_TABLE(of, ohci_platform_ids);

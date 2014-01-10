@@ -161,8 +161,9 @@ int phy_init(struct phy *phy)
 			dev_err(&phy->dev, "phy init failed --> %d\n", ret);
 			goto out;
 		}
-	} else
+	} else {
 		ret = 0; /* Override possible ret == -ENOTSUPP */
+	}
 
 out:
 	mutex_unlock(&phy->mutex);
@@ -210,8 +211,9 @@ int phy_power_on(struct phy *phy)
 			dev_err(&phy->dev, "phy poweron failed --> %d\n", ret);
 			goto out;
 		}
-	} else
+	} else {
 		ret = 0; /* Override possible ret == -ENOTSUPP */
+	}
 
 out:
 	mutex_unlock(&phy->mutex);
@@ -376,12 +378,8 @@ struct phy *phy_get(struct device *dev, const char *string)
 	} else {
 		phy = phy_lookup(dev, string);
 	}
-	if (IS_ERR(phy)) {
-		int err = PTR_ERR(phy);
-		if (err != -EPROBE_DEFER && err != -ENODATA)
-			dev_err(dev, "unable to get phy\n");
+	if (IS_ERR(phy))
 		return phy;
-	}
 
 	if (!try_module_get(phy->ops->owner))
 		return ERR_PTR(-EPROBE_DEFER);

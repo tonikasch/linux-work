@@ -3,6 +3,7 @@
  *
  * Copyright 2007 Steven Brown <sbrown@cortland.com>
  * Copyright 2010-2012 Hauke Mehrtens <hauke@hauke-m.de>
+ * Copyright 2014 Hans de Goede <hdegoede@redhat.com>
  *
  * Derived from the ohci-ssb driver
  * Copyright 2007 Michael Buesch <m@bues.ch>
@@ -36,9 +37,9 @@
 
 #define DRIVER_DESC "EHCI generic platform driver"
 
+#define EHCI_MAX_CLKS 3
 struct ehci_platform_priv {
-	struct clk *ahb_clk;
-	struct clk *ehci_clk;
+	struct clk *clks[EHCI_MAX_CLKS];
 	struct phy *phy;
 };
 
@@ -77,24 +78,18 @@ static int ehci_platform_power_on(struct platform_device *dev)
 	struct usb_hcd *hcd = platform_get_drvdata(dev);
 	struct ehci_platform_priv *priv =
 		(struct ehci_platform_priv *)hcd_to_ehci(hcd)->priv;
-	int ret;
+	int clk, ret;
 
-	if (!IS_ERR(priv->ehci_clk)) {
-		ret = clk_prepare_enable(priv->ehci_clk);
+	for (clk = 0; priv->clks[clk] && clk < EHCI_MAX_CLKS; clk++) {
+		ret = clk_prepare_enable(priv->clks[clk]);
 		if (ret)
-			return ret;
+			goto err_disable_clks;
 	}
 
-	if (!IS_ERR(priv->ahb_clk)) {
-		ret = clk_prepare_enable(priv->ahb_clk);
-		if (ret)
-			goto err_disable_ehci_clk;
-	}
-
-	if (!IS_ERR(priv->phy)) {
+	if (priv->phy) {
 		ret = phy_init(priv->phy);
 		if (ret)
-			goto err_disable_ahb_clk;
+			goto err_disable_clks;
 
 		ret = phy_power_on(priv->phy);
 		if (ret)
@@ -105,12 +100,9 @@ static int ehci_platform_power_on(struct platform_device *dev)
 
 err_exit_phy:
 	phy_exit(priv->phy);
-err_disable_ahb_clk:
-	if (!IS_ERR(priv->ahb_clk))
-		clk_disable_unprepare(priv->ahb_clk);
-err_disable_ehci_clk:
-	if (!IS_ERR(priv->ehci_clk))
-		clk_disable_unprepare(priv->ehci_clk);
+err_disable_clks:
+	while (--clk >= 0)
+		clk_disable_unprepare(priv->clks[clk]);
 
 	return ret;
 }
@@ -120,17 +112,16 @@ static void ehci_platform_power_off(struct platform_device *dev)
 	struct usb_hcd *hcd = platform_get_drvdata(dev);
 	struct ehci_platform_priv *priv =
 		(struct ehci_platform_priv *)hcd_to_ehci(hcd)->priv;
+	int clk;
 
-	if (!IS_ERR(priv->phy)) {
+	if (priv->phy) {
 		phy_power_off(priv->phy);
 		phy_exit(priv->phy);
 	}
 
-	if (!IS_ERR(priv->ahb_clk))
-		clk_disable_unprepare(priv->ahb_clk);
-
-	if (!IS_ERR(priv->ehci_clk))
-		clk_disable_unprepare(priv->ehci_clk);
+	for (clk = EHCI_MAX_CLKS - 1; clk >= 0; clk--)
+		if (priv->clks[clk])
+			clk_disable_unprepare(priv->clks[clk]);
 }
 
 static struct hc_driver __read_mostly ehci_platform_hc_driver;
@@ -151,14 +142,14 @@ static int ehci_platform_probe(struct platform_device *dev)
 	struct usb_hcd *hcd;
 	struct resource *res_mem;
 	struct usb_ehci_pdata *pdata;
-	int irq;
-	int err;
+	int clk, irq, err;
+	char name[8];
 
 	if (usb_disabled())
 		return -ENODEV;
 
 	/*
-	 * use reasonable defaults so platforms don't have to provide these.
+	 * Use reasonable defaults so platforms don't have to provide these
 	 * with DT probing on ARM.
 	 */
 	if (!dev_get_platdata(&dev->dev))
@@ -190,14 +181,24 @@ static int ehci_platform_probe(struct platform_device *dev)
 		struct ehci_platform_priv *priv = (struct ehci_platform_priv *)
 						  hcd_to_ehci(hcd)->priv;
 
-		priv->phy = devm_phy_get(&dev->dev, "usb_phy");
-		if (IS_ERR(priv->phy) && PTR_ERR(priv->phy) == -EPROBE_DEFER) {
-			err = -EPROBE_DEFER;
-			goto err_put_hcd;
+		priv->phy = devm_phy_get(&dev->dev, "phy0");
+		if (IS_ERR(priv->phy)) {
+			err = PTR_ERR(priv->phy);
+			if (err == -EPROBE_DEFER)
+				goto err_put_hcd;
+			priv->phy = NULL;
 		}
 
-		priv->ehci_clk = devm_clk_get(&dev->dev, "ehci");
-		priv->ahb_clk = devm_clk_get(&dev->dev, "ahb");
+		for (clk = 0; clk < EHCI_MAX_CLKS; clk++) {
+			snprintf(name, sizeof(name), "clk%d", clk);
+			priv->clks[clk] = devm_clk_get(&dev->dev, name);
+			if (IS_ERR(priv->clks[clk])) {
+				err = PTR_ERR(priv->clks[clk]);
+				if (err == -EPROBE_DEFER)
+					goto err_put_hcd;
+				priv->clks[clk] = NULL;
+			}
+		}
 	}
 
 	platform_set_drvdata(dev, hcd);

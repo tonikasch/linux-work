@@ -1,25 +1,25 @@
 Generic Platform EHCI controller
 
 Required properties:
- - compatible: Should be "platform-ehci"
-   (legacy: via,vt8500-ehci" or "wm,prizm-ehci")
- - reg: Address range of the ehci registers.
- - interrupts: Should contain the ehci interrupt.
+- compatible : "via,vt8500-ehci" or "wm,prizm-ehci"
+- reg : ehci controller register range (address and length)
+- interrupts : ehci controller interrupt
 
 Optional properties:
- - clocks: array of clocks
- - clock-names: clock names "ahb" and/or "ehci"
- - phys: phy
- - phy-names: "usb_phy"
+- clocks : a list of phandle + clock specifier pairs, one for each entry
+   in clock-names.
+- clock-names : "clk0", "clk1", ...
+- phys : phy
+- phy-names : "phy0"
 
 Example:
 
-usb: ehci@D8007100 {
-	compatible = "platform-ehci";
-	reg = <0xD8007100 0x200>;
-	interrupts = <1>;
-	clocks = <&ahb_gates 2>, <&usb_clk 6>;
-	clock-names = "ahb", "ehci";
-	phys = <&usbphy 1>;
-	phy-names = "usb_phy";
-};
+	ehci@d8007900 {
+		compatible = "via,vt8500-ehci";
+		reg = <0xd8007900 0x200>;
+		interrupts = <43>;
+		clocks = <&usb_clk 6>, <&ahb_gates 2>;
+		clock-names = "clk0", "clk1";
+		phys = <&usbphy 1>;
+		phy-names = "phy0";
+	};
