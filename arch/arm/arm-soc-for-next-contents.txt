@@ -20,6 +20,7 @@ next/fixes-non-critical
 		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson.git tags/u300-for-arm-soc-1
 
 	patch ARM: bcm2835: Fix grammar in help message                                     
+	patch irqchip: sirf: set IRQ_LEVEL status_flags
 
 next/cleanup
 	renesas/cleanup
@@ -95,6 +96,16 @@ next/soc
 		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-soc3-for-v3.14
 	imx/soc
 		git://git.linaro.org/people/shawnguo/linux-2.6.git tags/imx-soc-3.14
+	hisi/soc
+		local branch: v12 series + khilman fixups + rename series
+	ux500/core
+		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson tags/ux500-core-v3.14
+	qcom/soc2
+		patches
+			ARM: msm: Move MSM's DT based hardware to multi-platform support              
+			ARM: msm: Only build timer.c if required                                      
+			ARM: msm: Only build clock.c on proc_comm based platforms   
+			ARM: msm_defconfig: Update for multi-platform
     
 next/dt
 	ux500/dt
@@ -218,6 +229,12 @@ next/drivers
 		 based on sunxi/drivers
 	integrator/core
 		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-integrator.git tags/integrator-for-v3.14
+	qcom/drivers
+		based on qcom/boards
+		patches
+			tty: serial: Limit msm_serial_hs driver to platforms that use it              
+			mmc: msm_sdcc: Limit driver to platforms that use it                          
+			usb: phy: msm: Move mach dependent code to platform data  
 
 Patches only in for-next, not in any topic branch due to conflicts:
 
