@@ -36,6 +36,13 @@
 #include "ehci.h"
 
 #define DRIVER_DESC "EHCI generic platform driver"
+#define EHCI_MAX_CLKS 3
+#define hcd_to_ehci_priv(h) ((struct ehci_platform_priv *)hcd_to_ehci(h)->priv)
+
+struct ehci_platform_priv {
+	struct clk *clks[EHCI_MAX_CLKS];
+	struct phy *phy;
+};
 
 #define EHCI_MAX_CLKS 3
 struct ehci_platform_priv {
@@ -76,8 +83,7 @@ static int ehci_platform_reset(struct usb_hcd *hcd)
 static int ehci_platform_power_on(struct platform_device *dev)
 {
 	struct usb_hcd *hcd = platform_get_drvdata(dev);
-	struct ehci_platform_priv *priv =
-		(struct ehci_platform_priv *)hcd_to_ehci(hcd)->priv;
+	struct ehci_platform_priv *priv = hcd_to_ehci_priv(hcd);
 	int clk, ret;
 
 	for (clk = 0; priv->clks[clk] && clk < EHCI_MAX_CLKS; clk++) {
@@ -110,8 +116,7 @@ err_disable_clks:
 static void ehci_platform_power_off(struct platform_device *dev)
 {
 	struct usb_hcd *hcd = platform_get_drvdata(dev);
-	struct ehci_platform_priv *priv =
-		(struct ehci_platform_priv *)hcd_to_ehci(hcd)->priv;
+	struct ehci_platform_priv *priv = hcd_to_ehci_priv(hcd);
 	int clk;
 
 	if (priv->phy) {
@@ -141,9 +146,9 @@ static int ehci_platform_probe(struct platform_device *dev)
 {
 	struct usb_hcd *hcd;
 	struct resource *res_mem;
-	struct usb_ehci_pdata *pdata;
+	struct usb_ehci_pdata *pdata = dev_get_platdata(&dev->dev);
+	struct ehci_platform_priv *priv;
 	int clk, irq, err;
-	char name[8];
 
 	if (usb_disabled())
 		return -ENODEV;
@@ -152,14 +157,12 @@ static int ehci_platform_probe(struct platform_device *dev)
 	 * Use reasonable defaults so platforms don't have to provide these
 	 * with DT probing on ARM.
 	 */
-	if (!dev_get_platdata(&dev->dev))
-		dev->dev.platform_data = &ehci_platform_defaults;
+	if (!pdata)
+		pdata = &ehci_platform_defaults;
 
 	err = dma_coerce_mask_and_coherent(&dev->dev, DMA_BIT_MASK(32));
 	if (err)
 		return err;
-
-	pdata = dev_get_platdata(&dev->dev);
 
 	irq = platform_get_irq(dev, 0);
 	if (irq < 0) {
@@ -177,11 +180,12 @@ static int ehci_platform_probe(struct platform_device *dev)
 	if (!hcd)
 		return -ENOMEM;
 
-	if (pdata == &ehci_platform_defaults) {
-		struct ehci_platform_priv *priv = (struct ehci_platform_priv *)
-						  hcd_to_ehci(hcd)->priv;
+	platform_set_drvdata(dev, hcd);
+	dev->dev.platform_data = pdata;
+	priv = hcd_to_ehci_priv(hcd);
 
-		priv->phy = devm_phy_get(&dev->dev, "phy0");
+	if (pdata == &ehci_platform_defaults && dev->dev.of_node) {
+		priv->phy = devm_phy_get(&dev->dev, "usb");
 		if (IS_ERR(priv->phy)) {
 			err = PTR_ERR(priv->phy);
 			if (err == -EPROBE_DEFER)
@@ -190,22 +194,21 @@ static int ehci_platform_probe(struct platform_device *dev)
 		}
 
 		for (clk = 0; clk < EHCI_MAX_CLKS; clk++) {
-			snprintf(name, sizeof(name), "clk%d", clk);
-			priv->clks[clk] = devm_clk_get(&dev->dev, name);
+			priv->clks[clk] = of_clk_get(dev->dev.of_node, clk);
 			if (IS_ERR(priv->clks[clk])) {
 				err = PTR_ERR(priv->clks[clk]);
 				if (err == -EPROBE_DEFER)
-					goto err_put_hcd;
+					goto err_put_clks;
 				priv->clks[clk] = NULL;
+				break;
 			}
 		}
 	}
 
-	platform_set_drvdata(dev, hcd);
 	if (pdata->power_on) {
 		err = pdata->power_on(dev);
 		if (err < 0)
-			goto err_put_hcd;
+			goto err_put_clks;
 	}
 
 	hcd->rsrc_start = res_mem->start;
@@ -225,7 +228,13 @@ static int ehci_platform_probe(struct platform_device *dev)
 err_power:
 	if (pdata->power_off)
 		pdata->power_off(dev);
+err_put_clks:
+	while (--clk >= 0)
+		clk_put(priv->clks[clk]);
 err_put_hcd:
+	if (pdata == &ehci_platform_defaults)
+		dev->dev.platform_data = NULL;
+
 	usb_put_hcd(hcd);
 
 	return err;
@@ -235,12 +244,18 @@ static int ehci_platform_remove(struct platform_device *dev)
 {
 	struct usb_hcd *hcd = platform_get_drvdata(dev);
 	struct usb_ehci_pdata *pdata = dev_get_platdata(&dev->dev);
+	struct ehci_platform_priv *priv = hcd_to_ehci_priv(hcd);
+	int clk;
 
 	usb_remove_hcd(hcd);
-	usb_put_hcd(hcd);
 
 	if (pdata->power_off)
 		pdata->power_off(dev);
+
+	for (clk = 0; priv->clks[clk] && clk < EHCI_MAX_CLKS; clk++)
+		clk_put(priv->clks[clk]);
+
+	usb_put_hcd(hcd);
 
 	if (pdata == &ehci_platform_defaults)
 		dev->dev.platform_data = NULL;
@@ -292,10 +307,10 @@ static int ehci_platform_resume(struct device *dev)
 static const struct of_device_id ehci_platform_ids[] = {
 	{ .compatible = "via,vt8500-ehci", },
 	{ .compatible = "wm,prizm-ehci", },
-	{ .compatible = "platform-ehci", },
+	{ .compatible = "mmio-ehci", },
 	{}
 };
-MODULE_DEVICE_TABLE(of, ehci_platform_ids);
+MODULE_DEVICE_TABLE(of, vt8500_ehci_ids);
 
 static const struct platform_device_id ehci_platform_table[] = {
 	{ "ehci-platform", 0 },

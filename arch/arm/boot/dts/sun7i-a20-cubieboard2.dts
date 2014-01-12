@@ -38,12 +38,20 @@
 			status = "okay";
 		};
 
+		ohci0: ohci@0x01c14400 {
+			status = "okay";
+		};
+
 		sata: ahci@01c18000 {
 			pwr-supply = <&reg_ahci_5v>;
 			status = "okay";
 		};
 
 		ehci1: ehci@0x01c1c000 {
+			status = "okay";
+		};
+
+		ohci1: ohci@0x01c1c400 {
 			status = "okay";
 		};
 

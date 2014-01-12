@@ -793,6 +793,59 @@ static struct reset_control_ops gates_reset_ops = {
 };
 
 /**
+ * gates_reset... - reset bits in leaf gate clk registers handling
+ */
+
+struct gates_reset_data {
+	void __iomem			*reg;
+	spinlock_t			*lock;
+	struct reset_controller_dev	rcdev;
+};
+
+static int gates_reset_assert(struct reset_controller_dev *rcdev,
+			      unsigned long id)
+{
+	struct gates_reset_data *data = container_of(rcdev,
+						     struct gates_reset_data,
+						     rcdev);
+	unsigned long flags;
+	u32 reg;
+
+	spin_lock_irqsave(data->lock, flags);
+
+	reg = readl(data->reg);
+	writel(reg & ~BIT(id), data->reg);
+
+	spin_unlock_irqrestore(data->lock, flags);
+
+	return 0;
+}
+
+static int gates_reset_deassert(struct reset_controller_dev *rcdev,
+				unsigned long id)
+{
+	struct gates_reset_data *data = container_of(rcdev,
+						     struct gates_reset_data,
+						     rcdev);
+	unsigned long flags;
+	u32 reg;
+
+	spin_lock_irqsave(data->lock, flags);
+
+	reg = readl(data->reg);
+	writel(reg | BIT(id), data->reg);
+
+	spin_unlock_irqrestore(data->lock, flags);
+
+	return 0;
+}
+
+static struct reset_control_ops gates_reset_ops = {
+	.assert		= gates_reset_assert,
+	.deassert	= gates_reset_deassert,
+};
+
+/**
  * sunxi_gates_clk_setup() - Setup function for leaf gates on clocks
  */
 
@@ -811,12 +864,12 @@ static const struct gates_data sun4i_ahb_gates_data __initconst = {
 	.mask = {0x7F77FFF, 0x14FB3F},
 };
 
-static const struct gates_data sun47i_usb_gates_data __initconst = {
+static const struct gates_data sun4i_usb_gates_data __initconst = {
 	.mask = {0x1C0},
 	.reset_mask = 0x07,
 };
 
-static const struct gates_data sun5i_usb_gates_data __initconst = {
+static const struct gates_data sun5i_a13_usb_gates_data __initconst = {
 	.mask = {0x140},
 	.reset_mask = 0x03,
 };
@@ -1169,6 +1222,8 @@ static const struct of_device_id clk_gates_match[] __initconst = {
 	{.compatible = "allwinner,sun6i-a31-apb1-gates-clk", .data = &sun6i_a31_apb1_gates_data,},
 	{.compatible = "allwinner,sun7i-a20-apb1-gates-clk", .data = &sun7i_a20_apb1_gates_data,},
 	{.compatible = "allwinner,sun6i-a31-apb2-gates-clk", .data = &sun6i_a31_apb2_gates_data,},
+	{.compatible = "allwinner,sun4i-usb-gates-clk", .data = &sun4i_usb_gates_data,},
+	{.compatible = "allwinner,sun5i-a13-usb-gates-clk", .data = &sun5i_a13_usb_gates_data,},
 	{}
 };
 

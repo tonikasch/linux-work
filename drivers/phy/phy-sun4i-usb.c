@@ -226,13 +226,14 @@ static int sun4i_usb_phy_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	mutex_init(&data->mutex);
-	if (of_device_is_compatible(np, "allwinner,sun4i-usb-phy")) {
+	if (of_device_is_compatible(np, "allwinner,sun4i-a10-usb-phy")) {
 		data->num_phys = 3;
 		data->disc_thresh = 3;
-	} else if (of_device_is_compatible(np, "allwinner,sun5i-usb-phy")) {
+	} else if (of_device_is_compatible(np,
+					"allwinner,sun5i-a13-usb-phy")) {
 		data->num_phys = 2;
 		data->disc_thresh = 2;
-	} else { /* allwinner,sun7i-usb-phy */
+	} else { /* allwinner,sun7i-a20-usb-phy */
 		data->num_phys = 3;
 		data->disc_thresh = 2;
 	}
@@ -292,9 +293,9 @@ static int sun4i_usb_phy_probe(struct platform_device *pdev)
 }
 
 static const struct of_device_id sun4i_usb_phy_of_match[] = {
-	{ .compatible = "allwinner,sun4i-usb-phy" },
-	{ .compatible = "allwinner,sun5i-usb-phy" },
-	{ .compatible = "allwinner,sun7i-usb-phy" },
+	{ .compatible = "allwinner,sun4i-a10-usb-phy" },
+	{ .compatible = "allwinner,sun5i-a13-usb-phy" },
+	{ .compatible = "allwinner,sun7i-a20-usb-phy" },
 	{ },
 };
 MODULE_DEVICE_TABLE(of, sun4i_usb_phy_of_match);
