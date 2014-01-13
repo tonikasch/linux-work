@@ -44,12 +44,6 @@ struct ehci_platform_priv {
 	struct phy *phy;
 };
 
-#define EHCI_MAX_CLKS 3
-struct ehci_platform_priv {
-	struct clk *clks[EHCI_MAX_CLKS];
-	struct phy *phy;
-};
-
 static const char hcd_name[] = "ehci-platform";
 
 static int ehci_platform_reset(struct usb_hcd *hcd)
@@ -304,7 +298,7 @@ static int ehci_platform_resume(struct device *dev)
 #define ehci_platform_resume	NULL
 #endif /* CONFIG_PM */
 
-static const struct of_device_id ehci_platform_ids[] = {
+static const struct of_device_id vt8500_ehci_ids[] = {
 	{ .compatible = "via,vt8500-ehci", },
 	{ .compatible = "wm,prizm-ehci", },
 	{ .compatible = "mmio-ehci", },
@@ -332,7 +326,7 @@ static struct platform_driver ehci_platform_driver = {
 		.owner	= THIS_MODULE,
 		.name	= "ehci-platform",
 		.pm	= &ehci_platform_pm_ops,
-		.of_match_table = ehci_platform_ids,
+		.of_match_table = vt8500_ehci_ids,
 	}
 };
 

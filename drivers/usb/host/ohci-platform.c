@@ -39,12 +39,6 @@ struct ohci_platform_priv {
 	struct phy *phy;
 };
 
-#define OHCI_MAX_CLKS 3
-struct ohci_platform_priv {
-	struct clk *clks[OHCI_MAX_CLKS];
-	struct phy *phy;
-};
-
 static const char hcd_name[] = "ohci-platform";
 
 static int ohci_platform_reset(struct usb_hcd *hcd)
