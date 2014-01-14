@@ -169,7 +169,7 @@ static int sun4i_usb_phy_power_on(struct phy *_phy)
 	struct sun4i_usb_phy *phy = phy_get_drvdata(_phy);
 	int ret;
 
-	if (!IS_ERR(phy->vbus)) {
+	if (phy->vbus) {
 		ret = regulator_enable(phy->vbus);
 		if (ret)
 			return ret;
@@ -183,7 +183,7 @@ static int sun4i_usb_phy_power_off(struct phy *_phy)
 {
 	struct sun4i_usb_phy *phy = phy_get_drvdata(_phy);
 
-	if (!IS_ERR(phy->vbus))
+	if (phy->vbus)
 		regulator_disable(phy->vbus);
 
 	return 0;
@@ -218,7 +218,7 @@ static int sun4i_usb_phy_probe(struct platform_device *pdev)
 	struct reset_control *reset;
 	struct regulator *vbus;
 	struct phy *phy;
-	char label[16];
+	char name[16];
 	int i;
 
 	data = devm_kzalloc(dev, sizeof(*data), GFP_KERNEL);
@@ -246,15 +246,18 @@ static int sun4i_usb_phy_probe(struct platform_device *pdev)
 
 	/* Skip 0, 0 is the phy for otg which is not yet supported. */
 	for (i = 1; i < data->num_phys; i++) {
-		snprintf(label, sizeof(label), "usb%d_vbus", i);
-		vbus = devm_regulator_get_optional(dev, label);
-		if (IS_ERR(vbus) && PTR_ERR(vbus) == -EPROBE_DEFER)
-			return -EPROBE_DEFER;
+		snprintf(name, sizeof(name), "usb%d_vbus", i);
+		vbus = devm_regulator_get_optional(dev, name);
+		if (IS_ERR(vbus)) {
+			if (PTR_ERR(vbus) == -EPROBE_DEFER)
+				return -EPROBE_DEFER;
+			vbus = NULL;
+		}
 
-		snprintf(label, sizeof(label), "usb%d_reset", i);
-		reset = devm_reset_control_get(dev, label);
+		snprintf(name, sizeof(name), "usb%d_reset", i);
+		reset = devm_reset_control_get(dev, name);
 		if (IS_ERR(phy)) {
-			dev_err(dev, "failed to get reset %s\n", label);
+			dev_err(dev, "failed to get reset %s\n", name);
 			return PTR_ERR(phy);
 		}
 

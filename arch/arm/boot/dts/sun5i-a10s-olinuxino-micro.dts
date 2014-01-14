@@ -103,13 +103,6 @@
 			status = "okay";
 		};
 
-		lradc: lradc@01c22800 {
-			allwinner,chan0-step = <200>;
-			linux,chan0-keycodes = <KEY_VOLUMEUP KEY_VOLUMEDOWN
-						KEY_MENU KEY_ENTER KEY_HOME>;
-			status = "okay";
-		};
-
 		uart0: serial@01c28000 {
 			pinctrl-names = "default";
 			pinctrl-0 = <&uart0_pins_a>;
