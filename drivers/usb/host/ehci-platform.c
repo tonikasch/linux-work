@@ -301,7 +301,7 @@ static int ehci_platform_resume(struct device *dev)
 static const struct of_device_id vt8500_ehci_ids[] = {
 	{ .compatible = "via,vt8500-ehci", },
 	{ .compatible = "wm,prizm-ehci", },
-	{ .compatible = "mmio-ehci", },
+	{ .compatible = "usb-ehci", },
 	{}
 };
 MODULE_DEVICE_TABLE(of, vt8500_ehci_ids);

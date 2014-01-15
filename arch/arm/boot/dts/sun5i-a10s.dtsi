@@ -327,7 +327,7 @@
 		};
 
 		ehci0: ehci@0x01c14000 {
-			compatible = "allwinner,sun5i-a10s-ehci", "mmio-ehci";
+			compatible = "allwinner,sun5i-a10s-ehci", "usb-ehci";
 			reg = <0x01c14000 0x100>;
 			interrupts = <39>;
 			clocks = <&ahb_gates 1>;
@@ -337,7 +337,7 @@
 		};
 
 		ohci0: ohci@0x01c14400 {
-			compatible = "allwinner,sun5i-a10s-ohci", "mmio-ohci";
+			compatible = "allwinner,sun5i-a10s-ohci", "usb-ohci";
 			reg = <0x01c14400 0x100>;
 			interrupts = <40>;
 			clocks = <&usb_clk 6>, <&ahb_gates 2>;

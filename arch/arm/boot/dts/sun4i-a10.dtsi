@@ -352,7 +352,7 @@
 		};
 
 		ehci0: ehci@0x01c14000 {
-			compatible = "allwinner,sun4i-a10-ehci", "mmio-ehci";
+			compatible = "allwinner,sun4i-a10-ehci", "usb-ehci";
 			reg = <0x01c14000 0x100>;
 			interrupts = <39>;
 			clocks = <&ahb_gates 1>;
@@ -362,7 +362,7 @@
 		};
 
 		ohci0: ohci@0x01c14400 {
-			compatible = "allwinner,sun4i-a10-ohci", "mmio-ohci";
+			compatible = "allwinner,sun4i-a10-ohci", "usb-ohci";
 			reg = <0x01c14400 0x100>;
 			interrupts = <64>;
 			clocks = <&usb_clk 6>, <&ahb_gates 2>;
@@ -381,7 +381,7 @@
 		};
 
 		ehci1: ehci@0x01c1c000 {
-			compatible = "allwinner,sun4i-a10-ehci", "mmio-ehci";
+			compatible = "allwinner,sun4i-a10-ehci", "usb-ehci";
 			reg = <0x01c1c000 0x100>;
 			interrupts = <40>;
 			clocks = <&ahb_gates 3>;
@@ -391,7 +391,7 @@
 		};
 
 		ohci1: ohci@0x01c1c400 {
-			compatible = "allwinner,sun4i-a10-ohci", "mmio-ohci";
+			compatible = "allwinner,sun4i-a10-ohci", "usb-ohci";
 			reg = <0x01c1c400 0x100>;
 			interrupts = <65>;
 			clocks = <&usb_clk 7>, <&ahb_gates 4>;
