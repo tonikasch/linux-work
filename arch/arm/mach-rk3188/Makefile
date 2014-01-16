@@ -24,4 +24,3 @@ obj-$(CONFIG_MACH_RK3188_LR097) += ../mach-rk30/board-rk3168-LR097.o
 obj-$(CONFIG_MACH_RK3188_DS1006H) += board-rk3188-ds1006h.o
 obj-$(CONFIG_MACH_RK3188_BOX) += board-rk3188-box.o
 obj-$(CONFIG_MACH_RK3188_RADXA_ROCK) += board-rk3188-radxa-rock.o
-CFLAGS_board-rk3188-radxa-rock.o +=-Idrivers/gpu/mali/mali/include/linux/mali -Idrivers/gpu/mali/mali/common
