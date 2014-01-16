@@ -427,48 +427,6 @@ static struct platform_device rockchip_hdmi_audio = {
 };
 #endif
 
-#if defined(CONFIG_MALI) || defined(CONFIG_MALI_MODULE)
-#include "mali_utgard.h"
-#define MALI_BASE_ADDR 0x10090000UL
-#define IRQ_GP_3D IRQ_GPU_GP
-#define IRQ_GPMMU_3D IRQ_GPU_MMU
-#define IRQ_PP0_3D IRQ_GPU_PP
-#define IRQ_PP1_3D IRQ_GPU_PP
-#define IRQ_PP2_3D IRQ_GPU_PP
-#define IRQ_PP3_3D IRQ_GPU_PP
-#define IRQ_PPMMU0_3D IRQ_GPU_MMU
-#define IRQ_PPMMU1_3D IRQ_GPU_MMU
-#define IRQ_PPMMU2_3D IRQ_GPU_MMU
-#define IRQ_PPMMU3_3D IRQ_GPU_MMU
-/*
-static struct clock *mali_clk=NULL;
-
-static int mali_gpu_probe (struct platform_device *pdev)
-{
-	mali_clk=clk_get(NULL,"aclk_gpu");
-	return 0;
-}
-*/
-static struct resource mali_gpu_resources_m400_mp4[] = {
-		MALI_GPU_RESOURCES_MALI400_MP4(MALI_BASE_ADDR,
-				IRQ_GP_3D,
-				IRQ_GPMMU_3D,
-				IRQ_PP0_3D,
-				IRQ_PPMMU0_3D,
-				IRQ_PP1_3D,
-				IRQ_PPMMU1_3D,
-				IRQ_PP2_3D,
-				IRQ_PPMMU2_3D,
-				IRQ_PP3_3D,
-				IRQ_PPMMU3_3D) };
-
-static struct platform_device mali_gpu_device = {
-		.name = MALI_GPU_NAME_UTGARD,
-		.id = 0,
-		.resource = mali_gpu_resources_m400_mp4,
-};
-#endif
-
 static struct platform_device *devices[] __initdata = {
 
 #ifdef CONFIG_ION
@@ -489,9 +447,6 @@ static struct platform_device *devices[] __initdata = {
 #endif
 #if defined(CONFIG_LCDC0_RK3188) || defined(CONFIG_LCDC0_RK3188_MODULE)
 	&device_lcdc0,
-#endif
-#if defined(CONFIG_MALI) || defined(CONFIG_MALI_MODULE)
-	&mali_gpu_device,
 #endif
 };
 
@@ -860,7 +815,6 @@ static void __init machine_rk30_board_init(void)
 	rk30_i2c_register_board_info();
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 	board_usb_detect_init(RK30_PIN0_PA7);
-
 }
 
 static void __init rk30_reserve(void)
@@ -898,113 +852,37 @@ static void __init rk30_reserve(void)
  * comments	: min arm/logic voltage
  */
 static struct cpufreq_frequency_table dvfs_arm_table[] = {
-#ifdef CONFIG_RK_CPU_312
-        {.frequency = 312 * 1000,       .index = CONFIG_RK_CPU_312_VOLT * 1000},
-#endif
-#ifdef CONFIG_RK_CPU_504
-        {.frequency = 504 * 1000,       .index = CONFIG_RK_CPU_504_VOLT * 1000},
-#endif
-#ifdef CONFIG_RK_CPU_816
-        {.frequency = 816 * 1000,       .index = CONFIG_RK_CPU_816_VOLT * 1000},
-#endif
-#ifdef CONFIG_RK_CPU_1008
-        {.frequency = 1008 * 1000,      .index = CONFIG_RK_CPU_1008_VOLT * 1000},
-#endif
-#ifdef CONFIG_RK_CPU_1200
-        {.frequency = 1200 * 1000,      .index = CONFIG_RK_CPU_1200_VOLT * 1000},
-#endif
-#ifdef CONFIG_RK_CPU_1416
-        {.frequency = 1416 * 1000,      .index = CONFIG_RK_CPU_1416_VOLT * 1000},
-#endif
-#ifdef CONFIG_RK_CPU_1608
-        {.frequency = 1608 * 1000,      .index = CONFIG_RK_CPU_1608_VOLT * 1000},
-#endif
-#ifdef CONFIG_RK_CPU_1704
-        {.frequency = 1704 * 1000,      .index = CONFIG_RK_CPU_1704_VOLT * 1000},
-#endif
-#ifdef CONFIG_RK_CPU_1800
-        {.frequency = 1800 * 1000,      .index = CONFIG_RK_CPU_1800_VOLT * 1000},
-#endif
-#ifdef CONFIG_RK_CPU_1896
-        {.frequency = 1896 * 1000,      .index = CONFIG_RK_CPU_1896_VOLT * 1000},
-#endif
-#ifdef CONFIG_RK_CPU_1920
-        {.frequency = 1920 * 1000,      .index = CONFIG_RK_CPU_1920_VOLT * 1000},
-#endif
-#ifdef CONFIG_RK_CPU_2016
-        {.frequency = 2016 * 1000,      .index = CONFIG_RK_CPU_2016_VOLT * 1000},
-#endif
+
+        {.frequency = 312 * 1000,       .index = 900 * 1000},
+        {.frequency = 504 * 1000,       .index = 925 * 1000},
+        {.frequency = 816 * 1000,       .index = 1000 * 1000},
+        {.frequency = 1008 * 1000,      .index = 1075 * 1000},
+        {.frequency = 1200 * 1000,      .index = 1150 * 1000},
+        {.frequency = 1416 * 1000,      .index = 1250 * 1000},
+        {.frequency = 1608 * 1000,      .index = 1375 * 1000},
+
+
 	{.frequency = CPUFREQ_TABLE_END},
 };
 
 static struct cpufreq_frequency_table dvfs_gpu_table[] = {
-#ifdef CONFIG_RK_GPU_133
-	   {.frequency = 133 * 1000,       .index = CONFIG_RK_GPU_133_VOLT * 1000},
-#endif
-#ifdef CONFIG_RK_GPU_200
-       {.frequency = 200 * 1000,       .index = CONFIG_RK_GPU_200_VOLT * 1000},  
-#endif
-#ifdef CONFIG_RK_GPU_266
-       {.frequency = 266 * 1000,       .index = CONFIG_RK_GPU_266_VOLT * 1000},  
-#endif
-#ifdef CONFIG_RK_GPU_300
-       {.frequency = 300 * 1000,       .index = CONFIG_RK_GPU_300_VOLT * 1000},  
-#endif
-#ifdef CONFIG_RK_GPU_400
-       {.frequency = 400 * 1000,       .index = CONFIG_RK_GPU_400_VOLT * 1000},
-#endif
-#ifdef CONFIG_RK_GPU_600
-       {.frequency = 600 * 1000,       .index = CONFIG_RK_GPU_600_VOLT * 1000},
-#endif
-#ifdef CONFIG_RK_GPU_798
-       {.frequency = 798 * 1000,       .index = CONFIG_RK_GPU_798_VOLT * 1000},
-#endif
+	   {.frequency = 133 * 1000,       .index = 975 * 1000},
+       //{.frequency = 150 * 1000,       .index = 975 * 1000},
+       {.frequency = 200 * 1000,       .index = 1000 * 1000},  
+       {.frequency = 266 * 1000,       .index = 1025 * 1000},  
+       {.frequency = 300 * 1000,       .index = 1050 * 1000},  
+       {.frequency = 400 * 1000,       .index = 1100 * 1000},
+       {.frequency = 600 * 1000,       .index = 1250 * 1000},
 	{.frequency = CPUFREQ_TABLE_END},
 };
 
 static struct cpufreq_frequency_table dvfs_ddr_table[] = {
-	{.frequency = 400 * 1000 + DDR_FREQ_IDLE,       .index = 1000 * 1000},
-	{.frequency = 400 * 1000 + DDR_FREQ_SUSPEND,    .index = 1000 * 1000},
-	{.frequency = 400 * 1000 + DDR_FREQ_VIDEO,      .index = 1000 * 1000},
-#ifdef CONFIG_RK_DDR_300
-	{.frequency = 300 * 1000 + DDR_FREQ_NORMAL,     .index = CONFIG_RK_DDR_300_VOLT * 1000},
-#endif
-#ifdef CONFIG_RK_DDR_360
-	{.frequency = 360 * 1000 + DDR_FREQ_NORMAL,     .index = CONFIG_RK_DDR_360_VOLT * 1000},
-#endif
-#ifdef CONFIG_RK_DDR_400
-	{.frequency = 400 * 1000 + DDR_FREQ_NORMAL,     .index = CONFIG_RK_DDR_400_VOLT * 1000},
-#endif
-#ifdef CONFIG_RK_DDR_500
-	{.frequency = 500 * 1000 + DDR_FREQ_NORMAL,     .index = CONFIG_RK_DDR_500_VOLT * 1000},
-#endif
-#ifdef CONFIG_RK_DDR_536
-	{.frequency = 536 * 1000 + DDR_FREQ_NORMAL,     .index = CONFIG_RK_DDR_536_VOLT * 1000},
-#endif
-#ifdef CONFIG_RK_DDR_600
-	{.frequency = 600 * 1000 + DDR_FREQ_NORMAL,     .index = CONFIG_RK_DDR_600_VOLT * 1000},
-#endif
-#ifdef CONFIG_RK_DDR_640
-	{.frequency = 640 * 1000 + DDR_FREQ_NORMAL,     .index = CONFIG_RK_DDR_640_VOLT * 1000},
-#endif
-#ifdef CONFIG_RK_DDR_672
-	{.frequency = 672 * 1000 + DDR_FREQ_NORMAL,     .index = CONFIG_RK_DDR_672_VOLT * 1000},
-#endif
-#ifdef CONFIG_RK_DDR_700
-	{.frequency = 700 * 1000 + DDR_FREQ_NORMAL,     .index = CONFIG_RK_DDR_700_VOLT * 1000},
-#endif
-#ifdef CONFIG_RK_DDR_720
-	{.frequency = 720 * 1000 + DDR_FREQ_NORMAL,     .index = CONFIG_RK_DDR_720_VOLT * 1000},
-#endif
-#ifdef CONFIG_RK_DDR_768
-	{.frequency = 768 * 1000 + DDR_FREQ_NORMAL,     .index = CONFIG_RK_DDR_768_VOLT * 1000},
-#endif
-#ifdef CONFIG_RK_DDR_800
-	{.frequency = 800 * 1000 + DDR_FREQ_NORMAL,     .index = CONFIG_RK_DDR_800_VOLT * 1000},
-#endif
+	//{.frequency = 200 * 1000 + DDR_FREQ_SUSPEND,    .index = 950 * 1000},
+	{.frequency = 300 * 1000 + DDR_FREQ_VIDEO,      .index = 1000 * 1000},
+	{.frequency = 400 * 1000 + DDR_FREQ_NORMAL,     .index = 1100 * 1000},
+       //{.frequency = 600 * 1000 + DDR_FREQ_NORMAL,     .index = 1250 * 1000},
 	{.frequency = CPUFREQ_TABLE_END},
 };
-
 static struct cpufreq_frequency_table dvfs_ddr_table_t[] = {
 	{.frequency = 200 * 1000 + DDR_FREQ_SUSPEND,    .index = 950 * 1000},
 	{.frequency = 460 * 1000 + DDR_FREQ_NORMAL,     .index = 1150 * 1000},
@@ -1027,14 +905,26 @@ int get_max_freq(struct cpufreq_frequency_table *table)
 void __init board_clock_init(void)
 {
 	u32 flags=RK30_CLOCKS_DEFAULT_FLAGS;
+#if !defined(CONFIG_ARCH_RK3188)
+	if(get_max_freq(dvfs_gpu_table)<=(400*1000))
+	{	
+		flags=RK30_CLOCKS_DEFAULT_FLAGS|CLK_GPU_GPLL;
+	}
+	else
+		flags=RK30_CLOCKS_DEFAULT_FLAGS|CLK_GPU_CPLL;
+#endif	
 	rk30_clock_data_init(periph_pll_default, codec_pll_default, flags);
-	//dvfs_set_arm_logic_volt(dvfs_cpu_logic_table, cpu_dvfs_table, dep_cpu2core_table);
+	//dvfs_set_arm_logic_volt(dvfs_cpu_logic_table, cpu_dvfs_table, dep_cpu2core_table);	
 	dvfs_set_freq_volt_table(clk_get(NULL, "cpu"), dvfs_arm_table);
 	dvfs_set_freq_volt_table(clk_get(NULL, "gpu"), dvfs_gpu_table);
+#if defined(CONFIG_ARCH_RK3188)
 	if (rk_pll_flag() == 0)
 		dvfs_set_freq_volt_table(clk_get(NULL, "ddr"), dvfs_ddr_table);
 	else
 		dvfs_set_freq_volt_table(clk_get(NULL, "ddr"), dvfs_ddr_table_t);
+#else
+	dvfs_set_freq_volt_table(clk_get(NULL, "ddr"), dvfs_ddr_table);
+#endif
 }
 
 MACHINE_START(RK30, "Radxa Rock")

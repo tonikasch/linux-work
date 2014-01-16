@@ -27,7 +27,6 @@
 #include <linux/io.h>
 #include <linux/hrtimer.h>
 
-#define OMEGAMOON_CHANGED			1
 static int rk_dvfs_clk_notifier_event(struct notifier_block *this,
 		unsigned long event, void *ptr)
 {
@@ -78,8 +77,8 @@ static struct notifier_block rk_dvfs_clk_notifier = {
 	.notifier_call = rk_dvfs_clk_notifier_event,
 };
 #ifdef CONFIG_ARCH_RK3066B
-static int g_arm_high_logic = 50 * 1000;
-static int g_logic_high_arm = 100 * 1000;
+static int g_arm_high_logic = 0 * 1000;
+static int g_logic_high_arm = 50 * 1000;
 #else
 static int g_arm_high_logic = 150 * 1000;
 static int g_logic_high_arm = 100 * 1000;
@@ -587,13 +586,6 @@ static struct depend_lookup rk30_depends[] = {
 	//RK_DEPPENDS("gpu", &vd_cpu, NULL),
 };
 static struct avs_ctr_st rk30_avs_ctr;
-
-#ifdef OMEGAMOON_CHANGED
-int rk30_dvfs_init(void)
-{
-	return rk_dvfs_init();
-}
-#endif
 
 int rk_dvfs_init(void)
 {
