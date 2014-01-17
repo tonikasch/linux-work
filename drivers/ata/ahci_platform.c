@@ -181,6 +181,13 @@ static int ahci_probe(struct platform_device *pdev)
 		hpriv->clks[i] = clk;
 	}
 
+	hpriv->target_pwr = devm_regulator_get_optional(dev, "target");
+	if (IS_ERR(hpriv->target_pwr)) {
+		if (PTR_ERR(hpriv->target_pwr) == -EPROBE_DEFER)
+			return -EPROBE_DEFER;
+		hpriv->target_pwr = NULL;
+	}
+
 	rc = ahci_enable_clks(dev, hpriv);
 	if (rc)
 		goto free_clk;
@@ -195,6 +202,12 @@ static int ahci_probe(struct platform_device *pdev)
 		rc = pdata->init(dev, hpriv, hpriv->mmio);
 		if (rc)
 			goto disable_unprepare_clk;
+	}
+
+	if (hpriv->target_pwr) {
+		rc = regulator_enable(hpriv->target_pwr);
+		if (rc)
+			goto pdata_exit;
 	}
 
 	ahci_save_initial_config(dev, hpriv,
@@ -220,7 +233,7 @@ static int ahci_probe(struct platform_device *pdev)
 	host = ata_host_alloc_pinfo(dev, ppi, n_ports);
 	if (!host) {
 		rc = -ENOMEM;
-		goto pdata_exit;
+		goto disable_regulator;
 	}
 
 	host->private_data = hpriv;
@@ -250,7 +263,7 @@ static int ahci_probe(struct platform_device *pdev)
 
 	rc = ahci_reset_controller(host);
 	if (rc)
-		goto pdata_exit;
+		goto disable_regulator;
 
 	ahci_init_controller(host);
 	ahci_print_info(host, "platform");
@@ -258,9 +271,12 @@ static int ahci_probe(struct platform_device *pdev)
 	rc = ata_host_activate(host, irq, ahci_interrupt, IRQF_SHARED,
 			       &ahci_platform_sht);
 	if (rc)
-		goto pdata_exit;
+		goto disable_regulator;
 
 	return 0;
+disable_regulator:
+	if (hpriv->target_pwr)
+		regulator_disable(hpriv->target_pwr);
 pdata_exit:
 	if (pdata && pdata->exit)
 		pdata->exit(dev);
@@ -276,6 +292,9 @@ static void ahci_host_stop(struct ata_host *host)
 	struct device *dev = host->dev;
 	struct ahci_platform_data *pdata = dev_get_platdata(dev);
 	struct ahci_host_priv *hpriv = host->private_data;
+
+	if (hpriv->target_pwr)
+		regulator_disable(hpriv->target_pwr);
 
 	if (pdata && pdata->exit)
 		pdata->exit(dev);
@@ -313,6 +332,9 @@ static int ahci_suspend(struct device *dev)
 	if (rc)
 		return rc;
 
+	if (hpriv->target_pwr)
+		regulator_disable(hpriv->target_pwr);
+
 	if (pdata && pdata->suspend)
 		pdata->suspend(dev);
 
@@ -338,10 +360,16 @@ static int ahci_resume(struct device *dev)
 			goto disable_unprepare_clk;
 	}
 
+	if (hpriv->target_pwr) {
+		rc = regulator_enable(hpriv->target_pwr);
+		if (rc)
+			goto pdata_suspend;
+	}
+
 	if (dev->power.power_state.event == PM_EVENT_SUSPEND) {
 		rc = ahci_reset_controller(host);
 		if (rc)
-			goto pdata_suspend;
+			goto disable_regulator;
 
 		ahci_init_controller(host);
 	}
@@ -350,6 +378,9 @@ static int ahci_resume(struct device *dev)
 
 	return 0;
 
+disable_regulator:
+	if (hpriv->target_pwr)
+		regulator_disable(hpriv->target_pwr);
 pdata_suspend:
 	if (pdata && pdata->suspend)
 		pdata->suspend(dev);

@@ -36,6 +36,7 @@
 #define _AHCI_H
 
 #include <linux/clk.h>
+#include <linux/regulator/consumer.h>
 #include <linux/libata.h>
 
 /* Enclosure Management Control */
@@ -323,6 +324,7 @@ struct ahci_host_priv {
 	u32			em_buf_sz;	/* EM buffer size in byte */
 	u32			em_msg_type;	/* EM message type */
 	struct clk		*clks[AHCI_MAX_CLKS]; /* Optional */
+	struct regulator	*target_pwr;	/* Optional */
 	void			*plat_data;	/* Other platform data */
 	/* Optional ahci_start_engine override */
 	void			(*start_engine)(struct ata_port *ap);
