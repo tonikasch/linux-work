@@ -171,7 +171,7 @@ static void imx6q_sata_exit(struct device *dev)
 	clk_disable_unprepare(imxpriv->sata_ref_clk);
 }
 
-static int imx_ahci_suspend(struct device *dev)
+static void imx_ahci_suspend(struct device *dev)
 {
 	struct imx_ahci_priv *imxpriv =  dev_get_drvdata(dev->parent);
 
@@ -185,8 +185,6 @@ static int imx_ahci_suspend(struct device *dev)
 				!IMX6Q_GPR13_SATA_MPLL_CLK_EN);
 		clk_disable_unprepare(imxpriv->sata_ref_clk);
 	}
-
-	return 0;
 }
 
 static int imx_ahci_resume(struct device *dev)

@@ -275,7 +275,7 @@ static int ahci_suspend(struct device *dev)
 		return rc;
 
 	if (pdata && pdata->suspend)
-		return pdata->suspend(dev);
+		pdata->suspend(dev);
 
 	if (!IS_ERR(hpriv->clk))
 		clk_disable_unprepare(hpriv->clk);
