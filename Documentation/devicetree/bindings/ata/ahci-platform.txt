@@ -5,8 +5,8 @@ Each SATA controller should have its own node.
 
 Required properties:
 - compatible        : compatible list, one of "snps,spear-ahci",
-                      "snps,exynos5440-ahci", "ibm,476gtr-ahci", or
-                      "allwinner,sun4i-a10-ahci"
+                      "snps,exynos5440-ahci", "ibm,476gtr-ahci",
+                      "allwinner,sun4i-a10-ahci" or "fsl,imx6q-ahci"
 - interrupts        : <interrupt mapping for SATA IRQ>
 - reg               : <registers mapping>
 
@@ -17,6 +17,10 @@ Optional properties:
 
 allwinner,sun4i-a10-ahci required properties:
 - clocks            : index 0 must point to the sata_ref clk, 1 to the ahb clk
+
+fsl,imx6q-ahci required properties:
+- clocks            : index 0 must point to the sataf clk, 1 to the sata_ref
+		      clk and 2 to the ahb clk
 
 Examples:
         sata@ffe08000 {

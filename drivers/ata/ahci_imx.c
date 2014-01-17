@@ -34,12 +34,15 @@ enum {
 	HOST_TIMER1MS = 0xe0,			/* Timer 1-ms */
 };
 
+enum {
+	CLK_SATA,
+	CLK_SATA_REF,
+	CLK_AHB
+};
+
 struct imx_ahci_priv {
 	struct platform_device *ahci_pdev;
-	struct clk *sata_ref_clk;
-	struct clk *ahb_clk;
 	struct regmap *gpr;
-	bool no_device;
 	bool first_time;
 };
 
@@ -55,6 +58,7 @@ static void ahci_imx_error_handler(struct ata_port *ap)
 	struct ahci_host_priv *hpriv = host->private_data;
 	void __iomem *mmio = hpriv->mmio;
 	struct imx_ahci_priv *imxpriv = dev_get_drvdata(ap->dev->parent);
+	int i;
 
 	ahci_error_handler(ap);
 
@@ -75,8 +79,13 @@ static void ahci_imx_error_handler(struct ata_port *ap)
 	regmap_update_bits(imxpriv->gpr, IOMUXC_GPR13,
 			IMX6Q_GPR13_SATA_MPLL_CLK_EN,
 			!IMX6Q_GPR13_SATA_MPLL_CLK_EN);
-	clk_disable_unprepare(imxpriv->sata_ref_clk);
-	imxpriv->no_device = true;
+
+	for (i = CLK_AHB; i >= 0; i--) {
+		clk_disable_unprepare(hpriv->clks[i]);
+		/* Stop ahci_platform.c from trying to use the clks */
+		clk_put(hpriv->clks[i]);
+		hpriv->clks[i] = NULL;
+	}
 }
 
 static struct ata_port_operations ahci_imx_ops = {
@@ -94,7 +103,6 @@ static const struct ata_port_info ahci_imx_port_info = {
 static int imx6q_sata_init(struct device *dev, struct ahci_host_priv *hpriv,
 			   void __iomem *mmio)
 {
-	int ret = 0;
 	unsigned int reg_val;
 	struct imx_ahci_priv *imxpriv = dev_get_drvdata(dev->parent);
 
@@ -103,12 +111,6 @@ static int imx6q_sata_init(struct device *dev, struct ahci_host_priv *hpriv,
 	if (IS_ERR(imxpriv->gpr)) {
 		dev_err(dev, "failed to find fsl,imx6q-iomux-gpr regmap\n");
 		return PTR_ERR(imxpriv->gpr);
-	}
-
-	ret = clk_prepare_enable(imxpriv->sata_ref_clk);
-	if (ret < 0) {
-		dev_err(dev, "prepare-enable sata_ref clock err:%d\n", ret);
-		return ret;
 	}
 
 	/*
@@ -157,7 +159,11 @@ static int imx6q_sata_init(struct device *dev, struct ahci_host_priv *hpriv,
 		writel(reg_val, mmio + HOST_PORTS_IMPL);
 	}
 
-	reg_val = clk_get_rate(imxpriv->ahb_clk) / 1000;
+	if (!hpriv->clks[CLK_AHB]) {
+		dev_err(dev, "no ahb clk, need sata, sata_ref and ahb clks\n");
+		return -ENOENT;
+	}
+	reg_val = clk_get_rate(hpriv->clks[CLK_AHB]) / 1000;
 	writel(reg_val, mmio + HOST_TIMER1MS);
 
 	return 0;
@@ -165,41 +171,36 @@ static int imx6q_sata_init(struct device *dev, struct ahci_host_priv *hpriv,
 
 static void imx6q_sata_exit(struct device *dev)
 {
-	struct imx_ahci_priv *imxpriv =  dev_get_drvdata(dev->parent);
+	struct ata_host *host = dev_get_drvdata(dev);
+	struct ahci_host_priv *hpriv = host->private_data;
+	struct imx_ahci_priv *imxpriv = dev_get_drvdata(dev->parent);
 
-	regmap_update_bits(imxpriv->gpr, 0x34, IMX6Q_GPR13_SATA_MPLL_CLK_EN,
+	if (hpriv->clks[CLK_SATA])
+		regmap_update_bits(imxpriv->gpr, 0x34,
+			IMX6Q_GPR13_SATA_MPLL_CLK_EN,
 			!IMX6Q_GPR13_SATA_MPLL_CLK_EN);
-	clk_disable_unprepare(imxpriv->sata_ref_clk);
 }
 
 static void imx_ahci_suspend(struct device *dev)
 {
-	struct imx_ahci_priv *imxpriv =  dev_get_drvdata(dev->parent);
+	struct ata_host *host = dev_get_drvdata(dev);
+	struct ahci_host_priv *hpriv = host->private_data;
+	struct imx_ahci_priv *imxpriv = dev_get_drvdata(dev->parent);
 
-	/*
-	 * If no_device is set, The CLKs had been gated off in the
-	 * initialization so don't do it again here.
-	 */
-	if (!imxpriv->no_device) {
+	/* Check the CLKs have not been gated off in the initialization. */
+	if (hpriv->clks[CLK_SATA])
 		regmap_update_bits(imxpriv->gpr, IOMUXC_GPR13,
 				IMX6Q_GPR13_SATA_MPLL_CLK_EN,
 				!IMX6Q_GPR13_SATA_MPLL_CLK_EN);
-		clk_disable_unprepare(imxpriv->sata_ref_clk);
-	}
 }
 
 static int imx_ahci_resume(struct device *dev)
 {
-	struct imx_ahci_priv *imxpriv =  dev_get_drvdata(dev->parent);
-	int ret;
+	struct ata_host *host = dev_get_drvdata(dev);
+	struct ahci_host_priv *hpriv = host->private_data;
+	struct imx_ahci_priv *imxpriv = dev_get_drvdata(dev->parent);
 
-	if (!imxpriv->no_device) {
-		ret = clk_prepare_enable(imxpriv->sata_ref_clk);
-		if (ret < 0) {
-			dev_err(dev, "pre-enable sata_ref clock err:%d\n", ret);
-			return ret;
-		}
-
+	if (hpriv->clks[CLK_SATA]) {
 		regmap_update_bits(imxpriv->gpr, IOMUXC_GPR13,
 				IMX6Q_GPR13_SATA_MPLL_CLK_EN,
 				IMX6Q_GPR13_SATA_MPLL_CLK_EN);
@@ -247,22 +248,7 @@ static int imx_ahci_probe(struct platform_device *pdev)
 	ahci_dev = &ahci_pdev->dev;
 	ahci_dev->parent = dev;
 
-	imxpriv->no_device = false;
 	imxpriv->first_time = true;
-	imxpriv->ahb_clk = devm_clk_get(dev, "ahb");
-	if (IS_ERR(imxpriv->ahb_clk)) {
-		dev_err(dev, "can't get ahb clock.\n");
-		ret = PTR_ERR(imxpriv->ahb_clk);
-		goto err_out;
-	}
-
-	imxpriv->sata_ref_clk = devm_clk_get(dev, "sata_ref");
-	if (IS_ERR(imxpriv->sata_ref_clk)) {
-		dev_err(dev, "can't get sata_ref clock.\n");
-		ret = PTR_ERR(imxpriv->sata_ref_clk);
-		goto err_out;
-	}
-
 	imxpriv->ahci_pdev = ahci_pdev;
 	platform_set_drvdata(pdev, imxpriv);
 
