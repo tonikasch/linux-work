@@ -65,7 +65,7 @@ static int ohci_platform_power_on(struct platform_device *dev)
 	struct ohci_platform_priv *priv = hcd_to_ohci_priv(hcd);
 	int clk, ret;
 
-	for (clk = 0; priv->clks[clk] && clk < OHCI_MAX_CLKS; clk++) {
+	for (clk = 0; clk < OHCI_MAX_CLKS && priv->clks[clk]; clk++) {
 		ret = clk_prepare_enable(priv->clks[clk]);
 		if (ret)
 			goto err_disable_clks;
@@ -128,7 +128,7 @@ static int ohci_platform_probe(struct platform_device *dev)
 	struct resource *res_mem;
 	struct usb_ohci_pdata *pdata = dev_get_platdata(&dev->dev);
 	struct ohci_platform_priv *priv;
-	int clk, irq, err;
+	int err, irq, clk = 0;
 
 	if (usb_disabled())
 		return -ENODEV;
@@ -233,7 +233,7 @@ static int ohci_platform_remove(struct platform_device *dev)
 	if (pdata->power_off)
 		pdata->power_off(dev);
 
-	for (clk = 0; priv->clks[clk] && clk < OHCI_MAX_CLKS; clk++)
+	for (clk = 0; clk < OHCI_MAX_CLKS && priv->clks[clk]; clk++)
 		clk_put(priv->clks[clk]);
 
 	usb_put_hcd(hcd);
