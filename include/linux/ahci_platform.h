@@ -33,5 +33,6 @@ struct ahci_platform_data {
 };
 
 extern struct ahci_platform_data ahci_sunxi_pdata;
+extern struct ahci_platform_data imx6q_sata_pdata;
 
 #endif /* _AHCI_PLATFORM_H */

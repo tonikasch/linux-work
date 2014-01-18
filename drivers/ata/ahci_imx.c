@@ -28,6 +28,8 @@
 #include <linux/libata.h>
 #include "ahci.h"
 
+#ifdef CONFIG_AHCI_IMX
+
 enum {
 	PORT_PHY_CTL = 0x178,			/* Port0 PHY Control */
 	PORT_PHY_CTL_PDDQ_LOC = 0x100000,	/* PORT_PHY_CTL bits */
@@ -57,7 +59,7 @@ static void ahci_imx_error_handler(struct ata_port *ap)
 	struct ata_host *host = dev_get_drvdata(ap->dev);
 	struct ahci_host_priv *hpriv = host->private_data;
 	void __iomem *mmio = hpriv->mmio;
-	struct imx_ahci_priv *imxpriv = dev_get_drvdata(ap->dev->parent);
+	struct imx_ahci_priv *imxpriv = hpriv->plat_data;
 	int i;
 
 	ahci_error_handler(ap);
@@ -104,8 +106,13 @@ static int imx6q_sata_init(struct device *dev, struct ahci_host_priv *hpriv,
 			   void __iomem *mmio)
 {
 	unsigned int reg_val;
-	struct imx_ahci_priv *imxpriv = dev_get_drvdata(dev->parent);
+	struct imx_ahci_priv *imxpriv;
 
+	imxpriv = devm_kzalloc(dev, sizeof(*imxpriv), GFP_KERNEL);
+	if (!imxpriv)
+		return -ENOMEM;
+
+	hpriv->plat_data = imxpriv;
 	imxpriv->gpr =
 		syscon_regmap_lookup_by_compatible("fsl,imx6q-iomuxc-gpr");
 	if (IS_ERR(imxpriv->gpr)) {
@@ -173,7 +180,7 @@ static void imx6q_sata_exit(struct device *dev)
 {
 	struct ata_host *host = dev_get_drvdata(dev);
 	struct ahci_host_priv *hpriv = host->private_data;
-	struct imx_ahci_priv *imxpriv = dev_get_drvdata(dev->parent);
+	struct imx_ahci_priv *imxpriv = hpriv->plat_data;
 
 	if (hpriv->clks[CLK_SATA])
 		regmap_update_bits(imxpriv->gpr, 0x34,
@@ -185,7 +192,7 @@ static void imx_ahci_suspend(struct device *dev)
 {
 	struct ata_host *host = dev_get_drvdata(dev);
 	struct ahci_host_priv *hpriv = host->private_data;
-	struct imx_ahci_priv *imxpriv = dev_get_drvdata(dev->parent);
+	struct imx_ahci_priv *imxpriv = hpriv->plat_data;
 
 	/* Check the CLKs have not been gated off in the initialization. */
 	if (hpriv->clks[CLK_SATA])
@@ -198,7 +205,7 @@ static int imx_ahci_resume(struct device *dev)
 {
 	struct ata_host *host = dev_get_drvdata(dev);
 	struct ahci_host_priv *hpriv = host->private_data;
-	struct imx_ahci_priv *imxpriv = dev_get_drvdata(dev->parent);
+	struct imx_ahci_priv *imxpriv = hpriv->plat_data;
 
 	if (hpriv->clks[CLK_SATA]) {
 		regmap_update_bits(imxpriv->gpr, IOMUXC_GPR13,
@@ -210,7 +217,7 @@ static int imx_ahci_resume(struct device *dev)
 	return 0;
 }
 
-static struct ahci_platform_data imx6q_sata_pdata = {
+struct ahci_platform_data imx6q_sata_pdata = {
 	.init = imx6q_sata_init,
 	.exit = imx6q_sata_exit,
 	.ata_port_info = &ahci_imx_port_info,
@@ -218,102 +225,7 @@ static struct ahci_platform_data imx6q_sata_pdata = {
 	.resume = imx_ahci_resume,
 };
 
-static const struct of_device_id imx_ahci_of_match[] = {
-	{ .compatible = "fsl,imx6q-ahci", .data = &imx6q_sata_pdata},
-	{},
-};
-MODULE_DEVICE_TABLE(of, imx_ahci_of_match);
-
-static int imx_ahci_probe(struct platform_device *pdev)
-{
-	struct device *dev = &pdev->dev;
-	struct resource *mem, *irq, res[2];
-	const struct of_device_id *of_id;
-	const struct ahci_platform_data *pdata = NULL;
-	struct imx_ahci_priv *imxpriv;
-	struct device *ahci_dev;
-	struct platform_device *ahci_pdev;
-	int ret;
-
-	imxpriv = devm_kzalloc(dev, sizeof(*imxpriv), GFP_KERNEL);
-	if (!imxpriv) {
-		dev_err(dev, "can't alloc ahci_host_priv\n");
-		return -ENOMEM;
-	}
-
-	ahci_pdev = platform_device_alloc("ahci", -1);
-	if (!ahci_pdev)
-		return -ENODEV;
-
-	ahci_dev = &ahci_pdev->dev;
-	ahci_dev->parent = dev;
-
-	imxpriv->first_time = true;
-	imxpriv->ahci_pdev = ahci_pdev;
-	platform_set_drvdata(pdev, imxpriv);
-
-	of_id = of_match_device(imx_ahci_of_match, dev);
-	if (of_id) {
-		pdata = of_id->data;
-	} else {
-		ret = -EINVAL;
-		goto err_out;
-	}
-
-	mem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	irq = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
-	if (!mem || !irq) {
-		dev_err(dev, "no mmio/irq resource\n");
-		ret = -ENOMEM;
-		goto err_out;
-	}
-
-	res[0] = *mem;
-	res[1] = *irq;
-
-	ahci_dev->coherent_dma_mask = DMA_BIT_MASK(32);
-	ahci_dev->dma_mask = &ahci_dev->coherent_dma_mask;
-	ahci_dev->of_node = dev->of_node;
-
-	ret = platform_device_add_resources(ahci_pdev, res, 2);
-	if (ret)
-		goto err_out;
-
-	ret = platform_device_add_data(ahci_pdev, pdata, sizeof(*pdata));
-	if (ret)
-		goto err_out;
-
-	ret = platform_device_add(ahci_pdev);
-	if (ret) {
-err_out:
-		platform_device_put(ahci_pdev);
-		return ret;
-	}
-
-	return 0;
-}
-
-static int imx_ahci_remove(struct platform_device *pdev)
-{
-	struct imx_ahci_priv *imxpriv = platform_get_drvdata(pdev);
-	struct platform_device *ahci_pdev = imxpriv->ahci_pdev;
-
-	platform_device_unregister(ahci_pdev);
-	return 0;
-}
-
-static struct platform_driver imx_ahci_driver = {
-	.probe = imx_ahci_probe,
-	.remove = imx_ahci_remove,
-	.driver = {
-		.name = "ahci-imx",
-		.owner = THIS_MODULE,
-		.of_match_table = imx_ahci_of_match,
-	},
-};
-module_platform_driver(imx_ahci_driver);
-
-MODULE_DESCRIPTION("Freescale i.MX AHCI SATA platform driver");
 MODULE_AUTHOR("Richard Zhu <Hong-Xing.Zhu@freescale.com>");
-MODULE_LICENSE("GPL");
 MODULE_ALIAS("ahci:imx");
+
+#endif

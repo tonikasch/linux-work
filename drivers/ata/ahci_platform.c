@@ -96,6 +96,9 @@ static const struct of_device_id ahci_of_match[] = {
 	{ .compatible = "allwinner,sun4i-a10-ahci",
 	  .data = &ahci_sunxi_pdata, },
 #endif
+#ifdef CONFIG_AHCI_IMX
+	{ .compatible = "fsl,imx6q-ahci", .data = &imx6q_sata_pdata, },
+#endif
 	{},
 };
 MODULE_DEVICE_TABLE(of, ahci_of_match);
