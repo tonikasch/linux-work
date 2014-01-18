@@ -91,7 +91,8 @@ static const struct ata_port_info ahci_imx_port_info = {
 	.port_ops	= &ahci_imx_ops,
 };
 
-static int imx6q_sata_init(struct device *dev, void __iomem *mmio)
+static int imx6q_sata_init(struct device *dev, struct ahci_host_priv *hpriv,
+			   void __iomem *mmio)
 {
 	int ret = 0;
 	unsigned int reg_val;

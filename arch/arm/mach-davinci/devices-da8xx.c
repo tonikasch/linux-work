@@ -1061,7 +1061,8 @@ static unsigned long da850_sata_xtal[] = {
 	KHZ_TO_HZ(60000),
 };
 
-static int da850_sata_init(struct device *dev, void __iomem *addr)
+static int da850_sata_init(struct device *dev, struct ahci_host_priv *hpriv,
+			   void __iomem *addr)
 {
 	int i, ret;
 	unsigned int val;

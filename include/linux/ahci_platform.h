@@ -19,9 +19,11 @@
 
 struct device;
 struct ata_port_info;
+struct ahci_host_priv;
 
 struct ahci_platform_data {
-	int (*init)(struct device *dev, void __iomem *addr);
+	int (*init)(struct device *dev, struct ahci_host_priv *hpriv,
+		    void __iomem *addr);
 	void (*exit)(struct device *dev);
 	void (*suspend)(struct device *dev);
 	int (*resume)(struct device *dev);
