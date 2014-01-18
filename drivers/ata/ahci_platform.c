@@ -307,7 +307,7 @@ static int ahci_resume(struct device *dev)
 	if (dev->power.power_state.event == PM_EVENT_SUSPEND) {
 		rc = ahci_reset_controller(host);
 		if (rc)
-			goto disable_unprepare_clk;
+			goto pdata_suspend;
 
 		ahci_init_controller(host);
 	}
@@ -316,6 +316,9 @@ static int ahci_resume(struct device *dev)
 
 	return 0;
 
+pdata_suspend:
+	if (pdata && pdata->suspend)
+		pdata->suspend(dev);
 disable_unprepare_clk:
 	if (!IS_ERR(hpriv->clk))
 		clk_disable_unprepare(hpriv->clk);
