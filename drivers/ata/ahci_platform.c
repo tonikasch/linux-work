@@ -20,6 +20,7 @@
 #include <linux/init.h>
 #include <linux/interrupt.h>
 #include <linux/device.h>
+#include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/libata.h>
 #include <linux/ahci_platform.h>
@@ -87,6 +88,30 @@ static struct scsi_host_template ahci_platform_sht = {
 	AHCI_SHT("ahci_platform"),
 };
 
+static const struct of_device_id ahci_of_match[] = {
+	{ .compatible = "snps,spear-ahci", },
+	{ .compatible = "snps,exynos5440-ahci", },
+	{ .compatible = "ibm,476gtr-ahci", },
+	{},
+};
+MODULE_DEVICE_TABLE(of, ahci_of_match);
+
+static const struct ahci_platform_data *ahci_get_pdata(struct device *dev)
+{
+	struct ahci_platform_data *pdata;
+	const struct of_device_id *of_id;
+
+	pdata = dev_get_platdata(dev);
+	if (pdata)
+		return pdata;
+
+	of_id = of_match_device(ahci_of_match, dev);
+	if (of_id)
+		return of_id->data;
+
+	return NULL;
+}
+
 static int ahci_enable_clks(struct device *dev, struct ahci_host_priv *hpriv)
 {
 	int c, rc;
@@ -126,7 +151,7 @@ static void ahci_put_clks(struct ahci_host_priv *hpriv)
 static int ahci_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
-	struct ahci_platform_data *pdata = dev_get_platdata(dev);
+	const struct ahci_platform_data *pdata = ahci_get_pdata(dev);
 	const struct platform_device_id *id = platform_get_device_id(pdev);
 	struct ata_port_info pi = ahci_port_info[id ? id->driver_data : 0];
 	const struct ata_port_info *ppi[] = { &pi, NULL };
@@ -290,7 +315,7 @@ free_clk:
 static void ahci_host_stop(struct ata_host *host)
 {
 	struct device *dev = host->dev;
-	struct ahci_platform_data *pdata = dev_get_platdata(dev);
+	const struct ahci_platform_data *pdata = ahci_get_pdata(dev);
 	struct ahci_host_priv *hpriv = host->private_data;
 
 	if (hpriv->target_pwr)
@@ -306,7 +331,7 @@ static void ahci_host_stop(struct ata_host *host)
 #ifdef CONFIG_PM_SLEEP
 static int ahci_suspend(struct device *dev)
 {
-	struct ahci_platform_data *pdata = dev_get_platdata(dev);
+	const struct ahci_platform_data *pdata = ahci_get_pdata(dev);
 	struct ata_host *host = dev_get_drvdata(dev);
 	struct ahci_host_priv *hpriv = host->private_data;
 	void __iomem *mmio = hpriv->mmio;
@@ -345,7 +370,7 @@ static int ahci_suspend(struct device *dev)
 
 static int ahci_resume(struct device *dev)
 {
-	struct ahci_platform_data *pdata = dev_get_platdata(dev);
+	const struct ahci_platform_data *pdata = ahci_get_pdata(dev);
 	struct ata_host *host = dev_get_drvdata(dev);
 	struct ahci_host_priv *hpriv = host->private_data;
 	int rc;
@@ -392,14 +417,6 @@ disable_unprepare_clk:
 #endif
 
 static SIMPLE_DEV_PM_OPS(ahci_pm_ops, ahci_suspend, ahci_resume);
-
-static const struct of_device_id ahci_of_match[] = {
-	{ .compatible = "snps,spear-ahci", },
-	{ .compatible = "snps,exynos5440-ahci", },
-	{ .compatible = "ibm,476gtr-ahci", },
-	{},
-};
-MODULE_DEVICE_TABLE(of, ahci_of_match);
 
 static struct platform_driver ahci_driver = {
 	.probe = ahci_probe,
