@@ -20,6 +20,7 @@
 #include <linux/init.h>
 #include <linux/interrupt.h>
 #include <linux/device.h>
+#include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/libata.h>
 #include <linux/ahci_platform.h>
@@ -99,20 +100,85 @@ static struct scsi_host_template ahci_platform_sht = {
 	AHCI_SHT("ahci_platform"),
 };
 
+static const struct of_device_id ahci_of_match[] = {
+	{ .compatible = "snps,spear-ahci", },
+	{ .compatible = "snps,exynos5440-ahci", },
+	{ .compatible = "ibm,476gtr-ahci", },
+#ifdef CONFIG_AHCI_SUNXI
+	{ .compatible = "allwinner,sun4i-a10-ahci",
+	  .data = &ahci_sunxi_pdata, },
+#endif
+#ifdef CONFIG_AHCI_IMX
+	{ .compatible = "fsl,imx6q-ahci", .data = &imx6q_sata_pdata, },
+#endif
+	{},
+};
+MODULE_DEVICE_TABLE(of, ahci_of_match);
+
+static const struct ahci_platform_data *ahci_get_pdata(struct device *dev)
+{
+	struct ahci_platform_data *pdata;
+	const struct of_device_id *of_id;
+
+	pdata = dev_get_platdata(dev);
+	if (pdata)
+		return pdata;
+
+	of_id = of_match_device(ahci_of_match, dev);
+	if (of_id)
+		return of_id->data;
+
+	return NULL;
+}
+
+static int ahci_enable_clks(struct device *dev, struct ahci_host_priv *hpriv)
+{
+	int c, rc;
+
+	for (c = 0; c < AHCI_MAX_CLKS && hpriv->clks[c]; c++) {
+		rc = clk_prepare_enable(hpriv->clks[c]);
+		if (rc) {
+			dev_err(dev, "clock prepare enable failed");
+			goto disable_unprepare_clk;
+		}
+	}
+	return 0;
+
+disable_unprepare_clk:
+	while (--c >= 0)
+		clk_disable_unprepare(hpriv->clks[c]);
+	return rc;
+}
+
+static void ahci_disable_clks(struct ahci_host_priv *hpriv)
+{
+	int c;
+
+	for (c = AHCI_MAX_CLKS - 1; c >= 0; c--)
+		if (hpriv->clks[c])
+			clk_disable_unprepare(hpriv->clks[c]);
+}
+
+static void ahci_put_clks(struct ahci_host_priv *hpriv)
+{
+	int c;
+
+	for (c = 0; c < AHCI_MAX_CLKS && hpriv->clks[c]; c++)
+		clk_put(hpriv->clks[c]);
+}
+
 static int ahci_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
-	struct ahci_platform_data *pdata = dev_get_platdata(dev);
+	const struct ahci_platform_data *pdata = ahci_get_pdata(dev);
 	const struct platform_device_id *id = platform_get_device_id(pdev);
 	struct ata_port_info pi = ahci_port_info[id ? id->driver_data : 0];
 	const struct ata_port_info *ppi[] = { &pi, NULL };
 	struct ahci_host_priv *hpriv;
 	struct ata_host *host;
 	struct resource *mem;
-	int irq;
-	int n_ports;
-	int i;
-	int rc;
+	struct clk *clk;
+	int i, irq, max_clk, n_ports, rc;
 
 	mem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!mem) {
@@ -143,16 +209,32 @@ static int ahci_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
-	hpriv->clk = clk_get(dev, NULL);
-	if (IS_ERR(hpriv->clk)) {
-		dev_err(dev, "can't get clock\n");
-	} else {
-		rc = clk_prepare_enable(hpriv->clk);
-		if (rc) {
-			dev_err(dev, "clock prepare enable failed");
-			goto free_clk;
+	max_clk = dev->of_node ? AHCI_MAX_CLKS : 1;
+	for (i = 0; i < max_clk; i++) {
+		if (i == 0)
+			clk = clk_get(dev, NULL); /* For old platform init */
+		else
+			clk = of_clk_get(dev->of_node, i);
+
+		if (IS_ERR(clk)) {
+			rc = PTR_ERR(clk);
+			if (rc == -EPROBE_DEFER)
+				goto free_clk;
+			break;
 		}
+		hpriv->clks[i] = clk;
 	}
+
+	hpriv->target_pwr = devm_regulator_get_optional(dev, "target");
+	if (IS_ERR(hpriv->target_pwr)) {
+		if (PTR_ERR(hpriv->target_pwr) == -EPROBE_DEFER)
+			return -EPROBE_DEFER;
+		hpriv->target_pwr = NULL;
+	}
+
+	rc = ahci_enable_clks(dev, hpriv);
+	if (rc)
+		goto free_clk;
 
 	/*
 	 * Some platforms might need to prepare for mmio region access,
@@ -161,9 +243,15 @@ static int ahci_probe(struct platform_device *pdev)
 	 * returned successfully.
 	 */
 	if (pdata && pdata->init) {
-		rc = pdata->init(dev, hpriv->mmio);
+		rc = pdata->init(dev, hpriv, hpriv->mmio);
 		if (rc)
 			goto disable_unprepare_clk;
+	}
+
+	if (hpriv->target_pwr) {
+		rc = regulator_enable(hpriv->target_pwr);
+		if (rc)
+			goto pdata_exit;
 	}
 
 	ahci_save_initial_config(dev, hpriv,
@@ -189,7 +277,7 @@ static int ahci_probe(struct platform_device *pdev)
 	host = ata_host_alloc_pinfo(dev, ppi, n_ports);
 	if (!host) {
 		rc = -ENOMEM;
-		goto pdata_exit;
+		goto disable_regulator;
 	}
 
 	host->private_data = hpriv;
@@ -219,7 +307,7 @@ static int ahci_probe(struct platform_device *pdev)
 
 	rc = ahci_reset_controller(host);
 	if (rc)
-		goto pdata_exit;
+		goto disable_regulator;
 
 	ahci_init_controller(host);
 	ahci_print_info(host, "platform");
@@ -227,40 +315,42 @@ static int ahci_probe(struct platform_device *pdev)
 	rc = ata_host_activate(host, irq, ahci_interrupt, IRQF_SHARED,
 			       &ahci_platform_sht);
 	if (rc)
-		goto pdata_exit;
+		goto disable_regulator;
 
 	return 0;
+disable_regulator:
+	if (hpriv->target_pwr)
+		regulator_disable(hpriv->target_pwr);
 pdata_exit:
 	if (pdata && pdata->exit)
 		pdata->exit(dev);
 disable_unprepare_clk:
-	if (!IS_ERR(hpriv->clk))
-		clk_disable_unprepare(hpriv->clk);
+	ahci_disable_clks(hpriv);
 free_clk:
-	if (!IS_ERR(hpriv->clk))
-		clk_put(hpriv->clk);
+	ahci_put_clks(hpriv);
 	return rc;
 }
 
 static void ahci_host_stop(struct ata_host *host)
 {
 	struct device *dev = host->dev;
-	struct ahci_platform_data *pdata = dev_get_platdata(dev);
+	const struct ahci_platform_data *pdata = ahci_get_pdata(dev);
 	struct ahci_host_priv *hpriv = host->private_data;
+
+	if (hpriv->target_pwr)
+		regulator_disable(hpriv->target_pwr);
 
 	if (pdata && pdata->exit)
 		pdata->exit(dev);
 
-	if (!IS_ERR(hpriv->clk)) {
-		clk_disable_unprepare(hpriv->clk);
-		clk_put(hpriv->clk);
-	}
+	ahci_disable_clks(hpriv);
+	ahci_put_clks(hpriv);
 }
 
 #ifdef CONFIG_PM_SLEEP
 static int ahci_suspend(struct device *dev)
 {
-	struct ahci_platform_data *pdata = dev_get_platdata(dev);
+	const struct ahci_platform_data *pdata = ahci_get_pdata(dev);
 	struct ata_host *host = dev_get_drvdata(dev);
 	struct ahci_host_priv *hpriv = host->private_data;
 	void __iomem *mmio = hpriv->mmio;
@@ -286,29 +376,27 @@ static int ahci_suspend(struct device *dev)
 	if (rc)
 		return rc;
 
-	if (pdata && pdata->suspend)
-		return pdata->suspend(dev);
+	if (hpriv->target_pwr)
+		regulator_disable(hpriv->target_pwr);
 
-	if (!IS_ERR(hpriv->clk))
-		clk_disable_unprepare(hpriv->clk);
+	if (pdata && pdata->suspend)
+		pdata->suspend(dev);
+
+	ahci_disable_clks(hpriv);
 
 	return 0;
 }
 
 static int ahci_resume(struct device *dev)
 {
-	struct ahci_platform_data *pdata = dev_get_platdata(dev);
+	const struct ahci_platform_data *pdata = ahci_get_pdata(dev);
 	struct ata_host *host = dev_get_drvdata(dev);
 	struct ahci_host_priv *hpriv = host->private_data;
 	int rc;
 
-	if (!IS_ERR(hpriv->clk)) {
-		rc = clk_prepare_enable(hpriv->clk);
-		if (rc) {
-			dev_err(dev, "clock prepare enable failed");
-			return rc;
-		}
-	}
+	rc = ahci_enable_clks(dev, hpriv);
+	if (rc)
+		return rc;
 
 	if (pdata && pdata->resume) {
 		rc = pdata->resume(dev);
@@ -316,10 +404,16 @@ static int ahci_resume(struct device *dev)
 			goto disable_unprepare_clk;
 	}
 
+	if (hpriv->target_pwr) {
+		rc = regulator_enable(hpriv->target_pwr);
+		if (rc)
+			goto pdata_suspend;
+	}
+
 	if (dev->power.power_state.event == PM_EVENT_SUSPEND) {
 		rc = ahci_reset_controller(host);
 		if (rc)
-			goto disable_unprepare_clk;
+			goto disable_regulator;
 
 		ahci_init_controller(host);
 	}
@@ -328,23 +422,20 @@ static int ahci_resume(struct device *dev)
 
 	return 0;
 
+disable_regulator:
+	if (hpriv->target_pwr)
+		regulator_disable(hpriv->target_pwr);
+pdata_suspend:
+	if (pdata && pdata->suspend)
+		pdata->suspend(dev);
 disable_unprepare_clk:
-	if (!IS_ERR(hpriv->clk))
-		clk_disable_unprepare(hpriv->clk);
+	ahci_disable_clks(hpriv);
 
 	return rc;
 }
 #endif
 
 static SIMPLE_DEV_PM_OPS(ahci_pm_ops, ahci_suspend, ahci_resume);
-
-static const struct of_device_id ahci_of_match[] = {
-	{ .compatible = "snps,spear-ahci", },
-	{ .compatible = "snps,exynos5440-ahci", },
-	{ .compatible = "ibm,476gtr-ahci", },
-	{},
-};
-MODULE_DEVICE_TABLE(of, ahci_of_match);
 
 static struct platform_driver ahci_driver = {
 	.probe = ahci_probe,

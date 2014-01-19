@@ -571,8 +571,10 @@ void ahci_start_engine(struct ata_port *ap)
 	struct ahci_host_priv *hpriv = ap->host->private_data;
 	u32 tmp;
 
-	if (hpriv->pre_start_engine)
-		hpriv->pre_start_engine(ap);
+	if (hpriv->start_engine) {
+		hpriv->start_engine(ap);
+		return;
+	}
 
 	/* start DMA */
 	tmp = readl(port_mmio + PORT_CMD);

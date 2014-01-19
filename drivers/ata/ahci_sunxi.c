@@ -17,6 +17,7 @@
  * more details.
  */
 
+#include <linux/ahci_platform.h>
 #include <linux/clk.h>
 #include <linux/errno.h>
 #include <linux/kernel.h>
@@ -49,12 +50,7 @@
 #define AHCI_P0PHYCR 0x0178
 #define AHCI_P0PHYSR 0x017c
 
-struct sunxi_ahci {
-	struct ahci_host_priv hpriv;
-	struct regulator *pwr;
-	struct clk *sata_clk;
-	struct clk *ahb_clk;
-};
+#ifdef CONFIG_AHCI_SUNXI
 
 static void sunxi_clrbits(void __iomem *reg, u32 clr_val)
 {
@@ -89,7 +85,7 @@ static u32 sunxi_getbits(void __iomem *reg, u8 mask, u8 shift)
 	return (readl(reg) >> shift) & mask;
 }
 
-static int sunxi_ahci_phy_init(struct device *dev, void __iomem *reg_base)
+static int ahci_sunxi_phy_init(struct device *dev, void __iomem *reg_base)
 {
 	u32 reg_val;
 	int timeout;
@@ -141,209 +137,46 @@ static int sunxi_ahci_phy_init(struct device *dev, void __iomem *reg_base)
 	return 0;
 }
 
-void sunxi_ahci_pre_start_engine(struct ata_port *ap)
+static void ahci_sunxi_start_engine(struct ata_port *ap)
 {
+	void __iomem *port_mmio = ahci_port_base(ap);
 	struct ahci_host_priv *hpriv = ap->host->private_data;
 
 	/* Setup DMA before DMA start */
 	sunxi_clrsetbits(hpriv->mmio + AHCI_P0DMACR, 0x0000ff00, 0x00004400);
+
+	/* Start DMA */
+	sunxi_setbits(port_mmio + PORT_CMD, PORT_CMD_START);
 }
 
-static int sunxi_ahci_enable_clks(struct sunxi_ahci *ahci)
+static int ahci_sunxi_init(struct device *dev, struct ahci_host_priv *hpriv,
+			   void __iomem *reg_base)
 {
-	int ret;
-
-	ret = clk_prepare_enable(ahci->sata_clk);
-	if (ret)
-		return ret;
-
-	ret = clk_prepare_enable(ahci->ahb_clk);
-	if (ret)
-		clk_disable_unprepare(ahci->sata_clk);
-
-	return ret;
+	hpriv->start_engine = ahci_sunxi_start_engine;
+	return ahci_sunxi_phy_init(dev, reg_base);
 }
 
-static void sunxi_ahci_disable_clks(struct sunxi_ahci *ahci)
+int ahci_sunxi_resume(struct device *dev)
 {
-	clk_disable_unprepare(ahci->ahb_clk);
-	clk_disable_unprepare(ahci->sata_clk);
-}
-
-static void sunxi_ahci_host_stop(struct ata_host *host)
-{
+	struct ata_host *host = dev_get_drvdata(dev);
 	struct ahci_host_priv *hpriv = host->private_data;
-	struct sunxi_ahci *ahci = hpriv->plat_data;
 
-	if (!IS_ERR(ahci->pwr))
-		regulator_disable(ahci->pwr);
-
-	sunxi_ahci_disable_clks(ahci);
+	return ahci_sunxi_phy_init(dev, hpriv->mmio);
 }
 
-static struct ata_port_operations sunxi_ahci_platform_ops = {
-	.inherits	= &ahci_ops,
-	.host_stop	= sunxi_ahci_host_stop,
-};
-
-static const struct ata_port_info sunxiahci_port_info = {
+static const struct ata_port_info ahci_sunxi_port_info = {
 	AHCI_HFLAGS(AHCI_HFLAG_32BIT_ONLY | AHCI_HFLAG_NO_MSI |
 			  AHCI_HFLAG_NO_PMP | AHCI_HFLAG_YES_NCQ),
 	.flags		= AHCI_FLAG_COMMON | ATA_FLAG_NCQ,
 	.pio_mask	= ATA_PIO4,
 	.udma_mask	= ATA_UDMA6,
-	.port_ops	= &sunxi_ahci_platform_ops,
+	.port_ops	= &ahci_platform_ops,
 };
 
-static struct scsi_host_template sunxi_ahci_platform_sht = {
-	AHCI_SHT("sunxi_ahci"),
+struct ahci_platform_data ahci_sunxi_pdata = {
+	.init = ahci_sunxi_init,
+	.resume = ahci_sunxi_resume,
+	.ata_port_info = &ahci_sunxi_port_info,
 };
 
-static int sunxi_ahci_probe(struct platform_device *pdev)
-{
-	struct device *dev = &pdev->dev;
-	const struct ata_port_info *ppi[] = { &sunxiahci_port_info, NULL };
-	struct sunxi_ahci *ahci;
-	struct ata_host *host;
-	int ret;
-
-	ahci = devm_kzalloc(&pdev->dev, sizeof(*ahci), GFP_KERNEL);
-	if (!ahci)
-		return -ENOMEM;
-
-	ahci->pwr = devm_regulator_get_optional(dev, "pwr");
-	if (IS_ERR(ahci->pwr) && PTR_ERR(ahci->pwr) == -EPROBE_DEFER)
-		return -EPROBE_DEFER;
-
-	host = ata_host_alloc_pinfo(dev, ppi, 1);
-	if (!host)
-		return -ENOMEM;
-
-	host->private_data = &ahci->hpriv;
-	host->flags |= ATA_HOST_PARALLEL_SCAN;
-
-	ahci->hpriv.flags = (unsigned long)ppi[0]->private_data;
-	ahci->hpriv.plat_data = ahci;
-	ahci->hpriv.pre_start_engine = sunxi_ahci_pre_start_engine;
-	ahci->hpriv.mmio = devm_ioremap_resource(dev,
-			      platform_get_resource(pdev, IORESOURCE_MEM, 0));
-	if (IS_ERR(ahci->hpriv.mmio))
-		return PTR_ERR(ahci->hpriv.mmio);
-
-	ahci->ahb_clk = devm_clk_get(&pdev->dev, "ahb_sata");
-	if (IS_ERR(ahci->ahb_clk))
-		return PTR_ERR(ahci->ahb_clk);
-
-	ahci->sata_clk = devm_clk_get(&pdev->dev, "pll6_sata");
-	if (IS_ERR(ahci->sata_clk))
-		return PTR_ERR(ahci->sata_clk);
-
-	ret = sunxi_ahci_enable_clks(ahci);
-	if (ret)
-		return ret;
-
-	if (!IS_ERR(ahci->pwr)) {
-		ret = regulator_enable(ahci->pwr);
-		if (ret) {
-			sunxi_ahci_disable_clks(ahci);
-			return ret;
-		}
-	}
-
-	ret = sunxi_ahci_phy_init(dev, ahci->hpriv.mmio);
-	if (ret) {
-		sunxi_ahci_host_stop(host);
-		return ret;
-	}
-
-	ahci_save_initial_config(dev, &ahci->hpriv, 0, 0);
-
-	ret = ahci_reset_controller(host);
-	if (ret) {
-		sunxi_ahci_host_stop(host);
-		return ret;
-	}
-
-	ahci_init_controller(host);
-	ahci_print_info(host, "sunxi");
-
-	ret = ata_host_activate(host, platform_get_irq(pdev, 0),
-				ahci_interrupt, 0, &sunxi_ahci_platform_sht);
-	if (ret)
-		sunxi_ahci_host_stop(host);
-
-	return ret;
-}
-
-#ifdef CONFIG_PM_SLEEP
-static int sunxi_ahci_susp(struct device *dev)
-{
-	struct ata_host *host = dev_get_drvdata(dev);
-	struct ahci_host_priv *hpriv = host->private_data;
-	struct sunxi_ahci *ahci = hpriv->plat_data;
-	int ret;
-
-	/*
-	 * AHCI spec rev1.1 section 8.3.3:
-	 * Software must disable interrupts prior to requesting a
-	 * transition of the HBA to D3 state.
-	 */
-	sunxi_clrbits(hpriv->mmio + HOST_CTL, HOST_IRQ_EN);
-
-	ret = ata_host_suspend(host, PMSG_SUSPEND);
-	if (ret)
-		return ret;
-
-	sunxi_ahci_disable_clks(ahci);
-
-	return 0;
-}
-
-static int sunxi_ahci_resume(struct device *dev)
-{
-	struct ata_host *host = dev_get_drvdata(dev);
-	struct ahci_host_priv *hpriv = host->private_data;
-	struct sunxi_ahci *ahci = hpriv->plat_data;
-	int ret;
-
-	ret = sunxi_ahci_enable_clks(ahci);
-	if (ret)
-		return ret;
-
-	if (dev->power.power_state.event == PM_EVENT_SUSPEND) {
-		ret = ahci_reset_controller(host);
-		if (ret)
-			return ret;
-
-		ahci_init_controller(host);
-	}
-
-	ata_host_resume(host);
-
-	return 0;
-}
 #endif
-
-static SIMPLE_DEV_PM_OPS(sunxi_ahci_pmo, sunxi_ahci_susp, sunxi_ahci_resume);
-
-static const struct of_device_id sunxi_ahci_of_match[] = {
-	{ .compatible = "allwinner,sun4i-a10-ahci" },
-	{ /* sentinel */ },
-};
-MODULE_DEVICE_TABLE(of, sunxi_ahci_of_match);
-
-static struct platform_driver sunxi_ahci_driver = {
-	.probe = sunxi_ahci_probe,
-	.remove = ata_platform_remove_one,
-	.driver = {
-		.name = "sunxi-ahci",
-		.owner = THIS_MODULE,
-		.of_match_table = sunxi_ahci_of_match,
-		.pm = &sunxi_ahci_pmo,
-	},
-};
-module_platform_driver(sunxi_ahci_driver);
-
-MODULE_DESCRIPTION("Allwinner sunxi AHCI SATA platform driver");
-MODULE_AUTHOR("Olliver Schinagl <oliver@schinagl.nl>");
-MODULE_LICENSE("GPL");

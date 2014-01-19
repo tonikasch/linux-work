@@ -36,6 +36,7 @@
 #define _AHCI_H
 
 #include <linux/clk.h>
+#include <linux/regulator/consumer.h>
 #include <linux/libata.h>
 
 /* Enclosure Management Control */
@@ -52,6 +53,7 @@
 enum {
 	AHCI_MAX_PORTS		= 32,
 	AHCI_MAX_SG		= 168, /* hardware max is 64K */
+	AHCI_MAX_CLKS		= 3,
 	AHCI_DMA_BOUNDARY	= 0xffffffff,
 	AHCI_MAX_CMDS		= 32,
 	AHCI_CMD_SZ		= 32,
@@ -138,7 +140,6 @@ enum {
 	PORT_SCR_NTF		= 0x3c, /* SATA phy register: SNotification */
 	PORT_FBS		= 0x40, /* FIS-based Switching */
 	PORT_DEVSLP		= 0x44, /* device sleep */
-	PORT_DMA		= 0x70, /* direct memory access */
 
 	/* PORT_IRQ_{STAT,MASK} bits */
 	PORT_IRQ_COLD_PRES	= (1 << 31), /* cold presence detect */
@@ -209,11 +210,6 @@ enum {
 	PORT_DEVSLP_DETO_OFFSET	= 2,              /* DevSlp exit timeout */
 	PORT_DEVSLP_DSP		= (1 << 1),       /* DevSlp present */
 	PORT_DEVSLP_ADSE	= (1 << 0),       /* Aggressive DevSlp enable */
-
-	/* PORT_DMA bits */
-	PORT_DMA_SETUP_OFFSET	= 8, /* dma setup offset */
-	PORT_DMA_SETUP_MASK	= (0xff << PORT_DMA_SETUP_OFFSET),/* dma mask */
-	PORT_DMA_SETUP_INIT	= (0x44 << 0),
 
 	/* hpriv->flags bits */
 
@@ -327,10 +323,11 @@ struct ahci_host_priv {
 	u32 			em_loc; /* enclosure management location */
 	u32			em_buf_sz;	/* EM buffer size in byte */
 	u32			em_msg_type;	/* EM message type */
-	struct clk		*clk;		/* Only for platforms supporting clk */
+	struct clk		*clks[AHCI_MAX_CLKS]; /* Optional */
+	struct regulator	*target_pwr;	/* Optional */
 	void			*plat_data;	/* Other platform data */
-	/* Optional pre ahci_start_engine hook */
-	void			(*pre_start_engine)(struct ata_port *ap);
+	/* Optional ahci_start_engine override */
+	void			(*start_engine)(struct ata_port *ap);
 };
 
 extern int ahci_ignore_sss;

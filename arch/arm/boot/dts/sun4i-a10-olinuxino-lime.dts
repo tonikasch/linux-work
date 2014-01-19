@@ -11,6 +11,7 @@
 
 /dts-v1/;
 /include/ "sun4i-a10.dtsi"
+/include/ "sunxi-ahci-reg.dtsi"
 
 / {
 	model = "Olimex A10-OLinuXino-LIME";
@@ -56,7 +57,7 @@
 		};
 
 		sata: ahci@01c18000 {
-			pwr-supply = <&reg_ahci_5v>;
+			target-supply = <&reg_ahci_5v>;
 			status = "okay";
 		};
 
@@ -69,7 +70,7 @@
 		};
 
 		pinctrl@01c20800 {
-			ahci_pwr_pin_olinuxinolime: ahci_pwr_pin@0 {
+			ahci_pwr_pin_olinuxinolime: ahci_pwr_pin@1 {
 				allwinner,pins = "PC3";
 				allwinner,function = "gpio_out";
 				allwinner,drive = <0>;
@@ -125,17 +126,9 @@
 	};
 
 	regulators {
-		compatible = "simple-bus";
-		pinctrl-names = "default";
-
 		reg_ahci_5v: ahci-5v {
-			compatible = "regulator-fixed";
-			regulator-name = "ahci-5v";
-			regulator-min-microvolt = <5000000>;
-			regulator-max-microvolt = <5000000>;
 			pinctrl-0 = <&ahci_pwr_pin_olinuxinolime>;
 			gpio = <&pio 2 3 0>;
-			enable-active-high;
 		};
 
 		reg_usb1_vbus: usb1-vbus {

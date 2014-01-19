@@ -19,15 +19,20 @@
 
 struct device;
 struct ata_port_info;
+struct ahci_host_priv;
 
 struct ahci_platform_data {
-	int (*init)(struct device *dev, void __iomem *addr);
+	int (*init)(struct device *dev, struct ahci_host_priv *hpriv,
+		    void __iomem *addr);
 	void (*exit)(struct device *dev);
-	int (*suspend)(struct device *dev);
+	void (*suspend)(struct device *dev);
 	int (*resume)(struct device *dev);
 	const struct ata_port_info *ata_port_info;
 	unsigned int force_port_map;
 	unsigned int mask_port_map;
 };
+
+extern struct ahci_platform_data ahci_sunxi_pdata;
+extern struct ahci_platform_data imx6q_sata_pdata;
 
 #endif /* _AHCI_PLATFORM_H */

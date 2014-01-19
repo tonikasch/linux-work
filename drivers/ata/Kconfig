@@ -98,11 +98,20 @@ config SATA_AHCI_PLATFORM
 	  If unsure, say N.
 
 config AHCI_IMX
-	tristate "Freescale i.MX AHCI SATA support"
+	bool "Freescale i.MX AHCI SATA support"
 	depends on SATA_AHCI_PLATFORM && MFD_SYSCON
 	help
 	  This option enables support for the Freescale i.MX SoC's
-	  onboard AHCI SATA.
+	  onboard AHCI SATA in the ahci_platform driver.
+
+	  If unsure, say N.
+
+config AHCI_SUNXI
+	bool "Allwinner sunxi AHCI SATA support"
+	depends on ARCH_SUNXI && SATA_AHCI_PLATFORM
+	help
+	  This option enables support for the Allwinner sunxi SoC's
+	  onboard AHCI SATA in the ahci_platform driver.
 
 	  If unsure, say N.
 

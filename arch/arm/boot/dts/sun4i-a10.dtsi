@@ -375,8 +375,7 @@
 			compatible = "allwinner,sun4i-a10-ahci";
 			reg = <0x01c18000 0x1000>;
 			interrupts = <56>;
-			clocks = <&ahb_gates 25>, <&pll6 0>;
-			clock-names = "ahb_sata", "pll6_sata";
+			clocks = <&pll6 0>, <&ahb_gates 25>;
 			status = "disabled";
 		};
 
