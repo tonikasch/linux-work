@@ -12,4 +12,4 @@ TARGET_PLATFORM:=rk3188-rr
 #endif
 export CONFIG USING_MMU USING_UMP USING_PMM BUILD MALI_PLATFORM TARGET_PLATFORM
 
-obj-$(CONFIG_MALI) += ump/ mali/
+obj-$(CONFIG_MALI) += ump/ mali/ umplock/
