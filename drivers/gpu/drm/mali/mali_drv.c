@@ -49,16 +49,6 @@ static int mali_drm_unload(struct drm_device *dev)
 	return 0;
 }
 
-static struct file_operations mali_fops = {
-	 .owner = THIS_MODULE,
-	 .open = drm_open,
-	 .release = drm_release,
-	 .unlocked_ioctl = drm_ioctl,
-	 .mmap = drm_mmap,
-	 .poll = drm_poll,
-	 .fasync = drm_fasync,
-};
-
 static struct drm_driver driver =
 {
 	.driver_features = DRIVER_BUS_PLATFORM,
@@ -72,7 +62,15 @@ static struct drm_driver driver =
 	.suspend = mali_drm_suspend,
 	.resume = mali_drm_resume,
 	.ioctls = NULL,
-	.fops = &mali_fops,
+	.fops = {
+	 .owner = THIS_MODULE,
+	 .open = drm_open,
+	 .release = drm_release,
+	 .unlocked_ioctl = drm_ioctl,
+	 .mmap = drm_mmap,
+	 .poll = drm_poll,
+	 .fasync = drm_fasync,
+	},
 	.name = DRIVER_NAME,
 	.desc = DRIVER_DESC,
 	.date = DRIVER_DATE,
@@ -94,7 +92,15 @@ static struct drm_driver driver1 =
 	.suspend = mali_drm_suspend,
 	.resume = mali_drm_resume,
 	.ioctls = NULL,
-	.fops = &mali_fops,
+	.fops = {
+	 .owner = THIS_MODULE,
+	 .open = drm_open,
+	 .release = drm_release,
+	 .unlocked_ioctl = drm_ioctl,
+	 .mmap = drm_mmap,
+	 .poll = drm_poll,
+	 .fasync = drm_fasync,
+	},
 	.name = DRIVER_NAME,
 	.desc = DRIVER_DESC,
 	.date = DRIVER_DATE,
