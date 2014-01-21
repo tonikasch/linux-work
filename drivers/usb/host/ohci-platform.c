@@ -202,7 +202,11 @@ static int ohci_platform_probe(struct platform_device *dev)
 	}
 	err = usb_add_hcd(hcd, irq, IRQF_SHARED);
 	if (err)
-		goto err_power;
+		goto err_put_hcd;
+
+	device_wakeup_enable(hcd->self.controller);
+
+	platform_set_drvdata(dev, hcd);
 
 	return err;
 
