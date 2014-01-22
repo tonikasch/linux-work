@@ -20,15 +20,10 @@
 struct device;
 struct ata_port_info;
 struct ahci_host_priv;
-struct platform_device;
 
-/*
- * Note ahci_platform_data is deprecated. New drivers which need to override
- * any of these, should instead declare there own platform_driver struct, and
- * use ahci_platform* functions in their own probe, suspend and resume methods.
- */
 struct ahci_platform_data {
-	int (*init)(struct device *dev, struct ahci_host_priv *hpriv);
+	int (*init)(struct device *dev, struct ahci_host_priv *hpriv,
+		    void __iomem *addr);
 	void (*exit)(struct device *dev);
 	void (*suspend)(struct device *dev);
 	int (*resume)(struct device *dev);
@@ -37,24 +32,7 @@ struct ahci_platform_data {
 	unsigned int mask_port_map;
 };
 
-int ahci_platform_enable_clks(struct ahci_host_priv *hpriv);
-void ahci_platform_disable_clks(struct ahci_host_priv *hpriv);
-int ahci_platform_enable_resources(struct ahci_host_priv *hpriv);
-void ahci_platform_disable_resources(struct ahci_host_priv *hpriv);
-struct ahci_host_priv *ahci_platform_get_resources(
-	struct platform_device *pdev);
-void ahci_platform_put_resources(struct ahci_host_priv *hpriv);
-int ahci_platform_init_host(struct platform_device *pdev,
-			    struct ahci_host_priv *hpriv,
-			    const struct ata_port_info *pi_template,
-			    unsigned int force_port_map,
-			    unsigned int mask_port_map);
-
-#ifdef CONFIG_PM_SLEEP
-int ahci_platform_suspend_host(struct device *dev);
-int ahci_platform_resume_host(struct device *dev);
-int ahci_platform_suspend(struct device *dev);
-int ahci_platform_resume(struct device *dev);
-#endif
+extern struct ahci_platform_data ahci_sunxi_pdata;
+extern struct ahci_platform_data imx6q_sata_pdata;
 
 #endif /* _AHCI_PLATFORM_H */

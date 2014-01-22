@@ -77,7 +77,8 @@
 			SPEAR1340_MIPHY_PLL_RATIO_TOP(25))
 
 /* SATA device registration */
-static int sata_miphy_init(struct device *dev, struct ahci_host_priv *hpriv)
+static int sata_miphy_init(struct device *dev, struct ahci_host_priv *hpriv,
+			   void __iomem *addr)
 {
 	writel(SPEAR1340_SATA_CFG_VAL, SPEAR1340_PCIE_SATA_CFG);
 	writel(SPEAR1340_PCIE_SATA_MIPHY_CFG_SATA_25M_CRYSTAL_CLK,
