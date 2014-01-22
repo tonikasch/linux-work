@@ -50,8 +50,6 @@
 #define AHCI_P0PHYCR 0x0178
 #define AHCI_P0PHYSR 0x017c
 
-#ifdef CONFIG_AHCI_SUNXI
-
 static void sunxi_clrbits(void __iomem *reg, u32 clr_val)
 {
 	u32 reg_val;
@@ -149,21 +147,6 @@ static void ahci_sunxi_start_engine(struct ata_port *ap)
 	sunxi_setbits(port_mmio + PORT_CMD, PORT_CMD_START);
 }
 
-static int ahci_sunxi_init(struct device *dev, struct ahci_host_priv *hpriv,
-			   void __iomem *reg_base)
-{
-	hpriv->start_engine = ahci_sunxi_start_engine;
-	return ahci_sunxi_phy_init(dev, reg_base);
-}
-
-int ahci_sunxi_resume(struct device *dev)
-{
-	struct ata_host *host = dev_get_drvdata(dev);
-	struct ahci_host_priv *hpriv = host->private_data;
-
-	return ahci_sunxi_phy_init(dev, hpriv->mmio);
-}
-
 static const struct ata_port_info ahci_sunxi_port_info = {
 	AHCI_HFLAGS(AHCI_HFLAG_32BIT_ONLY | AHCI_HFLAG_NO_MSI |
 			  AHCI_HFLAG_NO_PMP | AHCI_HFLAG_YES_NCQ),
@@ -173,10 +156,87 @@ static const struct ata_port_info ahci_sunxi_port_info = {
 	.port_ops	= &ahci_platform_ops,
 };
 
-struct ahci_platform_data ahci_sunxi_pdata = {
-	.init = ahci_sunxi_init,
-	.resume = ahci_sunxi_resume,
-	.ata_port_info = &ahci_sunxi_port_info,
-};
+static int ahci_sunxi_probe(struct platform_device *pdev)
+{
+	struct device *dev = &pdev->dev;
+	struct ahci_host_priv *hpriv;
+	int rc;
 
+	hpriv = ahci_platform_get_resources(pdev);
+	if (IS_ERR(hpriv))
+		return PTR_ERR(hpriv);
+
+	hpriv->start_engine = ahci_sunxi_start_engine;
+
+	rc = ahci_platform_enable_resources(hpriv);
+	if (rc)
+		goto put_resources;
+
+	rc = ahci_sunxi_phy_init(dev, hpriv->mmio);
+	if (rc)
+		goto disable_resources;
+
+	rc = ahci_platform_init_host(pdev, hpriv, &ahci_sunxi_port_info, 0, 0);
+	if (rc)
+		goto disable_resources;
+
+	return 0;
+
+disable_resources:
+	ahci_platform_disable_resources(hpriv);
+put_resources:
+	ahci_platform_put_resources(hpriv);
+	return rc;
+}
+
+#ifdef CONFIG_PM_SLEEP
+int ahci_sunxi_resume(struct device *dev)
+{
+	struct ata_host *host = dev_get_drvdata(dev);
+	struct ahci_host_priv *hpriv = host->private_data;
+	int rc;
+
+	rc = ahci_platform_enable_resources(hpriv);
+	if (rc)
+		return rc;
+
+	rc = ahci_sunxi_phy_init(dev, hpriv->mmio);
+	if (rc)
+		goto disable_resources;
+
+	rc = ahci_platform_resume_host(dev);
+	if (rc)
+		goto disable_resources;
+
+	return 0;
+
+disable_resources:
+	ahci_platform_disable_resources(hpriv);
+	return rc;
+}
 #endif
+
+static SIMPLE_DEV_PM_OPS(ahci_sunxi_pm_ops, ahci_platform_suspend,
+			 ahci_sunxi_resume);
+
+static const struct of_device_id ahci_sunxi_of_match[] = {
+	{ .compatible = "allwinner,sun4i-a10-ahci", },
+	{ },
+};
+MODULE_DEVICE_TABLE(of, ahci_sunxi_of_match);
+
+static struct platform_driver ahci_sunxi_driver = {
+	.probe = ahci_sunxi_probe,
+	.remove = ata_platform_remove_one,
+	.driver = {
+		.name = "ahci-sunxi",
+		.owner = THIS_MODULE,
+		.of_match_table = ahci_sunxi_of_match,
+		.pm = &ahci_sunxi_pm_ops,
+	},
+};
+module_platform_driver(ahci_sunxi_driver);
+
+MODULE_DESCRIPTION("Allwinner sunxi AHCI SATA driver");
+MODULE_AUTHOR("Olliver Schinagl <oliver@schinagl.nl>");
+MODULE_LICENSE("GPL");
