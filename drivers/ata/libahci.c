@@ -1770,7 +1770,7 @@ static void ahci_handle_port_interrupt(struct ata_port *ap,
 	}
 }
 
-void ahci_port_intr(struct ata_port *ap)
+static void ahci_port_intr(struct ata_port *ap)
 {
 	void __iomem *port_mmio = ahci_port_base(ap);
 	u32 status;
@@ -1803,7 +1803,7 @@ irqreturn_t ahci_thread_fn(int irq, void *dev_instance)
 }
 EXPORT_SYMBOL_GPL(ahci_thread_fn);
 
-void ahci_hw_port_interrupt(struct ata_port *ap)
+static void ahci_hw_port_interrupt(struct ata_port *ap)
 {
 	void __iomem *port_mmio = ahci_port_base(ap);
 	struct ahci_port_priv *pp = ap->private_data;
