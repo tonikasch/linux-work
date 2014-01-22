@@ -12,7 +12,7 @@ static int rk30_vmac_register_set(void)
 
 static int rk30_rmii_io_init(void)
 {
-	int err;
+//	int err;
 
 	iomux_set(RMII_TXEN);
 	iomux_set(RMII_TXD1);
