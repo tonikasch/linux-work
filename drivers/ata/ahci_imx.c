@@ -265,27 +265,11 @@ static int imx_ahci_resume(struct device *dev)
 {
 	struct ata_host *host = dev_get_drvdata(dev);
 	struct ahci_host_priv *hpriv = host->private_data;
-	struct imx_ahci_priv *imxpriv = hpriv->plat_data;
 	int ret;
 
-	if (hpriv->target_pwr) {
-		ret = regulator_enable(hpriv->target_pwr);
-		if (ret)
-			return ret;
-	}
-
-	if (!imxpriv->no_device) {
-		ret = ahci_platform_enable_clks(hpriv);
-		if (ret < 0) {
-			dev_err(dev, "pre-enable sata_ref clock err:%d\n", ret);
-			return ret;
-		}
-
-		regmap_update_bits(imxpriv->gpr, IOMUXC_GPR13,
-				IMX6Q_GPR13_SATA_MPLL_CLK_EN,
-				IMX6Q_GPR13_SATA_MPLL_CLK_EN);
-		usleep_range(1000, 2000);
-	}
+	ret = imx_ahci_phy_init(hpriv);
+	if (ret)
+		return ret;
 
 	return ahci_platform_resume_host(dev);
 }
