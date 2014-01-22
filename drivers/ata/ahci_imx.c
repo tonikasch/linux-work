@@ -51,6 +51,7 @@ static int ahci_imx_hotplug;
 module_param_named(hotplug, ahci_imx_hotplug, int, 0644);
 MODULE_PARM_DESC(hotplug, "AHCI IMX hot-plug support (0=Don't support, 1=support)");
 
+static void imx_ahci_phy_exit(struct ahci_host_priv *hpriv);
 static void ahci_imx_host_stop(struct ata_host *host);
 
 static void ahci_imx_error_handler(struct ata_port *ap)
@@ -78,10 +79,8 @@ static void ahci_imx_error_handler(struct ata_port *ap)
 	 */
 	reg_val = readl(mmio + PORT_PHY_CTL);
 	writel(reg_val | PORT_PHY_CTL_PDDQ_LOC, mmio + PORT_PHY_CTL);
-	regmap_update_bits(imxpriv->gpr, IOMUXC_GPR13,
-			IMX6Q_GPR13_SATA_MPLL_CLK_EN,
-			!IMX6Q_GPR13_SATA_MPLL_CLK_EN);
-	ahci_platform_disable_clks(hpriv);
+
+	imx_ahci_phy_exit(hpriv);
 	imxpriv->no_device = true;
 }
 
@@ -97,6 +96,79 @@ static const struct ata_port_info ahci_imx_port_info = {
 	.udma_mask	= ATA_UDMA6,
 	.port_ops	= &ahci_imx_ops,
 };
+
+static int imx_ahci_phy_init(struct ahci_host_priv *hpriv)
+{
+	struct imx_ahci_priv *imxpriv = hpriv->plat_data;
+	int rc;
+
+	if (imxpriv->no_device)
+		return 0;
+
+	if (hpriv->target_pwr) {
+		rc = regulator_enable(hpriv->target_pwr);
+		if (rc)
+			return rc;
+	}
+
+	rc = ahci_platform_enable_clks(hpriv);
+	if (rc)
+		goto disable_regulator;
+
+	/*
+	 * set PHY Paremeters, two steps to configure the GPR13,
+	 * one write for rest of parameters, mask of first write
+	 * is 0x07ffffff, and the other one write for setting
+	 * the mpll_clk_en.
+	 */
+	regmap_update_bits(imxpriv->gpr, IOMUXC_GPR13
+			, IMX6Q_GPR13_SATA_RX_EQ_VAL_MASK
+			| IMX6Q_GPR13_SATA_RX_LOS_LVL_MASK
+			| IMX6Q_GPR13_SATA_RX_DPLL_MODE_MASK
+			| IMX6Q_GPR13_SATA_SPD_MODE_MASK
+			| IMX6Q_GPR13_SATA_MPLL_SS_EN
+			| IMX6Q_GPR13_SATA_TX_ATTEN_MASK
+			| IMX6Q_GPR13_SATA_TX_BOOST_MASK
+			| IMX6Q_GPR13_SATA_TX_LVL_MASK
+			| IMX6Q_GPR13_SATA_MPLL_CLK_EN
+			| IMX6Q_GPR13_SATA_TX_EDGE_RATE
+			, IMX6Q_GPR13_SATA_RX_EQ_VAL_3_0_DB
+			| IMX6Q_GPR13_SATA_RX_LOS_LVL_SATA2M
+			| IMX6Q_GPR13_SATA_RX_DPLL_MODE_2P_4F
+			| IMX6Q_GPR13_SATA_SPD_MODE_3P0G
+			| IMX6Q_GPR13_SATA_MPLL_SS_EN
+			| IMX6Q_GPR13_SATA_TX_ATTEN_9_16
+			| IMX6Q_GPR13_SATA_TX_BOOST_3_33_DB
+			| IMX6Q_GPR13_SATA_TX_LVL_1_025_V);
+
+	regmap_update_bits(imxpriv->gpr, IOMUXC_GPR13,
+			IMX6Q_GPR13_SATA_MPLL_CLK_EN,
+			IMX6Q_GPR13_SATA_MPLL_CLK_EN);
+
+	usleep_range(1000, 2000);
+	return 0;
+
+disable_regulator:
+	if (hpriv->target_pwr)
+		regulator_disable(hpriv->target_pwr);
+	return rc;
+}
+
+static void imx_ahci_phy_exit(struct ahci_host_priv *hpriv)
+{
+	struct imx_ahci_priv *imxpriv = hpriv->plat_data;
+
+	if (imxpriv->no_device)
+		return;
+
+	regmap_update_bits(imxpriv->gpr, IOMUXC_GPR13,
+			IMX6Q_GPR13_SATA_MPLL_CLK_EN,
+			!IMX6Q_GPR13_SATA_MPLL_CLK_EN);
+	ahci_platform_disable_clks(hpriv);
+
+	if (hpriv->target_pwr)
+		regulator_disable(hpriv->target_pwr);
+}
 
 static int imx_ahci_probe(struct platform_device *pdev)
 {
@@ -128,43 +200,9 @@ static int imx_ahci_probe(struct platform_device *pdev)
 		goto put_resources;
 	}
 
-	if (hpriv->target_pwr) {
-		rc = regulator_enable(hpriv->target_pwr);
-		if (rc)
-			goto put_resources;
-	}
-
-	rc = ahci_platform_enable_clks(hpriv);
+	rc = imx_ahci_phy_init(hpriv);
 	if (rc)
-		goto disable_regulator;
-
-	/*
-	 * set PHY Paremeters, two steps to configure the GPR13,
-	 * one write for rest of parameters, mask of first write
-	 * is 0x07ffffff, and the other one write for setting
-	 * the mpll_clk_en.
-	 */
-	regmap_update_bits(imxpriv->gpr, 0x34, IMX6Q_GPR13_SATA_RX_EQ_VAL_MASK
-			| IMX6Q_GPR13_SATA_RX_LOS_LVL_MASK
-			| IMX6Q_GPR13_SATA_RX_DPLL_MODE_MASK
-			| IMX6Q_GPR13_SATA_SPD_MODE_MASK
-			| IMX6Q_GPR13_SATA_MPLL_SS_EN
-			| IMX6Q_GPR13_SATA_TX_ATTEN_MASK
-			| IMX6Q_GPR13_SATA_TX_BOOST_MASK
-			| IMX6Q_GPR13_SATA_TX_LVL_MASK
-			| IMX6Q_GPR13_SATA_MPLL_CLK_EN
-			| IMX6Q_GPR13_SATA_TX_EDGE_RATE
-			, IMX6Q_GPR13_SATA_RX_EQ_VAL_3_0_DB
-			| IMX6Q_GPR13_SATA_RX_LOS_LVL_SATA2M
-			| IMX6Q_GPR13_SATA_RX_DPLL_MODE_2P_4F
-			| IMX6Q_GPR13_SATA_SPD_MODE_3P0G
-			| IMX6Q_GPR13_SATA_MPLL_SS_EN
-			| IMX6Q_GPR13_SATA_TX_ATTEN_9_16
-			| IMX6Q_GPR13_SATA_TX_BOOST_3_33_DB
-			| IMX6Q_GPR13_SATA_TX_LVL_1_025_V);
-	regmap_update_bits(imxpriv->gpr, 0x34, IMX6Q_GPR13_SATA_MPLL_CLK_EN,
-			IMX6Q_GPR13_SATA_MPLL_CLK_EN);
-	usleep_range(100, 200);
+		goto put_resources;
 
 	/*
 	 * Configure the HWINIT bits of the HOST_CAP and HOST_PORTS_IMPL,
@@ -189,15 +227,12 @@ static int imx_ahci_probe(struct platform_device *pdev)
 
 	rc = ahci_platform_init_host(pdev, hpriv, &ahci_imx_port_info, 0, 0);
 	if (rc)
-		goto disable_clks;
+		goto phy_exit;
 
 	return 0;
 
-disable_clks:
-	ahci_platform_disable_clks(hpriv);
-disable_regulator:
-	if (hpriv->target_pwr)
-		regulator_disable(hpriv->target_pwr);
+phy_exit:
+	imx_ahci_phy_exit(hpriv);
 put_resources:
 	ahci_platform_put_resources(hpriv);
 	return rc;
@@ -206,18 +241,8 @@ put_resources:
 static void ahci_imx_host_stop(struct ata_host *host)
 {
 	struct ahci_host_priv *hpriv = host->private_data;
-	struct imx_ahci_priv *imxpriv = hpriv->plat_data;
 
-	if (!imxpriv->no_device) {
-		regmap_update_bits(imxpriv->gpr, 0x34,
-			IMX6Q_GPR13_SATA_MPLL_CLK_EN,
-			!IMX6Q_GPR13_SATA_MPLL_CLK_EN);
-		ahci_platform_disable_clks(hpriv);
-	}
-
-	if (hpriv->target_pwr)
-		regulator_disable(hpriv->target_pwr);
-
+	imx_ahci_phy_exit(hpriv);
 	ahci_platform_put_resources(hpriv);
 }
 
@@ -225,26 +250,13 @@ static int imx_ahci_suspend(struct device *dev)
 {
 	struct ata_host *host = dev_get_drvdata(dev);
 	struct ahci_host_priv *hpriv = host->private_data;
-	struct imx_ahci_priv *imxpriv = hpriv->plat_data;
 	int rc;
 
 	rc = ahci_platform_suspend_host(dev);
 	if (rc)
 		return rc;
 
-	/*
-	 * If no_device is set, The CLKs had been gated off in the
-	 * initialization so don't do it again here.
-	 */
-	if (!imxpriv->no_device) {
-		regmap_update_bits(imxpriv->gpr, IOMUXC_GPR13,
-				IMX6Q_GPR13_SATA_MPLL_CLK_EN,
-				!IMX6Q_GPR13_SATA_MPLL_CLK_EN);
-		ahci_platform_disable_clks(hpriv);
-	}
-
-	if (hpriv->target_pwr)
-		regulator_disable(hpriv->target_pwr);
+	imx_ahci_phy_exit(hpriv);
 
 	return 0;
 }
