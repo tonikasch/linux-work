@@ -107,15 +107,6 @@ config AHCI_IMX
 	  If unsure, say N.
 
 config AHCI_SUNXI
-	bool "Allwinner sunxi AHCI SATA support"
-	depends on ARCH_SUNXI && SATA_AHCI_PLATFORM
-	help
-	  This option enables support for the Allwinner sunxi SoC's
-	  onboard AHCI SATA in the ahci_platform driver.
-
-	  If unsure, say N.
-
-config AHCI_SUNXI
 	tristate "Allwinner sunxi AHCI SATA support"
 	depends on ARCH_SUNXI
 	help
