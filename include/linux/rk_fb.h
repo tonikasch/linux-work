@@ -63,6 +63,7 @@
 
 #define GET_UMP_SECURE_ID_BUF1 _IOWR('m', 310, unsigned int)
 #define GET_UMP_SECURE_ID_BUF2 _IOWR('m', 311, unsigned int)
+#define GET_UMP_SECURE_ID_SUNXI_FB _IOWR('s', 100, unsigned int)
 //#define GET_UMP_SECURE_ID_BUFn _IOWR('m', 312, unsigned int)
 #ifdef CONFIG_BOX_FB_1080P
    #define FB_MAXPGSIZE 1920*1080*4
@@ -294,7 +295,7 @@ struct rk_fb_inf {
 #endif
 };
 #if defined(CONFIG_MALI) || defined(CONFIG_MALI_MODULE)
-extern int (*disp_get_ump_secure_id)(struct fb_info *info, unsigned long arg, int nbuf);
+extern int (*disp_get_ump_secure_id)(struct fb_info *info, struct rk_fb_inf *g_fbi, unsigned long arg, int buf);
 #endif
 extern int rk_fb_register(struct rk_lcdc_device_driver *dev_drv,
 	struct rk_lcdc_device_driver *def_drv,int id);

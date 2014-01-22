@@ -30,10 +30,12 @@
 #include <linux/earlysuspend.h>
 #include <asm/div64.h>
 #include <asm/uaccess.h>
-#include<linux/rk_fb.h>
+#include <linux/rk_fb.h>
 #include <plat/ipp.h>
 #include "hdmi/rk_hdmi.h"
 #include <linux/linux_logo.h>
+
+#include "dbgdefs.h"
 
 #if defined(CONFIG_MALI) || defined(CONFIG_MALI_MODULE)
 #include "ump/ump_kernel_interface.h"
@@ -51,12 +53,14 @@ EXPORT_SYMBOL(video_data_to_mirroring);
 #endif
 static struct platform_device *g_fb_pdev;
 
+#if 0
 static struct rk_fb_rgb def_rgb_16 = {
      red:    { offset: 11, length: 5, },
      green:  { offset: 5,  length: 6, },
      blue:   { offset: 0,  length: 5, },
      transp: { offset: 0,  length: 0, },
 };
+#endif
 //$_rbox_$_modify_$ zhengyang modified for box display system
 static int rk_fb_lcdc_state(void);
 //$_rbox_$_modify_$ end
@@ -285,7 +289,7 @@ static int rk_pan_display(struct fb_var_screeninfo *var, struct fb_info *info)
 	return 0;
 }
 #if defined(CONFIG_MALI) || defined(CONFIG_MALI_MODULE)
-int (*disp_get_ump_secure_id)(struct fb_info *info, unsigned long arg, int nbuf);
+int (*disp_get_ump_secure_id)(struct fb_info *info, struct rk_fb_inf *g_fbi, unsigned long arg, int buf);
 EXPORT_SYMBOL(disp_get_ump_secure_id);
 #endif
 static int rk_fb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
@@ -299,19 +303,22 @@ static int rk_fb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 	int num_buf; //buffer_number
 	void __user *argp = (void __user *)arg;
 	int new_layer_id;
+	struct rk_fb_inf *inf = dev_get_drvdata(info->device);
 	//$_rbox_$_modify_$ zhengyang modified for box display system
 	#if defined(CONFIG_DUAL_LCDC_DUAL_DISP_IN_KERNEL)
-	struct rk_fb_inf *inf = dev_get_drvdata(info->device);
 	struct fb_info * info2;
 	struct rk_lcdc_device_driver * dev_drv1;
 	#endif
 	//$_rbox_$_modify_$ end
 #if defined(CONFIG_MALI) || defined(CONFIG_MALI_MODULE)
         int secure_id_buf_num = 0; //IAM
+        int ret;
 #endif
+	DBG_PRINT("info=%p, cmd=%x, arg=%lx",info,cmd,arg);
+
 	switch(cmd)
 	{
- 		case FBIOPUT_FBPHYADD:
+		case FBIOPUT_FBPHYADD:
 			return info->fix.smem_start;
 			break;
 		case RK_FBIOSET_YUV_ADDR:   //when in video mode, buff alloc by android
@@ -391,15 +398,20 @@ static int rk_fb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 		case GET_UMP_SECURE_ID_BUF2:/* flow trough */
 			secure_id_buf_num++;
 		case GET_UMP_SECURE_ID_BUF1:
-getump:
-			{
-			    if (!disp_get_ump_secure_id)
+			secure_id_buf_num++;
+		case GET_UMP_SECURE_ID_SUNXI_FB:
+//getump:
+		{
+			DBG_PRINT("cmd=0x%x, info=%p, inf=%p, arg=0x%lx, secure_id_buf_num=%d",cmd,info,inf,arg,secure_id_buf_num);
+			if (!disp_get_ump_secure_id)
 				request_module("disp_ump");
-			    if (disp_get_ump_secure_id)
-				return disp_get_ump_secure_id(info, arg, secure_id_buf_num);
-			    else
-				return -ENOTSUPP;
-			}
+			if (disp_get_ump_secure_id)
+				ret = disp_get_ump_secure_id(info, inf, arg, secure_id_buf_num);
+			else
+				ret = -ENOTSUPP;
+			DBG_PRINT("ret=%d",ret);
+			return ret;
+		}
 #endif
         	default:
 			dev_drv->ioctl(dev_drv,cmd,arg,layer_id);

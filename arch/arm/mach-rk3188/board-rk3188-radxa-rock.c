@@ -827,7 +827,8 @@ static void __init rk30_reserve(void)
 	resource_fb[0].start = board_mem_reserve_add("fb0 buf", get_fb_size());
 	resource_fb[0].end = resource_fb[0].start + get_fb_size()- 1;
 
-#if defined(CONFIG_FB_ROTATE) || !defined(CONFIG_THREE_FB_BUFFER)
+//#if defined(CONFIG_FB_ROTATE) || !defined(CONFIG_THREE_FB_BUFFER)
+#if 1
 	resource_fb[1].start = board_mem_reserve_add("fb1 buf", get_fb_size());
 	resource_fb[1].end = resource_fb[0].start + get_fb_size()- 1;
 
