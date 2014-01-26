@@ -14,6 +14,7 @@
 #include <linux/platform_device.h>
 #include <linux/dma-contiguous.h>
 #include <linux/serial_8250.h>
+#include <linux/ahci.h>
 #include <linux/ahci_platform.h>
 #include <linux/clk.h>
 #include <linux/reboot.h>
@@ -389,7 +390,7 @@ static struct resource da8xx_watchdog_resources[] = {
 };
 
 static struct platform_device da8xx_wdt_device = {
-	.name		= "davinci-wdt",
+	.name		= "watchdog",
 	.id		= -1,
 	.num_resources	= ARRAY_SIZE(da8xx_watchdog_resources),
 	.resource	= da8xx_watchdog_resources,
@@ -399,7 +400,7 @@ void da8xx_restart(enum reboot_mode mode, const char *cmd)
 {
 	struct device *dev;
 
-	dev = bus_find_device_by_name(&platform_bus_type, NULL, "davinci-wdt");
+	dev = bus_find_device_by_name(&platform_bus_type, NULL, "watchdog");
 	if (!dev) {
 		pr_err("%s: failed to find watchdog device\n", __func__);
 		return;
@@ -1061,8 +1062,7 @@ static unsigned long da850_sata_xtal[] = {
 	KHZ_TO_HZ(60000),
 };
 
-static int da850_sata_init(struct device *dev, struct ahci_host_priv *hpriv,
-			   void __iomem *addr)
+static int da850_sata_init(struct device *dev, struct ahci_host_priv *hpriv)
 {
 	int i, ret;
 	unsigned int val;
@@ -1097,7 +1097,7 @@ static int da850_sata_init(struct device *dev, struct ahci_host_priv *hpriv,
 		SATA_PHY_TXSWING(3) |
 		SATA_PHY_ENPLL(1);
 
-	__raw_writel(val, addr + SATA_P0PHYCR_REG);
+	__raw_writel(val, hpriv->mmio + SATA_P0PHYCR_REG);
 
 	return 0;
 

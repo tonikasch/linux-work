@@ -79,10 +79,6 @@ static int stmmac_probe_config_dt(struct platform_device *pdev,
 	*mac = of_get_mac_address(np);
 	plat->interface = of_get_phy_mode(np);
 
-	/* Get max speed of operation from device tree */
-	if (of_property_read_u32(np, "max-speed", &plat->max_speed))
-		plat->max_speed = -1;
-
 	plat->bus_id = of_alias_get_id(np, "ethernet");
 	if (plat->bus_id < 0)
 		plat->bus_id = 0;
@@ -102,11 +98,6 @@ static int stmmac_probe_config_dt(struct platform_device *pdev,
 
 	plat->force_sf_dma_mode = of_property_read_bool(np, "snps,force_sf_dma_mode");
 
-	/* Set the maxmtu to a default of JUMBO_LEN in case the
-	 * parameter is not present in the device tree.
-	 */
-	plat->maxmtu = JUMBO_LEN;
-
 	/*
 	 * Currently only the properties needed on SPEAr600
 	 * are provided. All other properties should be added
@@ -115,14 +106,6 @@ static int stmmac_probe_config_dt(struct platform_device *pdev,
 	if (of_device_is_compatible(np, "st,spear600-gmac") ||
 		of_device_is_compatible(np, "snps,dwmac-3.70a") ||
 		of_device_is_compatible(np, "snps,dwmac")) {
-		/* Note that the max-frame-size parameter as defined in the
-		 * ePAPR v1.1 spec is defined as max-frame-size, it's
-		 * actually used as the IEEE definition of MAC Client
-		 * data, or MTU. The ePAPR specification is confusing as
-		 * the definition is max-frame-size, but usage examples
-		 * are clearly MTUs
-		 */
-		of_property_read_u32(np, "max-frame-size", &plat->maxmtu);
 		plat->has_gmac = 1;
 		plat->pmt = 1;
 	}
@@ -280,34 +263,54 @@ static int stmmac_pltfr_remove(struct platform_device *pdev)
 #ifdef CONFIG_PM
 static int stmmac_pltfr_suspend(struct device *dev)
 {
-	int ret;
 	struct net_device *ndev = dev_get_drvdata(dev);
-	struct stmmac_priv *priv = netdev_priv(ndev);
-	struct platform_device *pdev = to_platform_device(dev);
 
-	ret = stmmac_suspend(ndev);
-	if (priv->plat->exit)
-		priv->plat->exit(pdev, priv->plat->bsp_priv);
-
-	return ret;
+	return stmmac_suspend(ndev);
 }
 
 static int stmmac_pltfr_resume(struct device *dev)
 {
 	struct net_device *ndev = dev_get_drvdata(dev);
-	struct stmmac_priv *priv = netdev_priv(ndev);
-	struct platform_device *pdev = to_platform_device(dev);
-
-	if (priv->plat->init)
-		priv->plat->init(pdev, priv->plat->bsp_priv);
 
 	return stmmac_resume(ndev);
 }
 
-#endif /* CONFIG_PM */
+int stmmac_pltfr_freeze(struct device *dev)
+{
+	int ret;
+	struct plat_stmmacenet_data *plat_dat = dev_get_platdata(dev);
+	struct net_device *ndev = dev_get_drvdata(dev);
+	struct platform_device *pdev = to_platform_device(dev);
 
-static SIMPLE_DEV_PM_OPS(stmmac_pltfr_pm_ops,
-			stmmac_pltfr_suspend, stmmac_pltfr_resume);
+	ret = stmmac_freeze(ndev);
+	if (plat_dat->exit)
+		plat_dat->exit(pdev, plat_dat->bsp_priv);
+
+	return ret;
+}
+
+int stmmac_pltfr_restore(struct device *dev)
+{
+	struct plat_stmmacenet_data *plat_dat = dev_get_platdata(dev);
+	struct net_device *ndev = dev_get_drvdata(dev);
+	struct platform_device *pdev = to_platform_device(dev);
+
+	if (plat_dat->init)
+		plat_dat->init(pdev, plat_dat->bsp_priv);
+
+	return stmmac_restore(ndev);
+}
+
+static const struct dev_pm_ops stmmac_pltfr_pm_ops = {
+	.suspend = stmmac_pltfr_suspend,
+	.resume = stmmac_pltfr_resume,
+	.freeze = stmmac_pltfr_freeze,
+	.thaw = stmmac_pltfr_restore,
+	.restore = stmmac_pltfr_restore,
+};
+#else
+static const struct dev_pm_ops stmmac_pltfr_pm_ops;
+#endif /* CONFIG_PM */
 
 struct platform_driver stmmac_pltfr_driver = {
 	.probe = stmmac_pltfr_probe,

@@ -35,8 +35,7 @@
 #ifndef _AHCI_H
 #define _AHCI_H
 
-#include <linux/clk.h>
-#include <linux/regulator/consumer.h>
+#include <linux/ahci.h>
 #include <linux/libata.h>
 
 /* Enclosure Management Control */
@@ -53,7 +52,6 @@
 enum {
 	AHCI_MAX_PORTS		= 32,
 	AHCI_MAX_SG		= 168, /* hardware max is 64K */
-	AHCI_MAX_CLKS		= 3,
 	AHCI_DMA_BOUNDARY	= 0xffffffff,
 	AHCI_MAX_CMDS		= 32,
 	AHCI_CMD_SZ		= 32,
@@ -311,25 +309,6 @@ struct ahci_port_priv {
 	char			*irq_desc;	/* desc in /proc/interrupts */
 };
 
-struct ahci_host_priv {
-	void __iomem *		mmio;		/* bus-independent mem map */
-	unsigned int		flags;		/* AHCI_HFLAG_* */
-	u32			cap;		/* cap to use */
-	u32			cap2;		/* cap2 to use */
-	u32			port_map;	/* port map to use */
-	u32			saved_cap;	/* saved initial cap */
-	u32			saved_cap2;	/* saved initial cap2 */
-	u32			saved_port_map;	/* saved initial port_map */
-	u32 			em_loc; /* enclosure management location */
-	u32			em_buf_sz;	/* EM buffer size in byte */
-	u32			em_msg_type;	/* EM message type */
-	struct clk		*clks[AHCI_MAX_CLKS]; /* Optional */
-	struct regulator	*target_pwr;	/* Optional */
-	void			*plat_data;	/* Other platform data */
-	/* Optional ahci_start_engine override */
-	void			(*start_engine)(struct ata_port *ap);
-};
-
 extern int ahci_ignore_sss;
 
 extern struct device_attribute *ahci_shost_attrs[];
@@ -362,7 +341,6 @@ int ahci_do_softreset(struct ata_link *link, unsigned int *class,
 		      int (*check_ready)(struct ata_link *link));
 
 int ahci_stop_engine(struct ata_port *ap);
-void ahci_start_engine(struct ata_port *ap);
 int ahci_check_ready(struct ata_link *link);
 int ahci_kick_engine(struct ata_port *ap);
 int ahci_port_resume(struct ata_port *ap);

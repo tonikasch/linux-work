@@ -20,7 +20,6 @@
 #include <linux/init.h>
 #include <linux/interrupt.h>
 #include <linux/device.h>
-#include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/libata.h>
 #include <linux/ahci_platform.h>
@@ -32,7 +31,6 @@ enum ahci_type {
 	AHCI,		/* standard platform ahci */
 	IMX53_AHCI,	/* ahci on i.mx53 */
 	STRICT_AHCI,	/* delayed DMA engine start */
-	SUNXI_AHCI,	/* ahci on sunxi */
 };
 
 static struct platform_device_id ahci_devtype[] = {
@@ -45,9 +43,6 @@ static struct platform_device_id ahci_devtype[] = {
 	}, {
 		.name = "strict-ahci",
 		.driver_data = STRICT_AHCI,
-	}, {
-		.name = "sunxi-ahci",
-		.driver_data = SUNXI_AHCI,
 	}, {
 		/* sentinel */
 	}
@@ -86,61 +81,21 @@ static const struct ata_port_info ahci_port_info[] = {
 		.udma_mask	= ATA_UDMA6,
 		.port_ops	= &ahci_platform_ops,
 	},
-	[SUNXI_AHCI] = {
-		AHCI_HFLAGS	(AHCI_HFLAG_32BIT_ONLY | AHCI_HFLAG_NO_MSI |
-				 AHCI_HFLAG_NO_PMP | AHCI_HFLAG_YES_NCQ),
-		.flags		= AHCI_FLAG_COMMON,
-		.pio_mask	= ATA_PIO4,
-		.udma_mask	= ATA_UDMA6,
-		.port_ops	= &ahci_platform_ops,
-	},
 };
 
 static struct scsi_host_template ahci_platform_sht = {
 	AHCI_SHT("ahci_platform"),
 };
 
-static const struct of_device_id ahci_of_match[] = {
-	{ .compatible = "snps,spear-ahci", },
-	{ .compatible = "snps,exynos5440-ahci", },
-	{ .compatible = "ibm,476gtr-ahci", },
-#ifdef CONFIG_AHCI_SUNXI
-	{ .compatible = "allwinner,sun4i-a10-ahci",
-	  .data = &ahci_sunxi_pdata, },
-#endif
-#ifdef CONFIG_AHCI_IMX
-	{ .compatible = "fsl,imx6q-ahci", .data = &imx6q_sata_pdata, },
-#endif
-	{},
-};
-MODULE_DEVICE_TABLE(of, ahci_of_match);
 
-static const struct ahci_platform_data *ahci_get_pdata(struct device *dev)
-{
-	struct ahci_platform_data *pdata;
-	const struct of_device_id *of_id;
-
-	pdata = dev_get_platdata(dev);
-	if (pdata)
-		return pdata;
-
-	of_id = of_match_device(ahci_of_match, dev);
-	if (of_id)
-		return of_id->data;
-
-	return NULL;
-}
-
-static int ahci_enable_clks(struct device *dev, struct ahci_host_priv *hpriv)
+int ahci_platform_enable_clks(struct ahci_host_priv *hpriv)
 {
 	int c, rc;
 
 	for (c = 0; c < AHCI_MAX_CLKS && hpriv->clks[c]; c++) {
 		rc = clk_prepare_enable(hpriv->clks[c]);
-		if (rc) {
-			dev_err(dev, "clock prepare enable failed");
+		if (rc)
 			goto disable_unprepare_clk;
-		}
 	}
 	return 0;
 
@@ -149,8 +104,9 @@ disable_unprepare_clk:
 		clk_disable_unprepare(hpriv->clks[c]);
 	return rc;
 }
+EXPORT_SYMBOL_GPL(ahci_platform_enable_clks);
 
-static void ahci_disable_clks(struct ahci_host_priv *hpriv)
+void ahci_platform_disable_clks(struct ahci_host_priv *hpriv)
 {
 	int c;
 
@@ -158,55 +114,68 @@ static void ahci_disable_clks(struct ahci_host_priv *hpriv)
 		if (hpriv->clks[c])
 			clk_disable_unprepare(hpriv->clks[c]);
 }
+EXPORT_SYMBOL_GPL(ahci_platform_disable_clks);
 
-static void ahci_put_clks(struct ahci_host_priv *hpriv)
+
+int ahci_platform_enable_resources(struct ahci_host_priv *hpriv)
 {
-	int c;
+	int rc;
 
-	for (c = 0; c < AHCI_MAX_CLKS && hpriv->clks[c]; c++)
-		clk_put(hpriv->clks[c]);
+	if (hpriv->target_pwr) {
+		rc = regulator_enable(hpriv->target_pwr);
+		if (rc)
+			return rc;
+	}
+
+	rc = ahci_platform_enable_clks(hpriv);
+	if (rc)
+		goto disable_regulator;
+
+	return 0;
+
+disable_regulator:
+	if (hpriv->target_pwr)
+		regulator_disable(hpriv->target_pwr);
+	return rc;
 }
+EXPORT_SYMBOL_GPL(ahci_platform_enable_resources);
 
-static int ahci_probe(struct platform_device *pdev)
+void ahci_platform_disable_resources(struct ahci_host_priv *hpriv)
+{
+	ahci_platform_disable_clks(hpriv);
+
+	if (hpriv->target_pwr)
+		regulator_disable(hpriv->target_pwr);
+}
+EXPORT_SYMBOL_GPL(ahci_platform_disable_resources);
+
+
+struct ahci_host_priv *ahci_platform_get_resources(
+	struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
-	const struct ahci_platform_data *pdata = ahci_get_pdata(dev);
-	const struct platform_device_id *id = platform_get_device_id(pdev);
-	struct ata_port_info pi = ahci_port_info[id ? id->driver_data : 0];
-	const struct ata_port_info *ppi[] = { &pi, NULL };
 	struct ahci_host_priv *hpriv;
-	struct ata_host *host;
-	struct resource *mem;
 	struct clk *clk;
-	int i, irq, max_clk, n_ports, rc;
-
-	mem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	if (!mem) {
-		dev_err(dev, "no mmio space\n");
-		return -EINVAL;
-	}
-
-	irq = platform_get_irq(pdev, 0);
-	if (irq <= 0) {
-		dev_err(dev, "no irq\n");
-		return -EINVAL;
-	}
-
-	if (pdata && pdata->ata_port_info)
-		pi = *pdata->ata_port_info;
+	int i, max_clk, rc;
 
 	hpriv = devm_kzalloc(dev, sizeof(*hpriv), GFP_KERNEL);
 	if (!hpriv) {
 		dev_err(dev, "can't alloc ahci_host_priv\n");
-		return -ENOMEM;
+		return ERR_PTR(-ENOMEM);
 	}
 
-	hpriv->flags |= (unsigned long)pi.private_data;
-
-	hpriv->mmio = devm_ioremap(dev, mem->start, resource_size(mem));
+	hpriv->mmio = devm_ioremap_resource(dev,
+			      platform_get_resource(pdev, IORESOURCE_MEM, 0));
 	if (!hpriv->mmio) {
-		dev_err(dev, "can't map %pR\n", mem);
-		return -ENOMEM;
+		dev_err(dev, "no mmio space\n");
+		return ERR_PTR(-EINVAL);
+	}
+
+	hpriv->target_pwr = devm_regulator_get_optional(dev, "target");
+	if (IS_ERR(hpriv->target_pwr)) {
+		if (PTR_ERR(hpriv->target_pwr) == -EPROBE_DEFER)
+			return ERR_PTR(-EPROBE_DEFER);
+		hpriv->target_pwr = NULL;
 	}
 
 	max_clk = dev->of_node ? AHCI_MAX_CLKS : 1;
@@ -225,40 +194,48 @@ static int ahci_probe(struct platform_device *pdev)
 		hpriv->clks[i] = clk;
 	}
 
-	hpriv->target_pwr = devm_regulator_get_optional(dev, "target");
-	if (IS_ERR(hpriv->target_pwr)) {
-		if (PTR_ERR(hpriv->target_pwr) == -EPROBE_DEFER)
-			return -EPROBE_DEFER;
-		hpriv->target_pwr = NULL;
+	return hpriv;
+
+free_clk:
+	while (--i >= 0)
+		clk_put(hpriv->clks[i]);
+	return ERR_PTR(rc);
+}
+EXPORT_SYMBOL_GPL(ahci_platform_get_resources);
+
+void ahci_platform_put_resources(struct ahci_host_priv *hpriv)
+{
+	int c;
+
+	for (c = 0; c < AHCI_MAX_CLKS && hpriv->clks[c]; c++)
+		clk_put(hpriv->clks[c]);
+}
+EXPORT_SYMBOL_GPL(ahci_platform_put_resources);
+
+
+int ahci_platform_init_host(struct platform_device *pdev,
+			    struct ahci_host_priv *hpriv,
+			    const struct ata_port_info *pi_template,
+			    unsigned int force_port_map,
+			    unsigned int mask_port_map)
+{
+	struct device *dev = &pdev->dev;
+	struct ata_port_info pi = *pi_template;
+	const struct ata_port_info *ppi[] = { &pi, NULL };
+	struct ata_host *host;
+	int i, irq, n_ports, rc;
+
+	irq = platform_get_irq(pdev, 0);
+	if (irq <= 0) {
+		dev_err(dev, "no irq\n");
+		return -EINVAL;
 	}
-
-	rc = ahci_enable_clks(dev, hpriv);
-	if (rc)
-		goto free_clk;
-
-	/*
-	 * Some platforms might need to prepare for mmio region access,
-	 * which could be done in the following init call. So, the mmio
-	 * region shouldn't be accessed before init (if provided) has
-	 * returned successfully.
-	 */
-	if (pdata && pdata->init) {
-		rc = pdata->init(dev, hpriv, hpriv->mmio);
-		if (rc)
-			goto disable_unprepare_clk;
-	}
-
-	if (hpriv->target_pwr) {
-		rc = regulator_enable(hpriv->target_pwr);
-		if (rc)
-			goto pdata_exit;
-	}
-
-	ahci_save_initial_config(dev, hpriv,
-		pdata ? pdata->force_port_map : 0,
-		pdata ? pdata->mask_port_map  : 0);
 
 	/* prepare host */
+	hpriv->flags |= (unsigned long)pi.private_data;
+
+	ahci_save_initial_config(dev, hpriv, force_port_map, mask_port_map);
+
 	if (hpriv->cap & HOST_CAP_NCQ)
 		pi.flags |= ATA_FLAG_NCQ;
 
@@ -275,10 +252,8 @@ static int ahci_probe(struct platform_device *pdev)
 	n_ports = max(ahci_nr_ports(hpriv->cap), fls(hpriv->port_map));
 
 	host = ata_host_alloc_pinfo(dev, ppi, n_ports);
-	if (!host) {
-		rc = -ENOMEM;
-		goto disable_regulator;
-	}
+	if (!host)
+		return -ENOMEM;
 
 	host->private_data = hpriv;
 
@@ -293,7 +268,8 @@ static int ahci_probe(struct platform_device *pdev)
 	for (i = 0; i < host->n_ports; i++) {
 		struct ata_port *ap = host->ports[i];
 
-		ata_port_desc(ap, "mmio %pR", mem);
+		ata_port_desc(ap, "mmio %pR",
+			      platform_get_resource(pdev, IORESOURCE_MEM, 0));
 		ata_port_desc(ap, "port 0x%x", 0x100 + ap->port_no * 0x80);
 
 		/* set enclosure management message type */
@@ -307,55 +283,82 @@ static int ahci_probe(struct platform_device *pdev)
 
 	rc = ahci_reset_controller(host);
 	if (rc)
-		goto disable_regulator;
+		return rc;
 
 	ahci_init_controller(host);
 	ahci_print_info(host, "platform");
 
-	rc = ata_host_activate(host, irq, ahci_interrupt, IRQF_SHARED,
-			       &ahci_platform_sht);
+	return ata_host_activate(host, irq, ahci_interrupt, IRQF_SHARED,
+				 &ahci_platform_sht);
+}
+EXPORT_SYMBOL_GPL(ahci_platform_init_host);
+
+static int ahci_probe(struct platform_device *pdev)
+{
+	struct device *dev = &pdev->dev;
+	struct ahci_platform_data *pdata = dev_get_platdata(dev);
+	const struct platform_device_id *id = platform_get_device_id(pdev);
+	struct ahci_host_priv *hpriv;
+	int rc;
+
+	hpriv = ahci_platform_get_resources(pdev);
+	if (IS_ERR(hpriv))
+		return PTR_ERR(hpriv);
+
+	rc = ahci_platform_enable_resources(hpriv);
 	if (rc)
-		goto disable_regulator;
+		goto put_resources;
+
+	/*
+	 * Some platforms might need to prepare for mmio region access,
+	 * which could be done in the following init call. So, the mmio
+	 * region shouldn't be accessed before init (if provided) has
+	 * returned successfully.
+	 */
+	if (pdata && pdata->init) {
+		rc = pdata->init(dev, hpriv);
+		if (rc)
+			goto disable_resources;
+	}
+
+	rc = ahci_platform_init_host(pdev, hpriv,
+				     &ahci_port_info[id ? id->driver_data : 0],
+				     pdata ? pdata->force_port_map : 0,
+				     pdata ? pdata->mask_port_map  : 0);
+	if (rc)
+		goto pdata_exit;
 
 	return 0;
-disable_regulator:
-	if (hpriv->target_pwr)
-		regulator_disable(hpriv->target_pwr);
 pdata_exit:
 	if (pdata && pdata->exit)
 		pdata->exit(dev);
-disable_unprepare_clk:
-	ahci_disable_clks(hpriv);
-free_clk:
-	ahci_put_clks(hpriv);
+disable_resources:
+	ahci_platform_disable_resources(hpriv);
+put_resources:
+	ahci_platform_put_resources(hpriv);
 	return rc;
 }
 
 static void ahci_host_stop(struct ata_host *host)
 {
 	struct device *dev = host->dev;
-	const struct ahci_platform_data *pdata = ahci_get_pdata(dev);
+	struct ahci_platform_data *pdata = dev_get_platdata(dev);
 	struct ahci_host_priv *hpriv = host->private_data;
-
-	if (hpriv->target_pwr)
-		regulator_disable(hpriv->target_pwr);
 
 	if (pdata && pdata->exit)
 		pdata->exit(dev);
 
-	ahci_disable_clks(hpriv);
-	ahci_put_clks(hpriv);
+	ahci_platform_disable_resources(hpriv);
+	ahci_platform_put_resources(hpriv);
 }
 
 #ifdef CONFIG_PM_SLEEP
-static int ahci_suspend(struct device *dev)
+int ahci_platform_suspend_host(struct device *dev)
 {
-	const struct ahci_platform_data *pdata = ahci_get_pdata(dev);
 	struct ata_host *host = dev_get_drvdata(dev);
 	struct ahci_host_priv *hpriv = host->private_data;
 	void __iomem *mmio = hpriv->mmio;
 	u32 ctl;
-	int rc;
 
 	if (hpriv->flags & AHCI_HFLAG_NO_SUSPEND) {
 		dev_err(dev, "firmware update required for suspend/resume\n");
@@ -372,48 +375,19 @@ static int ahci_suspend(struct device *dev)
 	writel(ctl, mmio + HOST_CTL);
 	readl(mmio + HOST_CTL); /* flush */
 
-	rc = ata_host_suspend(host, PMSG_SUSPEND);
-	if (rc)
-		return rc;
-
-	if (hpriv->target_pwr)
-		regulator_disable(hpriv->target_pwr);
-
-	if (pdata && pdata->suspend)
-		pdata->suspend(dev);
-
-	ahci_disable_clks(hpriv);
-
-	return 0;
+	return ata_host_suspend(host, PMSG_SUSPEND);
 }
+EXPORT_SYMBOL_GPL(ahci_platform_suspend_host);
 
-static int ahci_resume(struct device *dev)
+int ahci_platform_resume_host(struct device *dev)
 {
-	const struct ahci_platform_data *pdata = ahci_get_pdata(dev);
 	struct ata_host *host = dev_get_drvdata(dev);
-	struct ahci_host_priv *hpriv = host->private_data;
 	int rc;
-
-	rc = ahci_enable_clks(dev, hpriv);
-	if (rc)
-		return rc;
-
-	if (pdata && pdata->resume) {
-		rc = pdata->resume(dev);
-		if (rc)
-			goto disable_unprepare_clk;
-	}
-
-	if (hpriv->target_pwr) {
-		rc = regulator_enable(hpriv->target_pwr);
-		if (rc)
-			goto pdata_suspend;
-	}
 
 	if (dev->power.power_state.event == PM_EVENT_SUSPEND) {
 		rc = ahci_reset_controller(host);
 		if (rc)
-			goto disable_regulator;
+			return rc;
 
 		ahci_init_controller(host);
 	}
@@ -421,21 +395,70 @@ static int ahci_resume(struct device *dev)
 	ata_host_resume(host);
 
 	return 0;
+}
+EXPORT_SYMBOL_GPL(ahci_platform_resume_host);
 
-disable_regulator:
-	if (hpriv->target_pwr)
-		regulator_disable(hpriv->target_pwr);
-pdata_suspend:
+int ahci_platform_suspend(struct device *dev)
+{
+	struct ahci_platform_data *pdata = dev_get_platdata(dev);
+	struct ata_host *host = dev_get_drvdata(dev);
+	struct ahci_host_priv *hpriv = host->private_data;
+	int rc;
+
+	rc = ahci_platform_suspend_host(dev);
+	if (rc)
+		return rc;
+
 	if (pdata && pdata->suspend)
-		pdata->suspend(dev);
-disable_unprepare_clk:
-	ahci_disable_clks(hpriv);
+		return pdata->suspend(dev);
+
+	ahci_platform_disable_resources(hpriv);
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(ahci_platform_suspend);
+
+int ahci_platform_resume(struct device *dev)
+{
+	struct ahci_platform_data *pdata = dev_get_platdata(dev);
+	struct ata_host *host = dev_get_drvdata(dev);
+	struct ahci_host_priv *hpriv = host->private_data;
+	int rc;
+
+	rc = ahci_platform_enable_resources(hpriv);
+	if (rc)
+		return rc;
+
+	if (pdata && pdata->resume) {
+		rc = pdata->resume(dev);
+		if (rc)
+			goto disable_resources;
+	}
+
+	rc = ahci_platform_resume_host(dev);
+	if (rc)
+		goto disable_resources;
+
+	return 0;
+
+disable_resources:
+	ahci_platform_disable_resources(hpriv);
 
 	return rc;
 }
+EXPORT_SYMBOL_GPL(ahci_platform_resume);
 #endif
 
-static SIMPLE_DEV_PM_OPS(ahci_pm_ops, ahci_suspend, ahci_resume);
+static SIMPLE_DEV_PM_OPS(ahci_pm_ops, ahci_platform_suspend,
+			 ahci_platform_resume);
+
+static const struct of_device_id ahci_of_match[] = {
+	{ .compatible = "snps,spear-ahci", },
+	{ .compatible = "snps,exynos5440-ahci", },
+	{ .compatible = "ibm,476gtr-ahci", },
+	{},
+};
+MODULE_DEVICE_TABLE(of, ahci_of_match);
 
 static struct platform_driver ahci_driver = {
 	.probe = ahci_probe,
