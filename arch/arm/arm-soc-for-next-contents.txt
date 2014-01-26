@@ -21,6 +21,10 @@ next/fixes-non-critical
 
 	patch ARM: bcm2835: Fix grammar in help message                                     
 	patch irqchip: sirf: set IRQ_LEVEL status_flags
+	mvebu/fixes
+		git://git.infradead.org/linux-mvebu.git tags/mvebu-fixes-3.13
+	omap/fixes
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.14/fixes-not-urgent-signed
 
 next/cleanup
 	renesas/cleanup
@@ -59,6 +63,8 @@ next/cleanup
 		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-sh-sci2-for-v3.14
 	mvebu/soc-2
 		git://git.infradead.org/linux-mvebu.git tags/mvebu-soc-3.14-20
+	at91/cleanup-2
+		git://github.com/at91linux/linux-at91.git tags/at91-cleanup2
 
 next/soc
 	patches
@@ -106,7 +112,17 @@ next/soc
 			ARM: msm: Only build timer.c if required                                      
 			ARM: msm: Only build clock.c on proc_comm based platforms   
 			ARM: msm_defconfig: Update for multi-platform
-    
+	patch
+		ARM: tegra: fix tegra_powergate_sequence_power_up() inline
+	renesas/fixes (based on renesas/soc3)
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-soc-fixes-for-v3.14
+	sunxi/core-2
+		https://github.com/mripard/linux.git tags/sunxi-core-for-3.14-2
+	versatile/core
+		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-integrator.git tags/versatile-for-v3.14
+	davinci/soc
+		git://git.kernel.org/pub/scm/linux/kernel/git/nsekhar/linux-davinci.git tags/davinci-for-v3.14/soc
+
 next/dt
 	ux500/dt
 		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson tags/ux500-devicetree-v3.14-1
@@ -166,6 +182,18 @@ next/dt
 		depends on depends/pinctrl-for-next
 	samsung/dt3
 		 git://git.kernel.org/pub/scm/linux/kernel/git/kgene/linux-samsung.git tags/samsung-dt-3
+	renesas/dt-fixes
+		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas tags/renesas-dt-fixes-for-v3.14
+	ux500/dt2
+		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson tags/ux500-devicetree-v3.14-2
+	sunxi/dt-2
+		https://github.com/mripard/linux.git tags/sunxi-dt-for-3.14-2
+	socfpga/dt
+		git://git.rocketboards.org/linux-socfpga-next.git tags/socfpga-dt-for-3.14
+	sirf/dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/baohua/linux.git tags/sirf-dts-for-3.14
+	davinci/dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/nsekhar/linux-davinci.git tags/davinci-for-v3.14/dt
 
 next/boards
 	renesas/defconfig
@@ -198,6 +226,8 @@ next/boards
 	renesas/boards2
 		git://git.kernel.org/pub/scm/linux/kernel/git/horms/renesas.git tags/renesas-boards2-for-v3.14
 	patch ARM: bcm2835: bcm2835_defconfig updates   
+	omap/fixes-dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v3.14/dt-signed
 
 next/drivers
 	mvebu/drivers
@@ -235,7 +265,17 @@ next/drivers
 			tty: serial: Limit msm_serial_hs driver to platforms that use it              
 			mmc: msm_sdcc: Limit driver to platforms that use it                          
 			usb: phy: msm: Move mach dependent code to platform data  
+	davinci/drivers
+		git://git.kernel.org/pub/scm/linux/kernel/git/nsekhar/linux-davinci.git tags/davinci-for-v3.14/watchdog
 
+late/drivers
+	bcm/drivers
+		git://github.com/broadcom/bcm11351.git tags/bcm-for-3.14-drivers
+
+late/dt
+	bcm/dt
+		git://github.com/broadcom/bcm11351.git tags/bcm-for-3.14-dt
+									
 Patches only in for-next, not in any topic branch due to conflicts:
 
 ARM: multi_v7: copy most options from tegra_defconfig
