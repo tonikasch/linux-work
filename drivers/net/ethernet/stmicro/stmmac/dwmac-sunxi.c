@@ -16,61 +16,125 @@
  * GNU General Public License for more details.
  */
 
+#include <linux/stmmac.h>
 #include <linux/clk.h>
 #include <linux/phy.h>
-#include <linux/stmmac.h>
+#include <linux/of_net.h>
+#include <linux/regulator/consumer.h>
 
-#define GMAC_IF_TYPE_RGMII	0x4
+struct sunxi_priv_data {
+	int interface;
+	int clk_enabled;
+	struct clk *tx_clk;
+	struct regulator *regulator;
+};
 
-#define GMAC_TX_CLK_MASK	0x3
-#define GMAC_TX_CLK_MII		0x0
-#define GMAC_TX_CLK_RGMII_INT	0x2
-
-static int sun7i_gmac_init(struct platform_device *pdev)
+static void *sun7i_gmac_setup(struct platform_device *pdev)
 {
-	struct resource *res;
+	struct sunxi_priv_data *gmac;
 	struct device *dev = &pdev->dev;
-	void __iomem *addr = NULL;
-	struct plat_stmmacenet_data *plat_dat = NULL;
-	u32 priv_clk_reg;
 
-	plat_dat = dev_get_platdata(&pdev->dev);
-	if (!plat_dat)
-		return -EINVAL;
+	gmac = devm_kzalloc(dev, sizeof(*gmac), GFP_KERNEL);
+	if (!gmac)
+		return ERR_PTR(-ENOMEM);
 
-	/* Get GMAC clock register in CCU */
-	res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
-	addr = devm_ioremap_resource(dev, res);
-	if (IS_ERR(addr))
-		return PTR_ERR(addr);
+	gmac->interface = of_get_phy_mode(dev->of_node);
 
-	priv_clk_reg = readl(addr);
+	gmac->tx_clk = devm_clk_get(dev, "allwinner_gmac_tx");
+	if (IS_ERR(gmac->tx_clk)) {
+		dev_err(dev, "could not get tx clock\n");
+		return gmac->tx_clk;
+	}
 
-	/* Set GMAC interface port mode */
-	if (plat_dat->interface == PHY_INTERFACE_MODE_RGMII)
-		priv_clk_reg |= GMAC_IF_TYPE_RGMII;
-	else
-		priv_clk_reg &= ~GMAC_IF_TYPE_RGMII;
+	/* Optional regulator for PHY */
+	gmac->regulator = devm_regulator_get_optional(dev, "phy");
+	if (IS_ERR(gmac->regulator)) {
+		if (PTR_ERR(gmac->regulator) == -EPROBE_DEFER)
+			return ERR_PTR(-EPROBE_DEFER);
+		dev_info(dev, "no regulator found\n");
+		gmac->regulator = NULL;
+	}
 
-	/* Set GMAC transmit clock source. */
-	priv_clk_reg &= ~GMAC_TX_CLK_MASK;
-	if (plat_dat->interface == PHY_INTERFACE_MODE_RGMII
-			|| plat_dat->interface == PHY_INTERFACE_MODE_GMII)
-		priv_clk_reg |= GMAC_TX_CLK_RGMII_INT;
-	else
-		priv_clk_reg |= GMAC_TX_CLK_MII;
+	return gmac;
+}
 
-	writel(priv_clk_reg, addr);
+#define SUN7I_GMAC_GMII_RGMII_RATE	125000000
+#define SUN7I_GMAC_MII_RATE		25000000
 
-	/* mask out phy addr 0x0 */
-	plat_dat->mdio_bus_data->phy_mask = 0x1;
+static int sun7i_gmac_init(struct platform_device *pdev, void *priv)
+{
+	struct sunxi_priv_data *gmac = priv;
+	int ret;
+
+	if (gmac->regulator) {
+		ret = regulator_enable(gmac->regulator);
+		if (ret)
+			return ret;
+	}
+
+	/* Set GMAC interface port mode
+	 *
+	 * The GMAC TX clock lines are configured by setting the clock
+	 * rate, which then uses the auto-reparenting feature of the
+	 * clock driver, and enabling/disabling the clock.
+	 */
+	if (gmac->interface == PHY_INTERFACE_MODE_RGMII) {
+		clk_set_rate(gmac->tx_clk, SUN7I_GMAC_GMII_RGMII_RATE);
+		clk_prepare_enable(gmac->tx_clk);
+		gmac->clk_enabled = 1;
+	} else {
+		clk_set_rate(gmac->tx_clk, SUN7I_GMAC_MII_RATE);
+		clk_prepare(gmac->tx_clk);
+	}
 
 	return 0;
 }
 
-const struct plat_stmmacenet_data sun7i_gmac_data = {
+static void sun7i_gmac_exit(struct platform_device *pdev, void *priv)
+{
+	struct sunxi_priv_data *gmac = priv;
+
+	if (gmac->clk_enabled) {
+		clk_disable(gmac->tx_clk);
+		gmac->clk_enabled = 0;
+	}
+	clk_unprepare(gmac->tx_clk);
+
+	if (gmac->regulator)
+		regulator_disable(gmac->regulator);
+}
+
+static void sun7i_fix_speed(void *priv, unsigned int speed)
+{
+	struct sunxi_priv_data *gmac = priv;
+
+	/* only GMII mode requires us to reconfigure the clock lines */
+	if (gmac->interface != PHY_INTERFACE_MODE_GMII)
+		return;
+
+	if (gmac->clk_enabled) {
+		clk_disable(gmac->tx_clk);
+		gmac->clk_enabled = 0;
+	}
+	clk_unprepare(gmac->tx_clk);
+
+	if (speed == 1000) {
+		clk_set_rate(gmac->tx_clk, SUN7I_GMAC_GMII_RGMII_RATE);
+		clk_prepare_enable(gmac->tx_clk);
+		gmac->clk_enabled = 1;
+	} else {
+		clk_set_rate(gmac->tx_clk, SUN7I_GMAC_MII_RATE);
+		clk_prepare(gmac->tx_clk);
+	}
+}
+
+/* of_data specifying hardware features and callbacks.
+ * hardware features were copied from Allwinner drivers. */
+const struct stmmac_of_data sun7i_gmac_data = {
 	.has_gmac = 1,
 	.tx_coe = 1,
+	.fix_mac_speed = sun7i_fix_speed,
+	.setup = sun7i_gmac_setup,
 	.init = sun7i_gmac_init,
+	.exit = sun7i_gmac_exit,
 };
-

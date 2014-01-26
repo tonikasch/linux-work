@@ -199,12 +199,10 @@
 				interrupts = <37>, <38>, <39>, <40>, <5>, <6>;
 			};
 
-			sata@a0000 {
-				compatible = "marvell,armada-370-sata";
-				reg = <0xa0000 0x5000>;
-				interrupts = <55>;
-				clocks = <&gateclk 15>, <&gateclk 30>;
-				clock-names = "0", "1";
+			usb@50000 {
+				compatible = "marvell,orion-ehci";
+				reg = <0x50000 0x500>;
+				interrupts = <45>;
 				status = "disabled";
 			};
 
@@ -239,7 +237,7 @@
 			};
 
 			sata@a0000 {
-				compatible = "marvell,orion-sata";
+				compatible = "marvell,armada-370-sata";
 				reg = <0xa0000 0x5000>;
 				interrupts = <55>;
 				clocks = <&gateclk 15>, <&gateclk 30>;

@@ -18,7 +18,6 @@
 #include <linux/clkdev.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
-#include <linux/reset-controller.h>
 
 #include "clk-factors.h"
 
@@ -250,32 +249,7 @@ static void sun4i_get_pll5_factors(u32 *freq, u32 parent_rate,
 	*n = DIV_ROUND_UP(div, (*k+1));
 }
 
-/**
- * sun5i_get_ahb_factors() - calculates p factor for AHB
- * AHB rate is calculated as follows
- * rate = parent_rate >> p
- */
 
-static void sun5i_a13_get_ahb_factors(u32 *freq, u32 parent_rate,
-				      u8 *n, u8 *k, u8 *m, u8 *p)
-{
-	u8 div;
-
-	/* This clock can only divide, so we will never achieve a higher
-	 * rate than the parent's */
-	if (*freq > parent_rate)
-		*freq = parent_rate;
-
-	/* Normalize value to a parent multiple */
-	div = *freq / parent_rate;
-	*freq = parent_rate * div;
-
-	/* we were called to round the frequency, we can now return */
-	if (n == NULL)
-		return;
-
-	*p = div;
-}
 
 /**
  * sun4i_get_apb1_factors() - calculates m, p factors for APB1
@@ -362,41 +336,6 @@ static void sun4i_get_mod0_factors(u32 *freq, u32 parent_rate,
 
 
 /**
- * clk_sunxi_mmc_phase_control() - configures MMC clock phase control
- */
-
-void clk_sunxi_mmc_phase_control(struct clk_hw *hw, u8 sample, u8 output)
-{
-	#define to_clk_composite(_hw) container_of(_hw, struct clk_composite, hw)
-	#define to_clk_factors(_hw) container_of(_hw, struct clk_factors, hw)
-
-	struct clk_composite *composite = to_clk_composite(hw);
-	struct clk_hw *rate_hw = composite->rate_hw;
-	struct clk_factors *factors = to_clk_factors(rate_hw);
-	unsigned long flags = 0;
-	u32 reg;
-
-	if (factors->lock)
-		spin_lock_irqsave(factors->lock, flags);
-
-	reg = readl(factors->reg);
-
-	/* set sample clock phase control */
-	reg &= ~(0x7 << 20);
-	reg |= ((sample & 0x7) << 20);
-
-	/* set output clock phase control */
-	reg &= ~(0x7 << 8);
-	reg |= ((output & 0x7) << 8);
-
-	writel(reg, factors->reg);
-
-	if (factors->lock)
-		spin_unlock_irqrestore(factors->lock, flags);
-}
-
-
-/**
  * sun7i_a20_get_out_factors() - calculates m, p factors for CLK_OUT_A/B
  * CLK_OUT rate is calculated as follows
  * rate = (parent_rate >> p) / (m + 1);
@@ -477,11 +416,6 @@ static struct clk_factors_config sun4i_pll5_config = {
 	.kwidth = 2,
 };
 
-static struct clk_factors_config sun5i_a13_ahb_config = {
-	.pshift = 4,
-	.pwidth = 2,
-};
-
 static struct clk_factors_config sun4i_apb1_config = {
 	.mshift = 0,
 	.mwidth = 5,
@@ -523,14 +457,7 @@ static const struct factors_data sun4i_pll5_data __initconst = {
 	.getter = sun4i_get_pll5_factors,
 };
 
-static const struct factors_data sun5i_a13_ahb_data __initconst = {
-	.mux = 6,
-	.table = &sun5i_a13_ahb_config,
-	.getter = sun5i_a13_get_ahb_factors,
-};
-
 static const struct factors_data sun4i_apb1_data __initconst = {
-	.mux = 24,
 	.table = &sun4i_apb1_config,
 	.getter = sun4i_get_apb1_factors,
 };
@@ -655,6 +582,10 @@ static const struct mux_data sun6i_a31_ahb1_mux_data __initconst = {
 	.shift = 12,
 };
 
+static const struct mux_data sun4i_apb1_mux_data __initconst = {
+	.shift = 24,
+};
+
 static void __init sunxi_mux_clk_setup(struct device_node *node,
 				       struct mux_data *data)
 {
@@ -742,59 +673,6 @@ static void __init sunxi_divider_clk_setup(struct device_node *node,
 
 
 /**
- * gates_reset... - reset bits in leaf gate clk registers handling
- */
-
-struct gates_reset_data {
-	void __iomem			*reg;
-	spinlock_t			*lock;
-	struct reset_controller_dev	rcdev;
-};
-
-static int gates_reset_assert(struct reset_controller_dev *rcdev,
-			      unsigned long id)
-{
-	struct gates_reset_data *data = container_of(rcdev,
-						     struct gates_reset_data,
-						     rcdev);
-	unsigned long flags;
-	u32 reg;
-
-	spin_lock_irqsave(data->lock, flags);
-
-	reg = readl(data->reg);
-	writel(reg & ~BIT(id), data->reg);
-
-	spin_unlock_irqrestore(data->lock, flags);
-
-	return 0;
-}
-
-static int gates_reset_deassert(struct reset_controller_dev *rcdev,
-				unsigned long id)
-{
-	struct gates_reset_data *data = container_of(rcdev,
-						     struct gates_reset_data,
-						     rcdev);
-	unsigned long flags;
-	u32 reg;
-
-	spin_lock_irqsave(data->lock, flags);
-
-	reg = readl(data->reg);
-	writel(reg | BIT(id), data->reg);
-
-	spin_unlock_irqrestore(data->lock, flags);
-
-	return 0;
-}
-
-static struct reset_control_ops gates_reset_ops = {
-	.assert		= gates_reset_assert,
-	.deassert	= gates_reset_deassert,
-};
-
-/**
  * sunxi_gates_clk_setup() - Setup function for leaf gates on clocks
  */
 
@@ -802,7 +680,6 @@ static struct reset_control_ops gates_reset_ops = {
 
 struct gates_data {
 	DECLARE_BITMAP(mask, SUNXI_GATES_MAX_SIZE);
-	u32 reset_mask;
 };
 
 static const struct gates_data sun4i_axi_gates_data __initconst = {
@@ -811,16 +688,6 @@ static const struct gates_data sun4i_axi_gates_data __initconst = {
 
 static const struct gates_data sun4i_ahb_gates_data __initconst = {
 	.mask = {0x7F77FFF, 0x14FB3F},
-};
-
-static const struct gates_data sun4i_usb_gates_data __initconst = {
-	.mask = {0x1C0},
-	.reset_mask = 0x07,
-};
-
-static const struct gates_data sun5i_a13_usb_gates_data __initconst = {
-	.mask = {0x140},
-	.reset_mask = 0x03,
 };
 
 static const struct gates_data sun5i_a10s_ahb_gates_data __initconst = {
@@ -883,7 +750,6 @@ static void __init sunxi_gates_clk_setup(struct device_node *node,
 					 struct gates_data *data)
 {
 	struct clk_onecell_data *clk_data;
-	struct gates_reset_data *reset_data;
 	const char *clk_parent;
 	const char *clk_name;
 	void *reg;
@@ -927,21 +793,6 @@ static void __init sunxi_gates_clk_setup(struct device_node *node,
 	clk_data->clk_num = i;
 
 	of_clk_add_provider(node, of_clk_src_onecell_get, clk_data);
-
-	/* Register a reset controler for gates with reset bits */
-	if (data->reset_mask == 0)
-		return;
-
-	reset_data = kzalloc(sizeof(*reset_data), GFP_KERNEL);
-	if (!reset_data)
-		return;
-
-	reset_data->reg = reg;
-	reset_data->lock = &clk_lock;
-	reset_data->rcdev.nr_resets = __fls(data->reset_mask) + 1;
-	reset_data->rcdev.ops = &gates_reset_ops;
-	reset_data->rcdev.of_node = node;
-	reset_controller_register(&reset_data->rcdev);
 }
 
 
@@ -1121,7 +972,6 @@ free_clkdata:
 static const struct of_device_id clk_factors_match[] __initconst = {
 	{.compatible = "allwinner,sun4i-pll1-clk", .data = &sun4i_pll1_data,},
 	{.compatible = "allwinner,sun6i-a31-pll1-clk", .data = &sun6i_a31_pll1_data,},
-	{.compatible = "allwinner,sun5i-a13-ahb-clk", .data = &sun5i_a13_ahb_data,},
 	{.compatible = "allwinner,sun4i-apb1-clk", .data = &sun4i_apb1_data,},
 	{.compatible = "allwinner,sun4i-mod0-clk", .data = &sun4i_mod0_data,},
 	{.compatible = "allwinner,sun7i-a20-out-clk", .data = &sun7i_a20_out_data,},
@@ -1147,6 +997,7 @@ static const struct of_device_id clk_divs_match[] __initconst = {
 /* Matches for mux clocks */
 static const struct of_device_id clk_mux_match[] __initconst = {
 	{.compatible = "allwinner,sun4i-cpu-clk", .data = &sun4i_cpu_mux_data,},
+	{.compatible = "allwinner,sun4i-apb1-mux-clk", .data = &sun4i_apb1_mux_data,},
 	{.compatible = "allwinner,sun6i-a31-ahb1-mux-clk", .data = &sun6i_a31_ahb1_mux_data,},
 	{}
 };
@@ -1169,8 +1020,6 @@ static const struct of_device_id clk_gates_match[] __initconst = {
 	{.compatible = "allwinner,sun6i-a31-apb1-gates-clk", .data = &sun6i_a31_apb1_gates_data,},
 	{.compatible = "allwinner,sun7i-a20-apb1-gates-clk", .data = &sun7i_a20_apb1_gates_data,},
 	{.compatible = "allwinner,sun6i-a31-apb2-gates-clk", .data = &sun6i_a31_apb2_gates_data,},
-	{.compatible = "allwinner,sun4i-usb-gates-clk", .data = &sun4i_usb_gates_data,},
-	{.compatible = "allwinner,sun5i-a13-usb-gates-clk", .data = &sun5i_a13_usb_gates_data,},
 	{}
 };
 
@@ -1214,7 +1063,7 @@ static void __init sunxi_clock_protect(void)
 	}
 }
 
-static void __init sunxi_init_clocks(struct device_node *np)
+static void __init sunxi_init_clocks(void)
 {
 	/* Register factor clocks */
 	of_sunxi_table_clock_setup(clk_factors_match, sunxi_factors_clk_setup);

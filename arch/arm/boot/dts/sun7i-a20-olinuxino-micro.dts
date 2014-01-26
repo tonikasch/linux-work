@@ -13,102 +13,34 @@
 
 /dts-v1/;
 /include/ "sun7i-a20.dtsi"
-/include/ "sunxi-ahci-reg.dtsi"
-#include <dt-bindings/input/input.h>
 
 / {
 	model = "Olimex A20-Olinuxino Micro";
 	compatible = "olimex,a20-olinuxino-micro", "allwinner,sun7i-a20";
 
 	soc@01c00000 {
-		mmc0: mmc@01c0f000 {
+		emac: ethernet@01c0b000 {
 			pinctrl-names = "default";
-			pinctrl-0 = <&mmc0_pins_a>;
-			pinctrl-1 = <&mmc0_cd_pin_olinuxinom>;
-			cd-gpios = <&pio 7 1 0>; /* PH1 */
-			cd-mode = <1>;
+			pinctrl-0 = <&emac_pins_a>;
+			phy = <&phy1>;
 			status = "okay";
 		};
 
-		mmc3: mmc@01c12000 {
-			pinctrl-names = "default";
-			pinctrl-0 = <&mmc3_pins_a>;
-			pinctrl-1 = <&mmc3_cd_pin_olinuxinom>;
-			cd-gpios = <&pio 7 11 0>; /* PH11 */
-			cd-mode = <1>;
+		mdio@01c0b080 {
 			status = "okay";
-		};
 
-		usbphy: phy@0x01c13400 {
-			usb1_vbus-supply = <&reg_usb1_vbus>;
-			usb2_vbus-supply = <&reg_usb2_vbus>;
-			status = "okay";
-		};
-
-		ehci0: ehci@0x01c14000 {
-			status = "okay";
-		};
-
-		ohci0: ohci@0x01c14400 {
-			status = "okay";
-		};
-
-		sata: ahci@01c18000 {
-			target-supply = <&reg_ahci_5v>;
-			status = "okay";
-		};
-
-		ehci1: ehci@0x01c1c000 {
-			status = "okay";
-		};
-
-		ohci1: ohci@0x01c1c400 {
-			status = "okay";
+			phy1: ethernet-phy@1 {
+				reg = <1>;
+			};
 		};
 
 		pinctrl@01c20800 {
-			mmc0_cd_pin_olinuxinom: mmc0_cd_pin@0 {
-				allwinner,pins = "PH1";
-				allwinner,function = "gpio_in";
-				allwinner,drive = <0>;
-				allwinner,pull = <0>;
-			};
-
-			mmc3_cd_pin_olinuxinom: mmc3_cd_pin@0 {
-				allwinner,pins = "PH11";
-				allwinner,function = "gpio_in";
-				allwinner,drive = <0>;
-				allwinner,pull = <0>;
-			};
-
 			led_pins_olinuxino: led_pins@0 {
 				allwinner,pins = "PH2";
 				allwinner,function = "gpio_out";
 				allwinner,drive = <1>;
 				allwinner,pull = <0>;
 			};
-
-			usb1_vbus_pin_olinuxinom: usb1_vbus_pin@0 {
-					allwinner,pins = "PH6";
-					allwinner,function = "gpio_out";
-					allwinner,drive = <0>;
-					allwinner,pull = <0>;
-			};
-
-			usb2_vbus_pin_olinuxinom: usb2_vbus_pin@0 {
-					allwinner,pins = "PH3";
-					allwinner,function = "gpio_out";
-					allwinner,drive = <0>;
-					allwinner,pull = <0>;
-			};
-		};
-
-		lradc: lradc@01c22800 {
-			allwinner,chan0-step = <200>;
-			linux,chan0-keycodes = <KEY_VOLUMEUP KEY_VOLUMEDOWN
-						KEY_MENU KEY_SEARCH KEY_HOME
-						KEY_ESC KEY_ENTER>;
-			status = "okay";
 		};
 
 		uart0: serial@01c28000 {
@@ -146,14 +78,6 @@
 			pinctrl-0 = <&i2c2_pins_a>;
 			status = "okay";
 		};
-
-		gmac: ethernet@01c50000 {
-			pinctrl-names = "default";
-			pinctrl-0 = <&gmac_pins_mii>;
-			snps,phy-addr = <1>;
-			phy-mode = "mii";
-			status = "okay";
-		};
 	};
 
 	leds {
@@ -165,30 +89,6 @@
 			label = "a20-olinuxino-micro:green:usr";
 			gpios = <&pio 7 2 0>;
 			default-state = "on";
-		};
-	};
-
-	regulators {
-		reg_usb1_vbus: usb1-vbus {
-			compatible = "regulator-fixed";
-			pinctrl-names = "default";
-			pinctrl-0 = <&usb1_vbus_pin_olinuxinom>;
-			regulator-name = "usb1-vbus";
-			regulator-min-microvolt = <5000000>;
-			regulator-max-microvolt = <5000000>;
-			enable-active-high;
-			gpio = <&pio 7 6 0>;
-		};
-
-		reg_usb2_vbus: usb2-vbus {
-			compatible = "regulator-fixed";
-			pinctrl-names = "default";
-			pinctrl-0 = <&usb2_vbus_pin_olinuxinom>;
-			regulator-name = "usb2-vbus";
-			regulator-min-microvolt = <5000000>;
-			regulator-max-microvolt = <5000000>;
-			enable-active-high;
-			gpio = <&pio 7 3 0>;
 		};
 	};
 };

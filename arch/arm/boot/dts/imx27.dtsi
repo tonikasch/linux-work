@@ -9,7 +9,6 @@
  * http://www.gnu.org/copyleft/gpl.html
  */
 
-#include <dt-bindings/gpio/gpio.h>
 #include "skeleton.dtsi"
 
 / {

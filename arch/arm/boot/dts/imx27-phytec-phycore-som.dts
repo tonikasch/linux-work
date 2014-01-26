@@ -134,7 +134,7 @@
 };
 
 &fec {
-	phy-reset-gpios = <&gpio3 30 GPIO_ACTIVE_LOW>;
+	phy-reset-gpios = <&gpio3 30 0>;
 	status = "okay";
 };
 

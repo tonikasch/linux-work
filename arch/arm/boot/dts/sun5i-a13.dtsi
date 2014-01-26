@@ -115,9 +115,9 @@
 
 		ahb: ahb@01c20054 {
 			#clock-cells = <0>;
-			compatible = "allwinner,sun5i-a13-ahb-clk";
+			compatible = "allwinner,sun4i-ahb-clk";
 			reg = <0x01c20054 0x4>;
-			clocks = <&axi>, <&cpu>, <&pll6 1>;
+			clocks = <&axi>;
 		};
 
 		ahb_gates: ahb_gates@01c20060 {
@@ -148,11 +148,18 @@
 			clock-output-names = "apb0_codec", "apb0_pio", "apb0_ir";
 		};
 
+		apb1_mux: apb1_mux@01c20058 {
+			#clock-cells = <0>;
+			compatible = "allwinner,sun4i-apb1-mux-clk";
+			reg = <0x01c20058 0x4>;
+			clocks = <&osc24M>, <&pll6 1>, <&osc32k>;
+		};
+
 		apb1: apb1@01c20058 {
 			#clock-cells = <0>;
 			compatible = "allwinner,sun4i-apb1-clk";
 			reg = <0x01c20058 0x4>;
-			clocks = <&osc24M>, <&pll6 1>, <&osc32k>;
+			clocks = <&apb1_mux>;
 		};
 
 		apb1_gates: apb1_gates@01c2006c {
@@ -252,15 +259,6 @@
 			clock-output-names = "ir0";
 		};
 
-		usb_clk: clk@0x01c200cc {
-			#clock-cells = <1>;
-		        #reset-cells = <1>;
-			compatible = "allwinner,sun5i-a13-usb-gates-clk";
-			reg = <0x01c200cc 0x4>;
-			clocks = <&pll6 1>;
-			clock-output-names = "usb_ohci0", "usb_phy";
-		};
-
 		mbus_clk: clk@01c2015c {
 			#clock-cells = <0>;
 			compatible = "allwinner,sun4i-mod0-clk";
@@ -275,47 +273,6 @@
 		#address-cells = <1>;
 		#size-cells = <1>;
 		ranges;
-
-		mmc0: mmc@01c0f000 {
-			compatible = "allwinner,sun5i-a13-mmc";
-			reg = <0x01c0f000 0x1000>;
-			clocks = <&ahb_gates 8>, <&mmc0_clk>;
-			clock-names = "ahb", "mod";
-			interrupts = <32>;
-			bus-width = <4>;
-			status = "disabled";
-		};
-
-		usbphy: phy@0x01c13400 {
-			#phy-cells = <1>;
-			compatible = "allwinner,sun5i-a13-usb-phy";
-			reg = <0x01c13400 0x10 0x01c14800 0x4>;
-			clocks = <&usb_clk 8>;
-			clock-names = "usb_phy";
-			resets = <&usb_clk 1>;
-			reset-names = "usb1_reset";
-			status = "disabled";
-		};
-
-		ehci0: ehci@0x01c14000 {
-			compatible = "allwinner,sun5i-a13-ehci", "usb-ehci";
-			reg = <0x01c14000 0x100>;
-			interrupts = <39>;
-			clocks = <&ahb_gates 1>;
-			phys = <&usbphy 1>;
-			phy-names = "usb";
-			status = "disabled";
-		};
-
-		ohci0: ohci@0x01c14400 {
-			compatible = "allwinner,sun5i-a13-ohci", "usb-ohci";
-			reg = <0x01c14400 0x100>;
-			interrupts = <40>;
-			clocks = <&usb_clk 6>, <&ahb_gates 2>;
-			phys = <&usbphy 1>;
-			phy-names = "usb";
-			status = "disabled";
-		};
 
 		intc: interrupt-controller@01c20400 {
 			compatible = "allwinner,sun4i-ic";
@@ -369,13 +326,6 @@
 				allwinner,drive = <0>;
 				allwinner,pull = <0>;
 			};
-
-			mmc0_pins_a: mmc0@0 {
-				allwinner,pins = "PF0","PF1","PF2","PF3","PF4","PF5";
-				allwinner,function = "mmc0";
-				allwinner,drive = <3>;
-				allwinner,pull = <0>;
-			};
 		};
 
 		timer@01c20c00 {
@@ -388,13 +338,6 @@
 		wdt: watchdog@01c20c90 {
 			compatible = "allwinner,sun4i-wdt";
 			reg = <0x01c20c90 0x10>;
-		};
-
-		lradc: lradc@01c22800 {
-			compatible = "allwinner,sun4i-lradc-keys";
-			reg = <0x01c22800 0x100>;
-			interrupts = <31>;
-			status = "disabled";
 		};
 
 		sid: eeprom@01c23800 {
