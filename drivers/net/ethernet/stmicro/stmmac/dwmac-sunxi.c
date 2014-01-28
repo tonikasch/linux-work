@@ -138,4 +138,3 @@ const struct stmmac_of_data sun7i_gmac_data = {
 	.init = sun7i_gmac_init,
 	.exit = sun7i_gmac_exit,
 };
-
