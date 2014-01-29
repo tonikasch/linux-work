@@ -3174,7 +3174,9 @@ EXPORT_SYMBOL_GPL(snd_soc_get_volsw_2r_sx);
 int snd_soc_put_volsw_2r_sx(struct snd_kcontrol *kcontrol,
 			struct snd_ctl_elem_value *ucontrol)
 {
-	/*struct soc_mixer_control *mc =
+#if 1
+/* stable version */
+	struct soc_mixer_control *mc =
 		(struct soc_mixer_control *)kcontrol->private_value;
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
 	unsigned int mask = (1<<mc->shift)-1;
@@ -3202,8 +3204,9 @@ int snd_soc_put_volsw_2r_sx(struct snd_kcontrol *kcontrol,
 			return ret;
 	}
 
-	return 0;*/		//sxj modify, this function have bug
-
+	return 0;		//sxj modify, this function have bug
+#else
+/* Rockchip version */
 	struct soc_mixer_control *mc =
          (struct soc_mixer_control *)kcontrol->private_value;
 	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
@@ -3228,6 +3231,7 @@ int snd_soc_put_volsw_2r_sx(struct snd_kcontrol *kcontrol,
 		return ret;
 
 	return 0;
+#endif
 }
 EXPORT_SYMBOL_GPL(snd_soc_put_volsw_2r_sx);
 
