@@ -53,11 +53,6 @@ static struct platform_device mali_gpu_device = {
 	.resource = mali_gpu_resources_m400_mp4,
 };
 
-/*
- TODO: Find a device, and not to hardcode it here
- */
-extern struct platform_device *g_fb_pdev;
-
 int mali_platform_device_register (void)
 {
 	int err;
