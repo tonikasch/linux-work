@@ -65,6 +65,12 @@ static struct map_desc rk30_io_desc[] __initdata = {
 	RK30_DEVICE(DDR_PCTL),
 	RK30_DEVICE(DDR_PUBL),
 	RK30_DEVICE(I2C1),
+	{
+		.virtual = (unsigned long) RK30_BOOTSHADOW_BASE,
+		.pfn = __phys_to_pfn(RK30_BOOTSHADOW_PHYS),
+		.length = RK30_BOOTSHADOW_SIZE,
+		.type = MT_MEMORY_ITCM,
+	},
 };
 
 void __init rk30_map_common_io(void)
