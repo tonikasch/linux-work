@@ -92,7 +92,7 @@ static struct lkg_maxvolt lkg_volt_table[] = {
 #else
 /* avdd_com & vdd_arm short circuit */
 static struct lkg_maxvolt lkg_volt_table[] = {
-	{.leakage_level = 3,	.maxvolt = 1375 * 1000},
+	{.leakage_level = 3,	.maxvolt = 1350 * 1000},
 	{.leakage_level = 5,	.maxvolt = 1300 * 1000},
 	{.leakage_level = 15,	.maxvolt = 1250 * 1000},
 };

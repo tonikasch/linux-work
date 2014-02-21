@@ -567,16 +567,9 @@ static  struct pmu_info  act8846_ldo_info[] = {
 		.max_uv         = 3300000,
 	},
 	{
-		.name          = "act_ldo6",   //vcc_jetta
-//SAW volt set via kernel config, default 3300000, mk908 and some others
-//need 1800000 to get wifi/bt working properly
-#ifdef CONFIG_ACT8846_LDO6_18V
-		.min_uv          = 1800000,
+		.name           = "act_ldo6",   //vcc_jetta
+		.min_uv         = 1800000,
 		.max_uv         = 1800000,
-#else
-		.min_uv		= 3300000,
-		.max_uv		= 3300000,
-#endif
 	},
 	{
 		.name          = "act_ldo7",   //vcc18
@@ -860,7 +853,7 @@ static struct cpufreq_frequency_table dvfs_arm_table[] = {
         {.frequency = 1008 * 1000,      .index = 1075 * 1000},
         {.frequency = 1200 * 1000,      .index = 1150 * 1000},
         {.frequency = 1416 * 1000,      .index = 1250 * 1000},
-        {.frequency = 1608 * 1000,      .index = 1375 * 1000},
+        {.frequency = 1608 * 1000,      .index = 1350 * 1000},
 
 
 	{.frequency = CPUFREQ_TABLE_END},
