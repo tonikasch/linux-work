@@ -1,7 +1,7 @@
 /*
- * rk29_wm8988.c  --  SoC audio for rockchip
+ * rk29_es8323.c  --  SoC audio for rockchip
  *
- * Driver for rockchip wm8988 audio
+ * Driver for rockchip es8323 audio
  *
  *  This program is free software; you can redistribute  it and/or modify it
  *  under  the terms of  the GNU General  Public License as published by the
@@ -19,14 +19,19 @@
 #include <sound/soc-dapm.h>
 #include <asm/io.h>
 #include <mach/hardware.h>
-#include <mach/rk29_iomap.h>
-#include "../codecs/wm8988.h"
+//#include <mach/rk29_iomap.h>
+//#include <linux/tchip_sysinf.h>
+#include "../codecs/es8323.h"
 #include "rk29_pcm.h"
 #include "rk29_i2s.h"
 
 #include <mach/gpio.h>
+#ifdef CONFIG_MACH_RK_FAC
+#include <plat/config.h>
+extern int codec_type;
+#endif
 
-#if 0
+#if 1
 #define	DBG(x...)	printk(KERN_INFO x)
 #else
 #define	DBG(x...)
@@ -40,14 +45,15 @@ static int rk29_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *codec_dai = rtd->codec_dai;
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
-	int ret;
-	  
-    DBG("Enter::%s----%d\n",__FUNCTION__,__LINE__);    
-	/*by Vincent Hsiung for EQ Vol Change*/
-	#define HW_PARAMS_FLAG_EQVOL_ON 0x21
-	#define HW_PARAMS_FLAG_EQVOL_OFF 0x22
-    if ((params->flags == HW_PARAMS_FLAG_EQVOL_ON)||(params->flags == HW_PARAMS_FLAG_EQVOL_OFF))
-    {
+        unsigned int pll_out = 0; 
+        int ret;
+
+        DBG("Enter::%s----%d\n",__FUNCTION__,__LINE__);    
+        /*by Vincent Hsiung for EQ Vol Change*/
+        #define HW_PARAMS_FLAG_EQVOL_ON 0x21
+        #define HW_PARAMS_FLAG_EQVOL_OFF 0x22
+        if ((params->flags == HW_PARAMS_FLAG_EQVOL_ON)||(params->flags == HW_PARAMS_FLAG_EQVOL_OFF))
+        {
 		ret = codec_dai->driver->ops->hw_params(substream, params, codec_dai); //by Vincent
     	DBG("Enter::%s----%d\n",__FUNCTION__,__LINE__);
     }
@@ -76,7 +82,33 @@ static int rk29_hw_params(struct snd_pcm_substream *substream,
 	    if (ret < 0)
 	    	  return ret;
 	  }
+        switch(params_rate(params)) {
+        case 8000:
+        case 16000:
+        case 24000:
+        case 32000:
+        case 48000:
+                pll_out = 12288000;
+                break;
+        case 11025:
+        case 22050:
+        case 44100:
+                pll_out = 11289600;
+                break;
+        default:
+                DBG("Enter:%s, %d, Error rate=%d\n",__FUNCTION__,__LINE__,params_rate(params));
+                return -EINVAL;
+                break;
+        }
+        DBG("Enter:%s, %d, rate=%d\n",__FUNCTION__,__LINE__,params_rate(params));
 	
+        #if defined (CONFIG_SND_RK29_CODEC_SOC_SLAVE)
+        snd_soc_dai_set_sysclk(cpu_dai, 0, pll_out, 0);
+        snd_soc_dai_set_clkdiv(cpu_dai, ROCKCHIP_DIV_BCLK, (pll_out/4)/params_rate(params)-1);
+        snd_soc_dai_set_clkdiv(cpu_dai, ROCKCHIP_DIV_MCLK, 3);
+        #endif
+
+        DBG("Enter:%s, %d, LRCK=%d\n",__FUNCTION__,__LINE__,(pll_out/4)/params_rate(params));
 	  return 0;
 }
 
@@ -98,9 +130,9 @@ static const struct snd_soc_dapm_route audio_map[]= {
 };
 
 /*
- * Logic for a wm8988 as connected on a rockchip board.
+ * Logic for a es8323 as connected on a rockchip board.
  */
-static int rk29_wm8988_init(struct snd_soc_pcm_runtime *rtd)
+static int rk29_es8323_init(struct snd_soc_pcm_runtime *rtd)
 {
 	struct snd_soc_dai *codec_dai = rtd->codec_dai;
 	struct snd_soc_codec *codec = rtd->codec;
@@ -112,7 +144,7 @@ static int rk29_wm8988_init(struct snd_soc_pcm_runtime *rtd)
     ret = snd_soc_dai_set_sysclk(codec_dai, 0,
 		/*12000000*/11289600, SND_SOC_CLOCK_IN);
 	if (ret < 0) {
-		printk(KERN_ERR "Failed to set WM8988 SYSCLK: %d\n", ret);
+		printk(KERN_ERR "Failed to set es8323 SYSCLK: %d\n", ret);
 		return ret;
 	}
 	
@@ -135,18 +167,24 @@ static struct snd_soc_ops rk29_ops = {
 };
 
 static struct snd_soc_dai_link rk29_dai = {
-	.name = "WM8988",
-	.stream_name = "WM8988 PCM",
-	.codec_name = "WM8988.0-001a",
+	.name = "ES8323",
+	.stream_name = "ES8323 PCM",
+	.codec_name = "ES8323.4-0010",  // ES8323.0-0010
 	.platform_name = "rockchip-audio",
+#if defined(CONFIG_SND_RK29_SOC_I2S_8CH)	
 	.cpu_dai_name = "rk29_i2s.0",
-	.codec_dai_name = "WM8988 HiFi",
-	.init = rk29_wm8988_init,
+#elif defined(CONFIG_SND_RK29_SOC_I2S_2CH)
+	.cpu_dai_name = "rk29_i2s.1",  //硬件上是接到IIS0上，但是由于xx原因，这边定义为IIS1上
+#else
+	.cpu_dai_name = "rk29_i2s.2",
+#endif
+	.codec_dai_name = "ES8323 HiFi",
+	.init = rk29_es8323_init,
 	.ops = &rk29_ops,
 };
 
 static struct snd_soc_card snd_soc_card_rk29 = {
-	.name = "RK29_WM8988",
+	.name = "RK29_ES8323",
 	.dai_link = &rk29_dai,
 	.num_links = 1,
 };
@@ -156,10 +194,25 @@ static struct platform_device *rk29_snd_device;
 static int __init audio_card_init(void)
 {
     int ret =0;	
-	
-    //rk29_speaker = rk29_speaker_init(RK29_PIN6_PB6, GPIO_HIGH, 2, (200*1000*1000));
-
-    DBG("Enter::%s----%d\n",__FUNCTION__,__LINE__);
+#ifdef CONFIG_MACH_RK_FAC
+	if(codec_type!=CODEC_TYPE_ES8323)
+		return -1;
+#endif	 
+	 DBG("ES8323 audio_card_init\n");
+#if 0
+    extern int get_sound_card_exist() ;
+    extern void set_sound_card_exist(int i) ;
+    extern int i2c0_prober_verify(u32 dev_addr, u16 reg, u32 reg_addr_len, u32 reg_val_len, u32 id);
+    if(i2c0_prober_verify(0x10, 0x35, 1, 1, 0x0000) != 0) {
+        printk("%s(): Ping error with 0x1a\n", __FUNCTION__);
+        return -ENODEV;
+    }
+    else
+        printk("%s(): Ping OK with 0x1a\n", __FUNCTION__);
+#endif
+//leaf	if(0 == tcsi_get_value(TCSI_CODEC_ES8323))
+//leaf2012-7-26		return;
+    DBG("XXXXEnter::%s----%d\n",__FUNCTION__,__LINE__);
 	rk29_snd_device = platform_device_alloc("soc-audio", -1);
 	if (!rk29_snd_device) {
 		  DBG("platform device allocation failed\n");
@@ -174,10 +227,12 @@ static int __init audio_card_init(void)
             return ret;
 	}
 		
-        return ret;
+	return ret;
 }
 static void __exit audio_card_exit(void)
 {
+//leaf 2012-7-26  	if(0 == tcsi_get_value(TCSI_CODEC_ES8323))
+//leaf 2012-7-26		return;
     platform_device_unregister(rk29_snd_device);
     //rk29_speaker_deinit(rk29_speaker);	
 }
@@ -188,3 +243,4 @@ module_exit(audio_card_exit);
 MODULE_AUTHOR("rockchip");
 MODULE_DESCRIPTION("ROCKCHIP i2s ASoC Interface");
 MODULE_LICENSE("GPL");
+
