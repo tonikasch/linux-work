@@ -362,17 +362,17 @@ static ssize_t set_scale(struct device *dev,struct device_attribute *attr,
 			dev_drv->y_scale = scale;
 		}
 	}
-//	printk("scale rate x %d y %d\n", dev_drv->x_scale, dev_drv->y_scale);
-#if 0	
+	printk("scale rate x %d y %d\n", dev_drv->x_scale, dev_drv->y_scale);
+#if 1
 	var = &fbi->var;
 	xpos = (dev_drv->cur_screen->x_res - dev_drv->cur_screen->x_res*dev_drv->x_scale/100)>>1;
 	ypos = (dev_drv->cur_screen->y_res - dev_drv->cur_screen->y_res*dev_drv->y_scale/100)>>1;
 	xsize = dev_drv->cur_screen->x_res * dev_drv->x_scale/100;
 	ysize = dev_drv->cur_screen->y_res * dev_drv->y_scale/100;
-//	printk("var->nonstd is %02x\n", var->nonstd);
+	printk("var->nonstd is %02x\n", var->nonstd);
 	var->nonstd &= 0xff;
 	var->nonstd |= (xpos << 8) + (ypos << 20);
-//	printk("var->nonstd is %02x\n", var->nonstd);
+	printk("var->nonstd is %02x\n", var->nonstd);
 	var->grayscale &= 0xff;
 	var->grayscale |= (xsize << 8) + (ysize << 20);
 
