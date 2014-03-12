@@ -426,6 +426,17 @@ static int rk_fb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 			}
 			#endif
 			//$_rbox_$_modify_$ end
+			/*
+			 * Looks like here we should return actual errno from lcdc driver, but noooo.
+			 * This way screen go directly to standby and doesn't show anything.
+			 * [drivers/video/rockchip/rk_fb.c:rk_fb_ioctl:317]: info=f180a800, cmd=40187a21, arg=bef83b04
+			 * [drivers/video/rockchip/lcdc/rk3188_lcdc.c:rk3188_lcdc_ioctl:914]: dev_drv=f18f1818, cmd=40187a21, arg=bef83b04, layer_id=0
+			 * [drivers/video/rockchip/rk_fb.c:rk_fb_ioctl:418]: default case, lcdc ioctl returns -524, dev_drv=f18f1818, layer_id=0
+			 * no layer of lcdc1 is used,go to standby!
+			 * rk3188 lcdc1 clk disable...
+			 * lcdc1 win0 closed,atv layer:0
+			 */
+			ret = 0;
 			break;
 	}
 	return ret;
