@@ -883,7 +883,7 @@ static struct platform_device device_hdmi = {
 };
 #endif
 
-#ifdef CONFIG_RGA_RK30
+#if defined(CONFIG_RGA_RK30) || defined(CONFIG_RGA_RK30_MODULE)
 static struct resource resource_rga[] = {
 	[0] = {
 		.start = RK30_RGA_PHYS,
