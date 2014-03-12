@@ -32,9 +32,10 @@
 #include <mach/iomux.h>
 #include "../hdmi/rk_hdmi.h"
 #include "rk3188_lcdc.h"
+#include "../dbgdefs.h"
 
 
-
+#undef DBG
 static int dbg_thresd = 0;
 module_param(dbg_thresd, int, S_IRUGO|S_IWUSR);
 #define DBG(level,x...) do { 			\
@@ -80,8 +81,7 @@ static int rk3188_lcdc_clk_disable(struct rk3188_lcdc_device *lcdc_dev)
 	return 0;
 }
 
-
-
+#if 0
 static void rk3188_lcdc_reg_dump(struct rk3188_lcdc_device *lcdc_dev)
 {
 	int *cbase =  (int *)lcdc_dev->regs;
@@ -105,6 +105,7 @@ static void rk3188_lcdc_reg_dump(struct rk3188_lcdc_device *lcdc_dev)
 	}
        
 }
+#endif
 
 static int rk3188_lcdc_alpha_cfg(struct rk3188_lcdc_device *lcdc_dev)
 {
@@ -237,7 +238,7 @@ static int rk3188_lcdc_open(struct rk_lcdc_device_driver *dev_drv,int layer_id,b
 		container_of(dev_drv,struct rk3188_lcdc_device,driver);
 
 	if((!open) && (!lcdc_dev->atv_layer_cnt))
-		return;
+		return 1;
 	
 	if((open) && (!lcdc_dev->atv_layer_cnt)) //enable clk,when first layer open
 	{
@@ -409,10 +410,10 @@ static void rk3188_lcdc_deint(struct rk3188_lcdc_device * lcdc_dev)
 	else   //clk already disabled 
 	{
 		spin_unlock(&lcdc_dev->reg_lock);
-		return 0;
+		return;
 	}
 	mdelay(1);
-	
+	return;
 }
 
 //set lcdc according the screen info
@@ -822,8 +823,10 @@ static int rk3188_lcdc_pan_display(struct rk_lcdc_device_driver * dev_drv,int la
 				container_of(dev_drv,struct rk3188_lcdc_device,driver);
 	struct layer_par *par = NULL;
 	rk_screen *screen = dev_drv->cur_screen;
+#if defined(WAIT_FOR_SYNC)
 	unsigned long flags;
 	int timeout;
+#endif
 	
 	if(!screen)
 	{
@@ -904,9 +907,11 @@ static int rk3188_lcdc_ioctl(struct rk_lcdc_device_driver *dev_drv, unsigned int
 		container_of(dev_drv,struct rk3188_lcdc_device,driver);
 	u32 panel_size[2];
 	void __user *argp = (void __user *)arg;
-	int enable;
 	unsigned long flags;
 	int timeout;
+	int ret=0;
+
+	DBG_PRINT("dev_drv=%p, cmd=%x, arg=%lx, layer_id=%u",dev_drv,cmd,arg,layer_id);
 	switch(cmd)
 	{
 		case RK_FBIOGET_PANEL_SIZE:    //get panel size
@@ -934,9 +939,10 @@ static int rk3188_lcdc_ioctl(struct rk_lcdc_device_driver *dev_drv, unsigned int
 			}
 			break;
 		default:
+			ret = -ENOTSUPP;
 			break;
 	}
-	return 0;
+	return ret;
 }
 
 static int rk3188_lcdc_early_suspend(struct rk_lcdc_device_driver *dev_drv)

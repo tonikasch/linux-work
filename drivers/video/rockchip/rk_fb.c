@@ -312,8 +312,8 @@ static int rk_fb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 	//$_rbox_$_modify_$ end
 #if defined(CONFIG_MALI) || defined(CONFIG_MALI_MODULE)
         int secure_id_buf_num = 0; //IAM
-        int ret;
 #endif
+        int ret=0;
 	DBG_PRINT("info=%p, cmd=%x, arg=%lx",info,cmd,arg);
 
 	switch(cmd)
@@ -413,21 +413,22 @@ static int rk_fb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 			return ret;
 		}
 #endif
-        	default:
-			dev_drv->ioctl(dev_drv,cmd,arg,layer_id);
+		default:
+			ret = dev_drv->ioctl(dev_drv,cmd,arg,layer_id);
+			DBG_PRINT("default case, lcdc ioctl returns %d, dev_drv=%p, layer_id=%u",ret,dev_drv,layer_id);
 			//$_rbox_$_modify_$ zhengyang modified for box display system
 			#if defined(CONFIG_DUAL_LCDC_DUAL_DISP_IN_KERNEL)
 			if(inf->num_lcdc >= 2) {
 				info2 = inf->fb[inf->num_fb>>1];
-				dev_drv1  = (struct rk_lcdc_device_driver * )info2->par;
-				dev_drv1->ioctl(dev_drv1,cmd,arg,layer_id);
+				dev_drv1 = (struct rk_lcdc_device_driver * )info2->par;
+				ret = dev_drv1->ioctl(dev_drv1,cmd,arg,layer_id);
+				DBG_PRINT("default case 2, lcdc ioctl returns %d, dev_drv1=%p, layer_id=%u",ret,dev_drv,layer_id);
 			}
 			#endif
 			//$_rbox_$_modify_$ end
-
-            		break;
-    }
-    return 0;
+			break;
+	}
+	return ret;
 }
 
 static int rk_fb_blank(int blank_mode, struct fb_info *info)
